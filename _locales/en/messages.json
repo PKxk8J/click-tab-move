@@ -1,0 +1,21 @@
+{
+  "debug": {
+    "message": "debug",
+    "description": "Set 'debug' to display debug log"
+  },
+  "name": {
+    "message": "ClickTabMove"
+  },
+  "move": {
+    "message": "Move"
+  },
+  "moveX": {
+    "message": "Move $1"
+  }
+  "one": {
+    "message": "One"
+  },
+  "all": {
+    "message": "All"
+  }
+}
