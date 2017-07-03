@@ -29,5 +29,8 @@
   },
   "save": {
     "message": "Save"
+  },
+  "reloadDescription": {
+    "message": "for Not Loaded Tabs"
   }
 }

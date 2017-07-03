@@ -13,6 +13,7 @@ const KEY_ALL_RELOAD = 'allReload'
 
 const KEY_MENU_ITEM = 'menuItem'
 const KEY_SAVE = 'save'
+const KEY_RELOAD_DESC = 'reloadDescription'
 
 const DEBUG = (i18n.getMessage(KEY_DEBUG) === 'debug')
 function debug (message) {
@@ -35,6 +36,10 @@ function falseIffFalse (bool) {
 
 [KEY_MENU_ITEM, KEY_ONE, KEY_ONE_RELOAD, KEY_ALL, KEY_ALL_RELOAD, KEY_SAVE].forEach((key) => {
   document.getElementById('label_' + key).innerText = i18n.getMessage(key)
+})
+
+;[KEY_ONE_RELOAD, KEY_ALL_RELOAD].forEach((key) => {
+  document.getElementById('description_' + key).innerText = i18n.getMessage(KEY_RELOAD_DESC)
 })
 
 // 現在の設定を表示する
