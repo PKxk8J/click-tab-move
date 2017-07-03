@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "__MSG_name__",
   "version": "1.0.0",
-  "description": "Move tabs to another window from right click menu on tabs.",
+  "description": "Move tabs to another window from right click menu on tabs.\n\nNot only moving one tab, you can merge two windows by moving all tabs to another window.",
   "applications": {
     "gecko": {
       "strict_min_version": "53.0"
