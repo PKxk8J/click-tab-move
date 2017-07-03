@@ -5,6 +5,7 @@
   "description": "Move tabs to another window from right click menu on tabs.\n\nNot only moving one tab, you can merge two windows by moving all tabs to another window.",
   "applications": {
     "gecko": {
+      "id": "{2bd73814-983c-42f3-a6d5-e68c4668a4cf}",
       "strict_min_version": "53.0"
     }
   },

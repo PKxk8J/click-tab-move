@@ -1,8 +1,7 @@
 'use strict'
 
 const { i18n, storage } = browser
-// TODO sync に
-const storageArea = storage.local
+const storageArea = storage.sync
 
 const KEY_DEBUG = 'debug'
 

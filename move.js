@@ -1,8 +1,7 @@
 'use strict'
 
 const { contextMenus, i18n, runtime, storage, tabs, windows } = browser
-// TODO sync に
-const storageArea = storage.local
+const storageArea = storage.sync
 
 const KEY_DEBUG = 'debug'
 
