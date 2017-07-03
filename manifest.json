@@ -10,12 +10,16 @@
   },
   "permissions": [
     "tabs",
-    "contextMenus"
+    "contextMenus",
+    "storage"
   ],
   "background": {
     "scripts": [
       "move.js"
     ]
   },
-  "default_locale": "en"
+  "default_locale": "en",
+  "options_ui": {
+    "page": "options.html"
+  }
 }
