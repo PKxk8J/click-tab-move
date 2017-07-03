@@ -97,7 +97,7 @@ function removeItem (windowId) {
     removing.then(() => debug('Removed ' + id + ' menu item'), onError)
   }
 
-  menuKeys.forEach((key) => remove(KEY_ONE + SEP + windowId))
+  menuKeys.forEach((key) => remove(key + SEP + windowId))
 }
 
 // フォーカスしてるタブで状態を更新する
