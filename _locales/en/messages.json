@@ -1,0 +1,36 @@
+{
+  "debug": {
+    "message": "release",
+    "description": "Set 'debug' to display debug log"
+  },
+  "name": {
+    "message": "ClickTabMove"
+  },
+  "move": {
+    "message": "Move"
+  },
+  "moveX": {
+    "message": "Move $1"
+  },
+  "one": {
+    "message": "One"
+  },
+  "oneReload": {
+    "message": "One with Reload"
+  },
+  "all": {
+    "message": "All"
+  },
+  "allReload": {
+    "message": "All with Reload"
+  },
+  "menuItem": {
+    "message": "Menu Items"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "reloadDescription": {
+    "message": "for Not Loaded Tabs in Linux"
+  }
+}
