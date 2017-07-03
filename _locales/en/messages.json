@@ -1,6 +1,6 @@
 {
   "debug": {
-    "message": "debug",
+    "message": "release",
     "description": "Set 'debug' to display debug log"
   },
   "name": {
