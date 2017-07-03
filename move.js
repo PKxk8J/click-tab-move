@@ -225,6 +225,7 @@ function moveOne (tab, windowId, reload, callback) {
   if (!reload || tab.url === 'about:blank') {
     moveOneWithoutReload(tab, windowId, callback)
   } else {
+    // Linux だと読み込まれてないと失敗するので discarded なら reload してから
     moveOneWithReload(tab, windowId, callback)
   }
 }
@@ -236,7 +237,6 @@ function moveAll (fromWindowId, toWindowId, reload) {
     // 一度に大量に送ると固まるので 1 つずつ送る
     tabList.sort((tab1, tab2) => tab1.index - tab2.index)
 
-    // 読み込まれてないと失敗するので discarded なら reload してから
     function step (i) {
       if (i >= tabList.length) {
         debug('Completed')
