@@ -259,11 +259,26 @@ function move (tab, windowId, all, reload) {
 
 contextMenus.onClicked.addListener((info, tab) => {
   const tokens = info.menuItemId.split(SEP)
-  const all = [KEY_ALL, KEY_ALL_RELOAD].includes(tokens[0])
-  const reload = [KEY_ONE_RELOAD, KEY_ALL_RELOAD].includes(tokens[0])
   const windowId = Number(tokens[1])
 
-  move(tab, windowId, all, reload)
+  switch (tokens[0]) {
+    case KEY_ONE: {
+      move(tab, windowId, false, false)
+      break
+    }
+    case KEY_ONE_RELOAD: {
+      move(tab, windowId, false, true)
+      break
+    }
+    case KEY_ALL: {
+      move(tab, windowId, true, false)
+      break
+    }
+    case KEY_ALL_RELOAD: {
+      move(tab, windowId, true, true)
+      break
+    }
+  }
 })
 
 // メニューを初期化
