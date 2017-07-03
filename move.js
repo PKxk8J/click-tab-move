@@ -154,7 +154,7 @@ tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 
   const windowId = tabToWindow.get(tabId)
-  if (!windowId) {
+  if (!windowId || windowId !== tab.windowId) {
     // フォーカスしてないタブだった
     return
   }
