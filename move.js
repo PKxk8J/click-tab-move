@@ -11,6 +11,8 @@ const KEY_ONE = 'one'
 const KEY_ONE_RELOAD = 'oneReload'
 const KEY_ALL = 'all'
 const KEY_ALL_RELOAD = 'allReload'
+const KEY_SELECT = 'select'
+const KEY_SELECT_RELOAD = 'selectReload'
 
 const SEP = '_'
 const ITEM_LENGTH = 64
@@ -134,6 +136,10 @@ function unsetActiveTab (windowId) {
 
 // 別のタブにフォーカスを移した
 tabs.onActivated.addListener((activeInfo) => {
+  if (activeInfo.windowId === selectWindowId) {
+    return
+  }
+
   debug('Tab ' + activeInfo.tabId + ' became active')
   const getting = tabs.get(activeInfo.tabId)
   getting.then((tab) => setActiveTab(tab.id, tab.windowId, tab.title), onError)
@@ -141,6 +147,10 @@ tabs.onActivated.addListener((activeInfo) => {
 
 // タブが変わった
 tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tab.windowId === selectWindowId) {
+    return
+  }
+
   if (changeInfo.status === 'complete' && tab.url !== 'about:blank') {
     const onReload = onReloads.get(tabId)
     if (onReload) {
@@ -164,6 +174,10 @@ tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // ウインドウができた
 windows.onCreated.addListener((window) => {
+  if (window.id === selectWindowId) {
+    return
+  }
+
   const querying = tabs.query({windowId: window.id, active: true})
   querying.then((tabList) => {
     for (let tab of tabList) {
@@ -175,6 +189,10 @@ windows.onCreated.addListener((window) => {
 
 // ウインドウがなくなった
 windows.onRemoved.addListener((windowId) => {
+  if (windowId === selectWindowId) {
+    return
+  }
+
   debug('Window ' + windowId + ' was closed')
   unsetActiveTab(windowId)
 })
@@ -256,6 +274,61 @@ function move (tab, windowId, all, reload) {
   }
 }
 
+// タブ選択ウインドウは1つとする
+
+// タブ選択元のウインドウ
+let fromWindowId
+// 選択タブ移動先のウインドウ
+let toWindowId
+// 選択タブ移動で再読み込みするか
+let selectReload
+// タブ選択ウインドウ
+let selectWindowId
+
+function select (tab, windowId, reload) {
+  fromWindowId = tab.windowId
+  toWindowId = windowId
+  selectReload = reload
+
+  function createSelectWindow () {
+    const creating = windows.create({
+      type: 'detached_panel',
+      url: 'select.html'
+    })
+    creating.then((window) => {
+      debug('Select window was created')
+      selectWindowId = window.id
+    }, onError)
+  }
+
+  if (selectWindowId) {
+    const getting = windows.get(selectWindowId)
+    getting.then(() => {
+      debug('Reuse select window')
+      runtime.sendMessage({type: 'update', fromWindowId})
+    }, (error) => {
+      debug(error)
+      createSelectWindow()
+    })
+  } else {
+    createSelectWindow()
+  }
+}
+
+runtime.onMessage.addListener((message, sender, sendResponse) => {
+  debug('Message ' + JSON.stringify(message) + ' was received')
+  switch (message.type) {
+    case 'started': {
+      runtime.sendMessage({type: 'update', fromWindowId})
+      break
+    }
+    case 'move': {
+      const { tabIds } = message
+      break
+    }
+  }
+})
+
 contextMenus.onClicked.addListener((info, tab) => {
   const tokens = info.menuItemId.split(SEP)
   const windowId = Number(tokens[1])
@@ -275,6 +348,14 @@ contextMenus.onClicked.addListener((info, tab) => {
     }
     case KEY_ALL_RELOAD: {
       move(tab, windowId, true, true)
+      break
+    }
+    case KEY_SELECT: {
+      select(tab, windowId, false)
+      break
+    }
+    case KEY_SELECT_RELOAD: {
+      select(tab, windowId, true)
       break
     }
   }
@@ -303,6 +384,9 @@ function reset () {
     const querying = tabs.query({active: true})
     querying.then((tabList) => {
       for (let tab of tabList) {
+        if (tab.windowId === selectWindowId) {
+          continue
+        }
         setActiveTab(tab.id, tab.windowId, tab.title)
       }
     }, onError)
@@ -323,6 +407,12 @@ function applySetting (result) {
   }
   if (result[KEY_ALL_RELOAD]) {
     menuKeys.push(KEY_ALL_RELOAD)
+  }
+  if (result[KEY_SELECT]) {
+    menuKeys.push(KEY_SELECT)
+  }
+  if (result[KEY_SELECT_RELOAD]) {
+    menuKeys.push(KEY_SELECT_RELOAD)
   }
   reset()
 }
