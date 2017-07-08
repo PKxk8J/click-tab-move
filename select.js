@@ -22,13 +22,15 @@ function onError (error) {
   document.getElementById('label_' + key).innerText = i18n.getMessage(key)
 })
 
+// ウインドウを閉じる
 function close () {
   const id = windows.WINDOW_ID_CURRENT
   const removing = windows.remove(id)
   removing.then(() => debug('Window ' + id + ' was closed'), onError)
 }
 
-function move () {
+// 移動対象を move.js に通知する
+function sendMoveMessage () {
   const select = document.getElementById('select')
   const ids = []
   for (let option of select.childNodes) {
@@ -40,31 +42,36 @@ function move () {
 }
 
 document.getElementById(KEY_MOVE).addEventListener('click', () => {
-  move()
+  sendMoveMessage()
   close()
 })
 document.getElementById(KEY_CANCEL).addEventListener('click', close)
+
+// 表示を更新する
+function update (fromWindowId) {
+  const querying = tabs.query({windowId: fromWindowId})
+  querying.then((tabList) => {
+    tabList.sort((tab1, tab2) => tab1.index - tab2.index)
+
+    const select = document.getElementById('select')
+    while (select.firstChild) {
+      select.removeChild(select.firstChild)
+    }
+    for (let tab of tabList) {
+      const option = document.createElement('option')
+      option.id = tab.id
+      option.innerText = tab.title
+      select.appendChild(option)
+    }
+  }, onError)
+}
 
 runtime.onMessage.addListener((message, sender, sendResponse) => {
   debug('Message ' + JSON.stringify(message) + ' was received')
   switch (message.type) {
     case 'update': {
       const { fromWindowId } = message
-      const querying = tabs.query({windowId: fromWindowId})
-      querying.then((tabList) => {
-        tabList.sort((tab1, tab2) => tab1.index - tab2.index)
-
-        const select = document.getElementById('select')
-        while (select.firstChild) {
-          select.removeChild(select.firstChild)
-        }
-        for (let tab of tabList) {
-          const option = document.createElement('option')
-          option.id = tab.id
-          option.innerText = tab.title
-          select.appendChild(option)
-        }
-      }, onError)
+      update(fromWindowId)
       break
     }
   }
