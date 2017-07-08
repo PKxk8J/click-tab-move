@@ -298,6 +298,8 @@ function select (tab, windowId, reload) {
     creating.then((window) => {
       debug('Select window was created')
       selectWindowId = window.id
+      // 先に tabs.onUpdated が走ってしまうようなので除く
+      unsetActiveTab(selectWindowId)
     }, onError)
   }
 
