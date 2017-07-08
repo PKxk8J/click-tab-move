@@ -3,12 +3,21 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <style type="text/css">
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      .selectbox {
+        width: 100%;
+      }
+    </style>
   </head>
 
   <body>
 
     <form id="form">
-      <select id="select" multiple></select>
+      <select id="select" class="selectbox" multiple size="10"></select>
       <div align="center">
         <button id="move" type="submit"><span id="label_move"></span></button>
         <button id="cancel" type="submit"><span id="label_cancel"></span></button>

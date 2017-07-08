@@ -47,6 +47,34 @@ document.getElementById(KEY_MOVE).addEventListener('click', () => {
 })
 document.getElementById(KEY_CANCEL).addEventListener('click', close)
 
+// 選択ボックスのサイズを変更する
+function resizeSelectBox (callback) {
+  const select = document.getElementById('select')
+  const options = select.childNodes
+  let size = 0
+  if (options.length > 0) {
+    const frameHeight = document.documentElement.clientHeight
+    const contentHeight = document.body.offsetHeight
+    const optionHeight = options[0].offsetHeight
+    const overhead = contentHeight - select.size * optionHeight
+    const space = frameHeight - overhead
+    size = Math.floor(space / optionHeight)
+  }
+  size = Math.min(options.length, size)
+  if (size !== select.size) {
+    select.size = size
+  }
+  if (callback) {
+    callback()
+  }
+}
+
+function resizeLoop () {
+  resizeSelectBox(() => setTimeout(resizeLoop, 1000))
+}
+
+resizeLoop()
+
 // 表示を更新する
 function update (fromWindowId) {
   const querying = tabs.query({windowId: fromWindowId})
