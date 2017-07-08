@@ -285,6 +285,16 @@ let selectReload
 // タブ選択ウインドウ
 let selectWindowId
 
+function sendUpdateMessage () {
+  const info = windowToInfo.get(toWindowId)
+  runtime.sendMessage({
+    type: 'update',
+    fromWindowId,
+    toWindowId,
+    toWindowTitle: info.title
+  })
+}
+
 function select (tab, windowId, reload) {
   fromWindowId = tab.windowId
   toWindowId = windowId
@@ -307,7 +317,7 @@ function select (tab, windowId, reload) {
     const getting = windows.get(selectWindowId)
     getting.then(() => {
       debug('Reuse select window')
-      runtime.sendMessage({type: 'update', fromWindowId})
+      sendUpdateMessage()
     }, (error) => {
       debug(error)
       createSelectWindow()
@@ -321,7 +331,7 @@ runtime.onMessage.addListener((message, sender, sendResponse) => {
   debug('Message ' + JSON.stringify(message) + ' was received')
   switch (message.type) {
     case 'started': {
-      runtime.sendMessage({type: 'update', fromWindowId})
+      sendUpdateMessage()
       break
     }
     case 'move': {

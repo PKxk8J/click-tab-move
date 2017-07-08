@@ -41,5 +41,8 @@
   },
   "cancel": {
     "message": "Cancel"
+  },
+  "toX": {
+    "message": "To $1"
   }
 }

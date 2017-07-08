@@ -6,6 +6,7 @@ const KEY_DEBUG = 'debug'
 
 const KEY_MOVE = 'move'
 const KEY_CANCEL = 'cancel'
+const KEY_TO_X = 'toX'
 
 const DEBUG = (i18n.getMessage(KEY_DEBUG) === 'debug')
 function debug (message) {
@@ -76,7 +77,12 @@ function resizeLoop () {
 resizeLoop()
 
 // 表示を更新する
-function update (fromWindowId) {
+function update (fromWindowId, toWindowId, toWindowTitle) {
+  const title = toWindowId + ': ' + toWindowTitle
+  document.title = title
+  const header = document.getElementById('header')
+  header.innerText = i18n.getMessage(KEY_TO_X, title)
+
   const querying = tabs.query({windowId: fromWindowId})
   querying.then((tabList) => {
     tabList.sort((tab1, tab2) => tab1.index - tab2.index)
@@ -98,8 +104,8 @@ runtime.onMessage.addListener((message, sender, sendResponse) => {
   debug('Message ' + JSON.stringify(message) + ' was received')
   switch (message.type) {
     case 'update': {
-      const { fromWindowId } = message
-      update(fromWindowId)
+      const { fromWindowId, toWindowId, toWindowTitle } = message
+      update(fromWindowId, toWindowId, toWindowTitle)
       break
     }
   }
