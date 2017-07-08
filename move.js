@@ -303,7 +303,9 @@ function select (tab, windowId, reload) {
   function createSelectWindow () {
     const creating = windows.create({
       type: 'detached_panel',
-      url: 'select.html'
+      url: 'select.html',
+      width: 640,
+      height: 480
     })
     creating.then((window) => {
       debug('Select window was created')
