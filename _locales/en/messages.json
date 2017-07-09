@@ -24,6 +24,12 @@
   "allReload": {
     "message": "All with Reload"
   },
+  "select": {
+    "message": "Select"
+  },
+  "selectReload": {
+    "message": "Select with Reload"
+  },
   "menuItem": {
     "message": "Menu Items"
   },
@@ -32,5 +38,23 @@
   },
   "reloadDescription": {
     "message": "for Not Loaded Tabs in Linux"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "moveToX": {
+    "message": "Move to $1"
+  },
+  "selectSize": {
+    "message": "Select Window Size"
+  },
+  "width": {
+    "message": "Width"
+  },
+  "height": {
+    "message": "Height"
+  },
+  "newWindow": {
+    "message": "New Window"
   }
 }

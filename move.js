@@ -1,8 +1,7 @@
 'use strict'
 
 const { contextMenus, i18n, runtime, storage, tabs, windows } = browser
-// TODO sync に
-const storageArea = storage.local
+const storageArea = storage.sync
 
 const KEY_DEBUG = 'debug'
 
@@ -12,6 +11,11 @@ const KEY_ONE = 'one'
 const KEY_ONE_RELOAD = 'oneReload'
 const KEY_ALL = 'all'
 const KEY_ALL_RELOAD = 'allReload'
+const KEY_SELECT = 'select'
+const KEY_SELECT_RELOAD = 'selectReload'
+const KEY_SELECT_WIDTH = 'selectWidth'
+const KEY_SELECT_HEIGHT = 'selectHeight'
+const KEY_NEW_WINDOW = 'newWindow'
 
 const SEP = '_'
 const ITEM_LENGTH = 64
@@ -62,6 +66,10 @@ function addMenuItem (id, title, parentId) {
 let menuKeys = []
 
 const onReloads = new Map()
+// TODO 設定に
+let reloadTimeout = 60 * 1000
+let selectWidth = 640
+let selectHeight = 480
 
 // info ウインドウ情報
 // info.tab アクティブなタブの ID
@@ -102,7 +110,11 @@ function removeItem (windowId) {
 
 // フォーカスしてるタブで状態を更新する
 function setActiveTab (tabId, windowId, title) {
-  const info = windowToInfo.get(windowId)
+  if (windowId === selectWindowId) {
+    return
+  }
+
+  let info = windowToInfo.get(windowId)
   if (info) {
     if (info.tab !== tabId) {
       tabToWindow.delete(info.tab)
@@ -114,7 +126,7 @@ function setActiveTab (tabId, windowId, title) {
       updateItem(windowId, title)
     }
   } else {
-    const info = {
+    info = {
       tab: tabId,
       title: title
     }
@@ -135,7 +147,7 @@ function unsetActiveTab (windowId) {
 
 // 別のタブにフォーカスを移した
 tabs.onActivated.addListener((activeInfo) => {
-  debug('Tab ' + activeInfo.tabId + ' became active')
+  debug('Tab' + activeInfo.tabId + ' became active')
   const getting = tabs.get(activeInfo.tabId)
   getting.then((tab) => setActiveTab(tab.id, tab.windowId, tab.title), onError)
 })
@@ -159,7 +171,7 @@ tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     return
   }
   // フォーカスしてるタブのタイトルが変わった
-  debug('Tab ' + tab.id + ' was updated')
+  debug('Tab' + tab.id + ' was updated')
   setActiveTab(tab.id, tab.windowId, tab.title)
 })
 
@@ -168,7 +180,7 @@ windows.onCreated.addListener((window) => {
   const querying = tabs.query({windowId: window.id, active: true})
   querying.then((tabList) => {
     for (let tab of tabList) {
-      debug('Tab ' + tab.id + ' is in new window ' + tab.windowId)
+      debug('Tab' + tab.id + ' is in new window' + tab.windowId)
       setActiveTab(tab.id, tab.windowId, tab.title)
     }
   }, onError)
@@ -176,108 +188,248 @@ windows.onCreated.addListener((window) => {
 
 // ウインドウがなくなった
 windows.onRemoved.addListener((windowId) => {
-  debug('Window ' + windowId + ' was closed')
+  debug('Window' + windowId + ' was closed')
   unsetActiveTab(windowId)
 })
 
 // TODO フォーカスされているウインドウをメニューの移動先から消す
 // // 別のウインドウにフォーカスを移した
 // windows.onFocusChanged.addListener((windowId) => {
-//   debug('Window ' + windowId + ' is focused')
+//   debug('Window' + windowId + ' is focused')
 // })
 
-function moveOneWithoutReload (tab, windowId, callback) {
-  const moving = tabs.move(tab.id, {windowId, index: -1})
-  moving.then(() => {
-    debug('Tab ' + tab.id + ' moved to window ' + windowId)
-    if (callback) {
-      callback()
-    }
-  }, onError)
+// 1つのタブを移す
+function moveOne (id, windowId, index) {
+  debug('Tab' + id + ' move to window' + windowId + '[' + index + ']')
+  return tabs.move(id, {windowId, index})
+    .then((tab) => debug('Tab' + tab[0].id + ' moved to window' + tab[0].windowId + '[' + tab[0].index + ']'))
 }
 
-function moveOneWithReload (tab, windowId, callback) {
-  let timeoutExecutor
-  const onReload = () => {
-    clearTimeout(timeoutExecutor)
-    onReloads.delete(tab.id)
-    moveOneWithoutReload(tab, windowId, callback)
-  }
-  onReloads.set(tab.id, onReload)
-
-  timeoutExecutor = () => {
-    const stale = onReloads.get(tab.id)
-    if (stale === onReload) {
-      onReloads.delete(tab.id)
-      onError('Reload timed out on tab ' + tab.id)
-    }
-  }
-  setTimeout(timeoutExecutor, 60 * 1000)
-
-  const reloading = tabs.reload(tab.id, {bypassCache: true})
-  reloading.then(() => {
-    debug('Tab ' + tab.id + ' was reloaded')
-  }, onError)
+function moveOneToNewWindow (id) {
+  return windows.create({tabId: id})
 }
 
-// タブを別のウインドウに送る
-function moveOne (tab, windowId, reload, callback) {
-  if (!reload || tab.url === 'about:blank') {
-    moveOneWithoutReload(tab, windowId, callback)
-  } else {
-    // Linux だと読み込まれてないと失敗するので discarded なら reload してから
-    moveOneWithReload(tab, windowId, callback)
-  }
-}
-
-// 全てのタブを別のウインドウに送る
-function moveAll (fromWindowId, toWindowId, reload) {
-  const querying = tabs.query({windowId: fromWindowId})
-  querying.then((tabList) => {
-    // 一度に大量に送ると固まるので 1 つずつ送る
-    tabList.sort((tab1, tab2) => tab1.index - tab2.index)
-
-    function step (i) {
-      if (i >= tabList.length) {
-        debug('Completed')
+// 再読み込みしつつ 1つのタブを移す
+function moveOneWithReload (id, windowId, index) {
+  return new Promise((resolve, reject) => {
+    const getting = tabs.get(id)
+    getting.then((tab) => {
+      if (tab.url === 'about:blank') {
+        moveOne(id, windowId, index).then(resolve)
         return
       }
-      moveOne(tabList[i], toWindowId, reload, () => step(i + 1))
-    }
 
-    step(0)
-  }, onError)
+      let timeoutExecutor
+      const onReload = () => {
+        clearTimeout(timeoutExecutor)
+        onReloads.delete(id)
+        moveOne(id, windowId, index).then(resolve)
+      }
+      onReloads.set(id, onReload)
+
+      timeoutExecutor = () => {
+        const stale = onReloads.get(id)
+        if (stale === onReload) {
+          onReloads.delete(id)
+          onError('Reloading tab' + id + ' timed out')
+        }
+      }
+      setTimeout(timeoutExecutor, reloadTimeout)
+
+      const reloading = tabs.reload(id, {bypassCache: true})
+      reloading.then(() => {
+        debug('Tab' + id + ' was reloaded')
+      }, reject)
+    }, reject)
+  })
 }
 
-function move (tab, windowId, all, reload) {
-  if (all) {
-    moveAll(tab.windowId, windowId, reload)
+// 複数のタブを移す
+function moveSome (ids, windowId, index, reload) {
+  return new Promise((resolve, reject) => {
+    function loop (i, idx) {
+      return new Promise((resolve, reject) => {
+        let moving
+        if (reload) {
+          moving = moveOneWithReload(ids[i], windowId, idx)
+        } else {
+          moving = moveOne(ids[i], windowId, idx)
+        }
+        moving.then((tab) => {
+          const nextIdx = (idx < 0 ? idx : idx + 1)
+          resolve({nextI: i + 1, nextIdx})
+        }, reject)
+      }).then(({nextI, nextIdx}) => {
+        if (nextI < ids.length) {
+          loop(nextI, nextIdx)
+        } else {
+          resolve()
+        }
+      }, reject)
+    }
+
+    loop(0, index)
+  })
+}
+
+function moveSomeToNewWindow (ids, reload) {
+  return windows.create({tabId: ids[0]})
+    .then((windowInfo) => {
+      moveSome(ids.slice(1), windowInfo.id, -1, reload)
+    })
+}
+
+// 全てのタブを移す
+function moveAll (fromWindowId, windowId, index, reload) {
+  return tabs.query({windowId: fromWindowId}).then((tabList) => {
+    tabList.sort((tab1, tab2) => tab1.index - tab2.index)
+    moveSome(tabList.map((tab) => tab.id), windowId, index, reload)
+  })
+}
+
+// タブ選択ウインドウは1つとする
+
+// タブ選択元のウインドウ
+let fromWindowId
+// 選択タブ移動先のウインドウ
+let toWindowId
+// 選択タブ移動で再読み込みするか
+let selectReload
+// タブ選択ウインドウ
+let selectWindowId
+
+function sendUpdateMessage () {
+  const title = (toWindowId ? windowToInfo.get(toWindowId).title : i18n.getMessage(KEY_NEW_WINDOW))
+  runtime.sendMessage({
+    type: 'update',
+    fromWindowId,
+    toWindowId,
+    toWindowTitle: title
+  })
+}
+
+function select (tab, windowId, reload) {
+  fromWindowId = tab.windowId
+  toWindowId = windowId
+  selectReload = reload
+
+  function createSelectWindow () {
+    const creating = windows.create({
+      type: 'detached_panel',
+      url: 'select.html',
+      width: selectWidth,
+      height: selectHeight
+    })
+    creating.then((window) => {
+      debug('Select window was created')
+      selectWindowId = window.id
+      // 先に tabs.onUpdated が走ってしまうようなので除く
+      unsetActiveTab(selectWindowId)
+    }, onError)
+  }
+
+  if (selectWindowId) {
+    const getting = windows.get(selectWindowId)
+    getting.then(() => {
+      debug('Reuse select window')
+      sendUpdateMessage()
+    }, (error) => {
+      debug(error)
+      createSelectWindow()
+    })
   } else {
-    moveOne(tab, windowId, reload)
+    createSelectWindow()
+  }
+}
+
+runtime.onMessage.addListener((message, sender, sendResponse) => {
+  debug('Message ' + JSON.stringify(message) + ' was received')
+  switch (message.type) {
+    case 'started': {
+      sendUpdateMessage()
+      break
+    }
+    case 'move': {
+      const { tabIds } = message
+      if (tabIds.length <= 0) {
+        debug('No selected tabs')
+        return
+      }
+      if (toWindowId) {
+        moveSome(tabIds, toWindowId, -1, selectReload)
+      } else {
+        moveSomeToNewWindow(tabIds, selectReload)
+      }
+      break
+    }
+  }
+})
+
+function moveToNewWindow (tab, operation) {
+  switch (operation) {
+    case KEY_ONE: {
+      moveOneToNewWindow(tab.id).catch(onError)
+      break
+    }
+    case KEY_ONE_RELOAD: {
+      moveOneToNewWindow(tab.id).catch(onError)
+      break
+    }
+    case KEY_ALL: {
+      debug('No effect')
+      break
+    }
+    case KEY_ALL_RELOAD: {
+      debug('No effect')
+      break
+    }
+    case KEY_SELECT: {
+      select(tab)
+      break
+    }
+    case KEY_SELECT_RELOAD: {
+      select(tab, undefined, true)
+      break
+    }
+  }
+}
+
+function moveToExistWindow (tab, operation, windowId) {
+  switch (operation) {
+    case KEY_ONE: {
+      moveOne(tab.id, windowId, -1).catch(onError)
+      break
+    }
+    case KEY_ONE_RELOAD: {
+      moveOneWithReload(tab.id, windowId, -1).catch(onError)
+      break
+    }
+    case KEY_ALL: {
+      moveAll(tab.windowId, windowId, -1).catch(onError)
+      break
+    }
+    case KEY_ALL_RELOAD: {
+      moveAll(tab.windowId, windowId, -1, true).catch(onError)
+      break
+    }
+    case KEY_SELECT: {
+      select(tab, windowId)
+      break
+    }
+    case KEY_SELECT_RELOAD: {
+      select(tab, windowId, true)
+      break
+    }
   }
 }
 
 contextMenus.onClicked.addListener((info, tab) => {
   const tokens = info.menuItemId.split(SEP)
-  const windowId = Number(tokens[1])
 
-  switch (tokens[0]) {
-    case KEY_ONE: {
-      move(tab, windowId, false, false)
-      break
-    }
-    case KEY_ONE_RELOAD: {
-      move(tab, windowId, false, true)
-      break
-    }
-    case KEY_ALL: {
-      move(tab, windowId, true, false)
-      break
-    }
-    case KEY_ALL_RELOAD: {
-      move(tab, windowId, true, true)
-      break
-    }
+  if (tokens[1] === KEY_NEW_WINDOW) {
+    moveToNewWindow(tab, tokens[0])
+  } else {
+    moveToExistWindow(tab, tokens[0], Number(tokens[1]))
   }
 })
 
@@ -292,12 +444,21 @@ function reset () {
         break
       }
       case 1: {
-        addMenuItem(menuKeys[0], i18n.getMessage(KEY_MOVE_X, i18n.getMessage(menuKeys[0])))
+        const key = menuKeys[0]
+        addMenuItem(key, i18n.getMessage(KEY_MOVE_X, i18n.getMessage(key)))
+        if (![KEY_ALL, KEY_ALL_RELOAD].includes(key)) {
+          addMenuItem(key + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), key)
+        }
         break
       }
       default: {
         addMenuItem(KEY_MOVE, i18n.getMessage(KEY_MOVE))
-        menuKeys.forEach((key) => addMenuItem(key, i18n.getMessage(key), KEY_MOVE))
+        menuKeys.forEach((key) => {
+          addMenuItem(key, i18n.getMessage(key), KEY_MOVE)
+          if (![KEY_ALL, KEY_ALL_RELOAD].includes(key)) {
+            addMenuItem(key + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), key)
+          }
+        })
       }
     }
 
@@ -325,6 +486,14 @@ function applySetting (result) {
   if (result[KEY_ALL_RELOAD]) {
     menuKeys.push(KEY_ALL_RELOAD)
   }
+  if (falseIffFalse(result[KEY_SELECT])) {
+    menuKeys.push(KEY_SELECT)
+  }
+  if (result[KEY_SELECT_RELOAD]) {
+    menuKeys.push(KEY_SELECT_RELOAD)
+  }
+  selectWidth = result[KEY_SELECT_WIDTH] || 640
+  selectHeight = result[KEY_SELECT_HEIGHT] || 480
   reset()
 }
 
