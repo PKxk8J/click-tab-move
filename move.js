@@ -444,15 +444,20 @@ function reset () {
         break
       }
       case 1: {
-        addMenuItem(menuKeys[0], i18n.getMessage(KEY_MOVE_X, i18n.getMessage(menuKeys[0])))
-        addMenuItem(menuKeys[0] + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), menuKeys[0])
+        const key = menuKeys[0]
+        addMenuItem(key, i18n.getMessage(KEY_MOVE_X, i18n.getMessage(key)))
+        if (![KEY_ALL, KEY_ALL_RELOAD].includes(key)) {
+          addMenuItem(key + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), key)
+        }
         break
       }
       default: {
         addMenuItem(KEY_MOVE, i18n.getMessage(KEY_MOVE))
         menuKeys.forEach((key) => {
           addMenuItem(key, i18n.getMessage(key), KEY_MOVE)
-          addMenuItem(key + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), key)
+          if (![KEY_ALL, KEY_ALL_RELOAD].includes(key)) {
+            addMenuItem(key + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), key)
+          }
         })
       }
     }
