@@ -57,7 +57,7 @@ function restore () {
       [KEY_ONE_RELOAD]: result[KEY_ONE_RELOAD],
       [KEY_ALL]: falseIffFalse(result[KEY_ALL]),
       [KEY_ALL_RELOAD]: result[KEY_ALL_RELOAD],
-      [KEY_SELECT]: result[KEY_SELECT_RELOAD],
+      [KEY_SELECT]: falseIffFalse(result[KEY_SELECT_RELOAD]),
       [KEY_SELECT_RELOAD]: result[KEY_SELECT_RELOAD]
     }
     Object.keys(flags).forEach((key) => {

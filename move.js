@@ -486,7 +486,7 @@ function applySetting (result) {
   if (result[KEY_ALL_RELOAD]) {
     menuKeys.push(KEY_ALL_RELOAD)
   }
-  if (result[KEY_SELECT]) {
+  if (falseIffFalse(result[KEY_SELECT])) {
     menuKeys.push(KEY_SELECT)
   }
   if (result[KEY_SELECT_RELOAD]) {
