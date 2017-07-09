@@ -44,5 +44,14 @@
   },
   "moveToX": {
     "message": "Move to $1"
+  },
+  "selectSize": {
+    "message": "Select Window Size"
+  },
+  "width": {
+    "message": "Width"
+  },
+  "height": {
+    "message": "Height"
   }
 }

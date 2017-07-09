@@ -13,6 +13,8 @@ const KEY_ALL = 'all'
 const KEY_ALL_RELOAD = 'allReload'
 const KEY_SELECT = 'select'
 const KEY_SELECT_RELOAD = 'selectReload'
+const KEY_SELECT_WIDTH = 'selectWidth'
+const KEY_SELECT_HEIGHT = 'selectHeight'
 
 const SEP = '_'
 const ITEM_LENGTH = 64
@@ -425,6 +427,8 @@ function applySetting (result) {
   if (result[KEY_SELECT_RELOAD]) {
     menuKeys.push(KEY_SELECT_RELOAD)
   }
+  selectWidth = result[KEY_SELECT_WIDTH] || 640
+  selectHeight = result[KEY_SELECT_HEIGHT] || 480
   reset()
 }
 

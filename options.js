@@ -13,6 +13,11 @@ const KEY_SELECT = 'select'
 const KEY_SELECT_RELOAD = 'selectReload'
 
 const KEY_MENU_ITEM = 'menuItem'
+const KEY_SELECT_SIZE = 'selectSize'
+const KEY_SELECT_WIDTH = 'selectWidth'
+const KEY_SELECT_HEIGHT = 'selectHeight'
+const KEY_WIDTH = 'width'
+const KEY_HEIGHT = 'height'
 const KEY_SAVE = 'save'
 const KEY_RELOAD_DESC = 'reloadDescription'
 
@@ -35,7 +40,7 @@ function falseIffFalse (bool) {
   return bool
 }
 
-[KEY_MENU_ITEM, KEY_ONE, KEY_ONE_RELOAD, KEY_ALL, KEY_ALL_RELOAD, KEY_SELECT, KEY_SELECT_RELOAD, KEY_SAVE].forEach((key) => {
+[KEY_MENU_ITEM, KEY_ONE, KEY_ONE_RELOAD, KEY_ALL, KEY_ALL_RELOAD, KEY_SELECT, KEY_SELECT_RELOAD, KEY_SELECT_SIZE, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE].forEach((key) => {
   document.getElementById('label_' + key).innerText = i18n.getMessage(key)
 })
 
@@ -58,6 +63,13 @@ function restore () {
     Object.keys(flags).forEach((key) => {
       document.getElementById(key).checked = flags[key]
     })
+    const values = {
+      [KEY_SELECT_WIDTH]: result[KEY_SELECT_WIDTH] || 640,
+      [KEY_SELECT_HEIGHT]: result[KEY_SELECT_HEIGHT] || 480
+    }
+    Object.keys(values).forEach((key) => {
+      document.getElementById(key).value = values[key]
+    })
   }, onError)
 }
 
@@ -67,6 +79,9 @@ function save (e) {
   const result = {}
   ;[KEY_ONE, KEY_ONE_RELOAD, KEY_ALL, KEY_ALL_RELOAD, KEY_SELECT, KEY_SELECT_RELOAD].forEach((key) => {
     result[key] = document.getElementById(key).checked
+  })
+  ;[KEY_SELECT_WIDTH, KEY_SELECT_HEIGHT].forEach((key) => {
+    result[key] = Number(document.getElementById(key).value)
   })
   const setting = storageArea.set(result)
   setting.then(() => debug('Saved'), onError)
