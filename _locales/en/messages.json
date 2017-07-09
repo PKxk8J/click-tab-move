@@ -42,7 +42,7 @@
   "cancel": {
     "message": "Cancel"
   },
-  "toX": {
-    "message": "To $1"
+  "moveToX": {
+    "message": "Move to $1"
   }
 }

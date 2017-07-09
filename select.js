@@ -6,7 +6,7 @@ const KEY_DEBUG = 'debug'
 
 const KEY_MOVE = 'move'
 const KEY_CANCEL = 'cancel'
-const KEY_TO_X = 'toX'
+const KEY_MOVE_TO_X = 'moveToX'
 
 const DEBUG = (i18n.getMessage(KEY_DEBUG) === 'debug')
 function debug (message) {
@@ -80,8 +80,8 @@ resizeLoop()
 function update (fromWindowId, toWindowId, toWindowTitle) {
   const title = toWindowId + ': ' + toWindowTitle
   document.title = title
-  const header = document.getElementById('header')
-  header.innerText = i18n.getMessage(KEY_TO_X, title)
+  const header = document.getElementById(KEY_MOVE_TO_X)
+  header.innerText = i18n.getMessage(KEY_MOVE_TO_X, title)
 
   const querying = tabs.query({windowId: fromWindowId})
   querying.then((tabList) => {
