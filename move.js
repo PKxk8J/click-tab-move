@@ -351,6 +351,10 @@ runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     case 'move': {
       const { tabIds } = message
+      if (tabIds.length <= 0) {
+        debug('No selected tabs')
+        return
+      }
       if (toWindowId) {
         moveSome(tabIds, toWindowId, -1, selectReload)
       } else {
