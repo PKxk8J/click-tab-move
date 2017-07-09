@@ -36,7 +36,7 @@ function sendMoveMessage () {
   const ids = []
   for (let option of select.childNodes) {
     if (option.selected) {
-      ids.push(option.id)
+      ids.push(Number(option.id))
     }
   }
   runtime.sendMessage({type: 'move', tabIds: ids})
