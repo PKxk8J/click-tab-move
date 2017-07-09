@@ -114,7 +114,7 @@ function setActiveTab (tabId, windowId, title) {
     return
   }
 
-  const info = windowToInfo.get(windowId)
+  let info = windowToInfo.get(windowId)
   if (info) {
     if (info.tab !== tabId) {
       tabToWindow.delete(info.tab)
@@ -126,7 +126,7 @@ function setActiveTab (tabId, windowId, title) {
       updateItem(windowId, title)
     }
   } else {
-    const info = {
+    info = {
       tab: tabId,
       title: title
     }
