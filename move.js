@@ -15,6 +15,7 @@ const KEY_SELECT = 'select'
 const KEY_SELECT_RELOAD = 'selectReload'
 const KEY_SELECT_WIDTH = 'selectWidth'
 const KEY_SELECT_HEIGHT = 'selectHeight'
+const KEY_NEW_WINDOW = 'newWindow'
 
 const SEP = '_'
 const ITEM_LENGTH = 64
@@ -204,6 +205,10 @@ function moveOne (id, windowId, index) {
     .then((tab) => debug('Tab' + tab[0].id + ' moved to window' + tab[0].windowId + '[' + tab[0].index + ']'))
 }
 
+function moveOneToNewWindow (id) {
+  return windows.create({tabId: id})
+}
+
 // 再読み込みしつつ 1つのタブを移す
 function moveOneWithReload (id, windowId, index) {
   return new Promise((resolve, reject) => {
@@ -267,6 +272,13 @@ function moveSome (ids, windowId, index, reload) {
   })
 }
 
+function moveSomeToNewWindow (ids, reload) {
+  return windows.create({tabId: ids[0]})
+    .then((windowInfo) => {
+      moveSome(ids.slice(1), windowInfo.id, -1, reload)
+    })
+}
+
 // 全てのタブを移す
 function moveAll (fromWindowId, windowId, index, reload) {
   return tabs.query({windowId: fromWindowId}).then((tabList) => {
@@ -287,12 +299,12 @@ let selectReload
 let selectWindowId
 
 function sendUpdateMessage () {
-  const info = windowToInfo.get(toWindowId)
+  const title = (toWindowId ? windowToInfo.get(toWindowId).title : i18n.getMessage(KEY_NEW_WINDOW))
   runtime.sendMessage({
     type: 'update',
     fromWindowId,
     toWindowId,
-    toWindowTitle: info.title
+    toWindowTitle: title
   })
 }
 
@@ -339,17 +351,47 @@ runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     case 'move': {
       const { tabIds } = message
-      moveSome(tabIds, toWindowId, -1, selectReload)
+      if (toWindowId) {
+        moveSome(tabIds, toWindowId, -1, selectReload)
+      } else {
+        moveSomeToNewWindow(tabIds, selectReload)
+      }
       break
     }
   }
 })
 
-contextMenus.onClicked.addListener((info, tab) => {
-  const tokens = info.menuItemId.split(SEP)
-  const windowId = Number(tokens[1])
+function moveToNewWindow (tab, operation) {
+  switch (operation) {
+    case KEY_ONE: {
+      moveOneToNewWindow(tab.id).catch(onError)
+      break
+    }
+    case KEY_ONE_RELOAD: {
+      moveOneToNewWindow(tab.id).catch(onError)
+      break
+    }
+    case KEY_ALL: {
+      debug('No effect')
+      break
+    }
+    case KEY_ALL_RELOAD: {
+      debug('No effect')
+      break
+    }
+    case KEY_SELECT: {
+      select(tab)
+      break
+    }
+    case KEY_SELECT_RELOAD: {
+      select(tab, undefined, true)
+      break
+    }
+  }
+}
 
-  switch (tokens[0]) {
+function moveToExistWindow (tab, operation, windowId) {
+  switch (operation) {
     case KEY_ONE: {
       moveOne(tab.id, windowId, -1).catch(onError)
       break
@@ -375,6 +417,16 @@ contextMenus.onClicked.addListener((info, tab) => {
       break
     }
   }
+}
+
+contextMenus.onClicked.addListener((info, tab) => {
+  const tokens = info.menuItemId.split(SEP)
+
+  if (tokens[1] === KEY_NEW_WINDOW) {
+    moveToNewWindow(tab, tokens[0])
+  } else {
+    moveToExistWindow(tab, tokens[0], Number(tokens[1]))
+  }
 })
 
 // メニューを初期化
@@ -389,11 +441,15 @@ function reset () {
       }
       case 1: {
         addMenuItem(menuKeys[0], i18n.getMessage(KEY_MOVE_X, i18n.getMessage(menuKeys[0])))
+        addMenuItem(menuKeys[0] + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), menuKeys[0])
         break
       }
       default: {
         addMenuItem(KEY_MOVE, i18n.getMessage(KEY_MOVE))
-        menuKeys.forEach((key) => addMenuItem(key, i18n.getMessage(key), KEY_MOVE))
+        menuKeys.forEach((key) => {
+          addMenuItem(key, i18n.getMessage(key), KEY_MOVE)
+          addMenuItem(key + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), key)
+        })
       }
     }
 

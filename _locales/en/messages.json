@@ -53,5 +53,8 @@
   },
   "height": {
     "message": "Height"
+  },
+  "newWindow": {
+    "message": "New Window"
   }
 }
