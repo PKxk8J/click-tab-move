@@ -78,10 +78,10 @@ resizeLoop()
 
 // 表示を更新する
 function update (fromWindowId, toWindowId, toWindowTitle) {
-  const title = (toWindowId ? toWindowId + ': ' : '') + toWindowTitle
+  const title = i18n.getMessage(KEY_MOVE_TO_X, (toWindowId ? toWindowId + ': ' : '') + toWindowTitle)
   document.title = title
   const header = document.getElementById(KEY_MOVE_TO_X)
-  header.innerText = i18n.getMessage(KEY_MOVE_TO_X, title)
+  header.innerText = title
 
   const querying = tabs.query({windowId: fromWindowId})
   querying.then((tabList) => {
