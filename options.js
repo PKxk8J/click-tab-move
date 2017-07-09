@@ -52,6 +52,7 @@ function falseIffFalse (bool) {
 function restore () {
   const getting = storageArea.get()
   getting.then((result) => {
+    debug('Loaded ' + JSON.stringify(result))
     const flags = {
       [KEY_ONE]: falseIffFalse(result[KEY_ONE]),
       [KEY_ONE_RELOAD]: result[KEY_ONE_RELOAD],
@@ -84,7 +85,7 @@ function save (e) {
     result[key] = Number(document.getElementById(key).value)
   })
   const setting = storageArea.set(result)
-  setting.then(() => debug('Saved'), onError)
+  setting.then(() => debug('Saved ' + JSON.stringify(result)), onError)
 }
 
 document.addEventListener('DOMContentLoaded', restore)
