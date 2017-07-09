@@ -107,6 +107,10 @@ function removeItem (windowId) {
 
 // フォーカスしてるタブで状態を更新する
 function setActiveTab (tabId, windowId, title) {
+  if (windowId === selectWindowId) {
+    return
+  }
+
   const info = windowToInfo.get(windowId)
   if (info) {
     if (info.tab !== tabId) {
@@ -140,10 +144,6 @@ function unsetActiveTab (windowId) {
 
 // 別のタブにフォーカスを移した
 tabs.onActivated.addListener((activeInfo) => {
-  if (activeInfo.windowId === selectWindowId) {
-    return
-  }
-
   debug('Tab' + activeInfo.tabId + ' became active')
   const getting = tabs.get(activeInfo.tabId)
   getting.then((tab) => setActiveTab(tab.id, tab.windowId, tab.title), onError)
@@ -151,10 +151,6 @@ tabs.onActivated.addListener((activeInfo) => {
 
 // タブが変わった
 tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.windowId === selectWindowId) {
-    return
-  }
-
   if (changeInfo.status === 'complete' && tab.url !== 'about:blank') {
     const onReload = onReloads.get(tabId)
     if (onReload) {
@@ -178,10 +174,6 @@ tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // ウインドウができた
 windows.onCreated.addListener((window) => {
-  if (window.id === selectWindowId) {
-    return
-  }
-
   const querying = tabs.query({windowId: window.id, active: true})
   querying.then((tabList) => {
     for (let tab of tabList) {
@@ -193,10 +185,6 @@ windows.onCreated.addListener((window) => {
 
 // ウインドウがなくなった
 windows.onRemoved.addListener((windowId) => {
-  if (windowId === selectWindowId) {
-    return
-  }
-
   debug('Window' + windowId + ' was closed')
   unsetActiveTab(windowId)
 })
@@ -410,9 +398,6 @@ function reset () {
     const querying = tabs.query({active: true})
     querying.then((tabList) => {
       for (let tab of tabList) {
-        if (tab.windowId === selectWindowId) {
-          continue
-        }
         setActiveTab(tab.id, tab.windowId, tab.title)
       }
     }, onError)
