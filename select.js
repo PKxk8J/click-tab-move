@@ -16,7 +16,10 @@ function debug (message) {
 }
 
 function onError (error) {
-  console.error('Error: ' + error)
+  console.error(error)
+  if (DEBUG && error.stack) {
+    console.error(error.stack)
+  }
 }
 
 [KEY_MOVE, KEY_CANCEL].forEach((key) => {

@@ -29,7 +29,10 @@ function debug (message) {
 }
 
 function onError (error) {
-  console.error('Error: ' + error)
+  console.error(error)
+  if (DEBUG && error.stack) {
+    console.error(error.stack)
+  }
 }
 
 // bool が undefined でなく false のときだけ false になるように
