@@ -52,34 +52,32 @@ function falseIffFalse (bool) {
 })
 
 // 現在の設定を表示する
-function restore () {
-  const getting = storageArea.get()
-  getting.then((result) => {
-    debug('Loaded ' + JSON.stringify(result))
-    const flags = {
-      [KEY_ONE]: falseIffFalse(result[KEY_ONE]),
-      [KEY_ONE_RELOAD]: result[KEY_ONE_RELOAD],
-      [KEY_ALL]: falseIffFalse(result[KEY_ALL]),
-      [KEY_ALL_RELOAD]: result[KEY_ALL_RELOAD],
-      [KEY_SELECT]: falseIffFalse(result[KEY_SELECT]),
-      [KEY_SELECT_RELOAD]: result[KEY_SELECT_RELOAD]
-    }
-    Object.keys(flags).forEach((key) => {
-      document.getElementById(key).checked = flags[key]
-    })
-    const values = {
-      [KEY_SELECT_WIDTH]: result[KEY_SELECT_WIDTH] || 640,
-      [KEY_SELECT_HEIGHT]: result[KEY_SELECT_HEIGHT] || 480
-    }
-    Object.keys(values).forEach((key) => {
-      document.getElementById(key).value = values[key]
-    })
-  }, onError)
+async function restore () {
+  const result = await storageArea.get()
+  debug('Loaded ' + JSON.stringify(result))
+
+  const flags = {
+    [KEY_ONE]: falseIffFalse(result[KEY_ONE]),
+    [KEY_ONE_RELOAD]: result[KEY_ONE_RELOAD],
+    [KEY_ALL]: falseIffFalse(result[KEY_ALL]),
+    [KEY_ALL_RELOAD]: result[KEY_ALL_RELOAD],
+    [KEY_SELECT]: falseIffFalse(result[KEY_SELECT]),
+    [KEY_SELECT_RELOAD]: result[KEY_SELECT_RELOAD]
+  }
+  Object.keys(flags).forEach((key) => {
+    document.getElementById(key).checked = flags[key]
+  })
+
+  const values = {
+    [KEY_SELECT_WIDTH]: result[KEY_SELECT_WIDTH] || 640,
+    [KEY_SELECT_HEIGHT]: result[KEY_SELECT_HEIGHT] || 480
+  }
+  Object.keys(values).forEach((key) => {
+    document.getElementById(key).value = values[key]
+  })
 }
 
-function save (e) {
-  e.preventDefault()
-
+async function save () {
   const result = {}
   ;[KEY_ONE, KEY_ONE_RELOAD, KEY_ALL, KEY_ALL_RELOAD, KEY_SELECT, KEY_SELECT_RELOAD].forEach((key) => {
     result[key] = document.getElementById(key).checked
@@ -87,9 +85,13 @@ function save (e) {
   ;[KEY_SELECT_WIDTH, KEY_SELECT_HEIGHT].forEach((key) => {
     result[key] = Number(document.getElementById(key).value)
   })
-  const setting = storageArea.set(result)
-  setting.then(() => debug('Saved ' + JSON.stringify(result)), onError)
+
+  await storageArea.set(result)
+  debug('Saved ' + JSON.stringify(result))
 }
 
-document.addEventListener('DOMContentLoaded', restore)
-document.getElementById('form').addEventListener('submit', save)
+document.addEventListener('DOMContentLoaded', () => restore().catch(onError))
+document.getElementById('form').addEventListener('submit', (e) => (async function () {
+  e.preventDefault()
+  await save()
+})().catch(onError))
