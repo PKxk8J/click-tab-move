@@ -29,9 +29,6 @@ function debug (message) {
 
 function onError (error) {
   console.error(error)
-  if (DEBUG && error.stack) {
-    console.error(error.stack)
-  }
 }
 
 // bool が undefined でなく false のときだけ false になるように
@@ -83,14 +80,24 @@ const windowToInfo = new Map()
 // タブ ID からウインドウ ID
 const tabToWindow = new Map()
 
+let focusedWindowId
+
 // メニューアイテムを追加する
 function addItem (windowId, title) {
+  if (windowId === focusedWindowId) {
+    return
+  }
+
   const text = cut(windowId + ': ' + title, ITEM_LENGTH)
   menuKeys.forEach((key) => addMenuItem(key + SEP + windowId, text, key))
 }
 
 // メニューアイテムを更新する
 function updateItem (windowId, title) {
+  if (windowId === focusedWindowId) {
+    return
+  }
+
   const text = cut(windowId + ': ' + title, ITEM_LENGTH)
 
   async function update (id) {
@@ -191,11 +198,25 @@ windows.onRemoved.addListener((windowId) => {
   unsetActiveTab(windowId)
 })
 
-// TODO フォーカスされているウインドウをメニューの移動先から消す
-// // 別のウインドウにフォーカスを移した
-// windows.onFocusChanged.addListener((windowId) => {
-//   debug('Window' + windowId + ' is focused')
-// })
+// フォーカスされたウインドウをメニューから消す
+async function filterWindow (windowId) {
+  debug('Window' + windowId + ' is focused')
+
+  const old = focusedWindowId
+  focusedWindowId = windowId
+
+  if (old) {
+    const info = windowToInfo.get(old)
+    if (info) {
+      addItem(old, info.title)
+    }
+  }
+
+  removeItem(focusedWindowId)
+}
+
+// 別のウインドウにフォーカスを移した
+windows.onFocusChanged.addListener((windowId) => filterWindow(windowId).catch(onError))
 
 // 1つのタブを移す
 async function moveOne (id, windowId, index) {
@@ -506,6 +527,9 @@ async function reset () {
   for (const tab of tabList) {
     setActiveTab(tab.id, tab.windowId, tab.title)
   }
+
+  const windowInfo = await windows.getCurrent()
+  await filterWindow(windowInfo.id)
 }
 
 // 設定を反映させる

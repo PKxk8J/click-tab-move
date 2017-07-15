@@ -17,9 +17,6 @@ function debug (message) {
 
 function onError (error) {
   console.error(error)
-  if (DEBUG && error.stack) {
-    console.error(error.stack)
-  }
 }
 
 // 選択ボックスのサイズ変更のための監視間隔（ミリ秒）
