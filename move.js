@@ -180,11 +180,9 @@ tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // ウインドウができた
 windows.onCreated.addListener((window) => (async function () {
-  const tabList = await tabs.query({windowId: window.id, active: true})
-  for (const tab of tabList) {
-    debug('Tab' + tab.id + ' is in new window' + tab.windowId)
-    setActiveTab(tab.id, tab.windowId, tab.title)
-  }
+  const [tab] = await tabs.query({windowId: window.id, active: true})
+  debug('Tab' + tab.id + ' is in new window' + tab.windowId)
+  setActiveTab(tab.id, tab.windowId, tab.title)
 })().catch(onError))
 
 // ウインドウがなくなった
