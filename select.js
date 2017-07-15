@@ -16,18 +16,20 @@ function debug (message) {
 }
 
 function onError (error) {
-  console.error('Error: ' + error)
+  console.error(error)
+  if (DEBUG && error.stack) {
+    console.error(error.stack)
+  }
 }
 
-[KEY_MOVE, KEY_CANCEL].forEach((key) => {
-  document.getElementById('label_' + key).innerText = i18n.getMessage(key)
-})
+// 選択ボックスのサイズ変更のための監視間隔（ミリ秒）
+const RESIZE_INTERVAL = 500
 
 // ウインドウを閉じる
-function close () {
+async function close () {
   const id = windows.WINDOW_ID_CURRENT
-  const removing = windows.remove(id)
-  removing.then(() => debug('Window ' + id + ' was closed'), onError)
+  await windows.remove(id)
+  debug('Select window ' + id + ' was closed')
 }
 
 // 移動対象を move.js に通知する
@@ -42,14 +44,18 @@ function sendMoveMessage () {
   runtime.sendMessage({type: 'move', tabIds: ids})
 }
 
-document.getElementById(KEY_MOVE).addEventListener('click', () => {
-  sendMoveMessage()
-  close()
+// ボタンの初期化
+;[KEY_MOVE, KEY_CANCEL].forEach((key) => {
+  document.getElementById('label_' + key).innerText = i18n.getMessage(key)
 })
-document.getElementById(KEY_CANCEL).addEventListener('click', close)
+document.getElementById(KEY_MOVE).addEventListener('click', () => (async function () {
+  sendMoveMessage()
+  await close()
+})().catch(onError))
+document.getElementById(KEY_CANCEL).addEventListener('click', () => close().catch(onError))
 
 // 選択ボックスのサイズを変更する
-function resizeSelectBox (callback) {
+function resizeSelectBox () {
   const select = document.getElementById('select')
   const options = select.childNodes
   let size = 0
@@ -65,50 +71,51 @@ function resizeSelectBox (callback) {
   if (size !== select.size) {
     select.size = size
   }
-  if (callback) {
-    callback()
-  }
 }
 
 function resizeLoop () {
-  resizeSelectBox(() => setTimeout(resizeLoop, 1000))
+  resizeSelectBox()
+  setTimeout(resizeLoop, RESIZE_INTERVAL)
 }
 
+// 選択ボックスを監視して必要ならサイズを変更する
 resizeLoop()
 
 // 表示を更新する
-function update (fromWindowId, toWindowId, toWindowTitle) {
+async function update (fromWindowId, toWindowId, toWindowTitle) {
   const title = i18n.getMessage(KEY_MOVE_TO_X, (toWindowId ? toWindowId + ': ' : '') + toWindowTitle)
   document.title = title
+
   const header = document.getElementById(KEY_MOVE_TO_X)
   header.innerText = title
 
-  const querying = tabs.query({windowId: fromWindowId})
-  querying.then((tabList) => {
-    tabList.sort((tab1, tab2) => tab1.index - tab2.index)
+  const tabList = await tabs.query({windowId: fromWindowId})
+  tabList.sort((tab1, tab2) => tab1.index - tab2.index)
 
-    const select = document.getElementById('select')
-    while (select.firstChild) {
-      select.removeChild(select.firstChild)
-    }
-    for (let tab of tabList) {
-      const option = document.createElement('option')
-      option.id = tab.id
-      option.innerText = tab.title
-      select.appendChild(option)
-    }
-  }, onError)
+  const select = document.getElementById('select')
+  while (select.firstChild) {
+    select.removeChild(select.firstChild)
+  }
+  for (let tab of tabList) {
+    const option = document.createElement('option')
+    option.id = tab.id
+    option.innerText = tab.title
+    select.appendChild(option)
+  }
 }
 
-runtime.onMessage.addListener((message, sender, sendResponse) => {
+// move.js から起点になるメッセージを受け取る
+runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
   debug('Message ' + JSON.stringify(message) + ' was received')
+
   switch (message.type) {
     case 'update': {
       const { fromWindowId, toWindowId, toWindowTitle } = message
-      update(fromWindowId, toWindowId, toWindowTitle)
+      await update(fromWindowId, toWindowId, toWindowTitle)
       break
     }
   }
-})
+})().catch(onError))
 
+// move.js に下準備が終わったことを報せる
 runtime.sendMessage({type: 'started'})
