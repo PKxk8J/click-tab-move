@@ -254,6 +254,8 @@ async function moveSome (ids, windowId, index, reload) {
 async function moveAll (fromWindowId, windowId, index, reload) {
   const tabList = await tabs.query({windowId: fromWindowId})
   tabList.sort((tab1, tab2) => tab1.index - tab2.index)
+  // 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために末尾のタブにフォーカスする
+  await tabs.update(tabList[tabList.length - 1].id, {active: true})
   await moveSome(tabList.map((tab) => tab.id), windowId, index, reload)
 }
 
@@ -323,6 +325,59 @@ async function select (tab, windowId, reload) {
   sendUpdateMessage()
 }
 
+// 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために動かないタブか末尾のタブにフォーカスする
+async function activateNextTab (windowId, moveIds) {
+  const moveIdSet = new Set(moveIds)
+
+  const [activeTab] = await tabs.query({windowId, active: true})
+  if (!moveIdSet.has(activeTab.id)) {
+    return
+  }
+
+  // 末尾のタブ
+  let lastTab
+  // フォーカスしているタブの後ろで最も近い動かないタブ
+  let nextTab
+  // フォーカスしているタブの前で最も近い動かないタブ
+  let prevTab
+  const tabList = await tabs.query({windowId})
+  for (const tab of tabList) {
+    if (!lastTab || tab.index > lastTab.index) {
+      lastTab = tab
+    }
+
+    if (moveIdSet.has(tab.id)) {
+      continue
+    }
+
+    if (tab.index < activeTab.index) {
+      if (!prevTab || tab.index > prevTab.index) {
+        prevTab = tab
+      }
+    } else {
+      if (!nextTab || tab.index < nextTab.index) {
+        nextTab = tab
+      }
+    }
+  }
+
+  let id
+  if (nextTab) {
+    id = nextTab.id
+  } else if (prevTab) {
+    id = prevTab.id
+  } else {
+    id = lastTab.id
+  }
+
+  if (id === activeTab.id) {
+    // 全部が移動対象で activeTab が lastTab だった
+    return
+  }
+
+  await tabs.update(id, {active: true})
+}
+
 // 選択ウインドウから初期化通知と移動通知を受け取る
 runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
   debug('Message ' + JSON.stringify(message) + ' was received')
@@ -338,6 +393,7 @@ runtime.onMessage.addListener((message, sender, sendResponse) => (async function
         debug('No selected tabs')
         return
       }
+      await activateNextTab(fromWindowId, tabIds)
       if (toWindowId) {
         await moveSome(tabIds, toWindowId, -1, selectReload)
       } else {
