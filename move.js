@@ -8,11 +8,8 @@ const KEY_DEBUG = 'debug'
 const KEY_MOVE = 'move'
 const KEY_MOVE_X = 'moveX'
 const KEY_ONE = 'one'
-const KEY_ONE_RELOAD = 'oneReload'
 const KEY_ALL = 'all'
-const KEY_ALL_RELOAD = 'allReload'
 const KEY_SELECT = 'select'
-const KEY_SELECT_RELOAD = 'selectReload'
 const KEY_SELECT_WIDTH = 'selectWidth'
 const KEY_SELECT_HEIGHT = 'selectHeight'
 const KEY_NEW_WINDOW = 'newWindow'
@@ -65,9 +62,6 @@ function addMenuItem (id, title, parentId) {
 
 let menuKeys = []
 
-const onReloads = new Map()
-// TODO 設定に
-let reloadTimeout = 60 * 1000
 let selectWidth = 640
 let selectHeight = 480
 
@@ -164,13 +158,7 @@ tabs.onActivated.addListener((activeInfo) => (async function () {
 
 // タブが変わった
 tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url !== 'about:blank') {
-    const onReload = onReloads.get(tabId)
-    if (onReload) {
-      onReload()
-    }
-    return
-  } else if (!changeInfo.title) {
+  if (!changeInfo.title) {
     // タイトルは変わってなかった
     return
   }
@@ -226,67 +214,14 @@ async function moveOne (id, windowId, index) {
   return tab
 }
 
-// 再読み込みしつつ 1つのタブを移す
-function moveOneWithReload (id, windowId, index) {
-  return new Promise((resolve, reject) => (async function () {
-    const tab = tabs.get(id)
-    if (tab.url === 'about:blank') {
-      resolve(await moveOne(id, windowId, index))
-      return
-    }
-
-    let timeoutExecutor
-    const onReload = () => (async function () {
-      clearTimeout(timeoutExecutor)
-      onReloads.delete(id)
-      resolve(await moveOne(id, windowId, index))
-    })().catch(onError)
-    onReloads.set(id, onReload)
-
-    timeoutExecutor = () => {
-      const stale = onReloads.get(id)
-      if (stale === onReload) {
-        onReloads.delete(id)
-        onError('Reloading tab' + id + ' timed out')
-        reject(new Error('timeout'))
-      }
-    }
-    setTimeout(timeoutExecutor, reloadTimeout)
-
-    await tabs.reload(id, {bypassCache: true})
-    debug('Tab' + id + ' was reloaded')
-  })().catch(reject))
-}
-
 // 複数のタブを移す
-async function moveSome (ids, windowId, index, reload) {
+async function moveSome (ids, windowId, index) {
   let idx = index
+  // 固まるのを防ぐために 1つずつ移す
   for (const id of ids) {
-    if (reload) {
-      await moveOneWithReload(id, windowId, idx)
-    } else {
-      await moveOne(id, windowId, idx)
-    }
+    await moveOne(id, windowId, idx)
     idx = (idx < 0 ? idx : idx + 1)
   }
-}
-
-// 全てのタブを移す
-async function moveAll (fromWindowId, windowId, index, reload) {
-  const tabList = await tabs.query({windowId: fromWindowId})
-  tabList.sort((tab1, tab2) => tab1.index - tab2.index)
-  // 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために末尾のタブにフォーカスする
-  await tabs.update(tabList[tabList.length - 1].id, {active: true})
-  await moveSome(tabList.map((tab) => tab.id), windowId, index, reload)
-}
-
-async function moveOneToNewWindow (id) {
-  return windows.create({tabId: id})
-}
-
-async function moveSomeToNewWindow (ids, reload) {
-  const windowInfo = await windows.create({tabId: ids[0]})
-  await moveSome(ids.slice(1), windowInfo.id, -1, reload)
 }
 
 // タブ選択ウインドウは1つとする
@@ -295,8 +230,6 @@ async function moveSomeToNewWindow (ids, reload) {
 let fromWindowId
 // 選択タブ移動先のウインドウ
 let toWindowId
-// 選択タブ移動で再読み込みするか
-let selectReload
 // タブ選択ウインドウ
 let selectWindowId
 
@@ -312,10 +245,9 @@ function sendUpdateMessage () {
 }
 
 // 選択ウインドウをつくる
-async function select (tab, windowId, reload) {
+async function select (tab, windowId) {
   fromWindowId = tab.windowId
   toWindowId = windowId
-  selectReload = reload
 
   async function createSelectWindow () {
     const window = await windows.create({
@@ -346,31 +278,37 @@ async function select (tab, windowId, reload) {
   sendUpdateMessage()
 }
 
-// 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために動かないタブか末尾のタブにフォーカスする
-async function activateNextTab (windowId, moveIds) {
-  const moveIdSet = new Set(moveIds)
+// 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために
+// 移動しないタブか末尾のタブにフォーカスする
+async function activateBestTab (tabList, ids) {
+  const idSet = new Set(ids)
 
-  const [activeTab] = await tabs.query({windowId, active: true})
-  if (!moveIdSet.has(activeTab.id)) {
-    return
+  let activeTab
+  let lastTab
+  let notMoveTabs = []
+  for (const tab of tabList) {
+    const move = idSet.has(tab.id)
+
+    if (tab.active) {
+      if (!move) {
+        // 移動しないタブにフォーカスしてる
+        return
+      }
+      activeTab = tab
+    }
+    if (!lastTab || tab.index > lastTab.index) {
+      lastTab = tab
+    }
+    if (!move) {
+      notMoveTabs.push(tab)
+    }
   }
 
-  // 末尾のタブ
-  let lastTab
   // フォーカスしているタブの後ろで最も近い動かないタブ
   let nextTab
   // フォーカスしているタブの前で最も近い動かないタブ
   let prevTab
-  const tabList = await tabs.query({windowId})
-  for (const tab of tabList) {
-    if (!lastTab || tab.index > lastTab.index) {
-      lastTab = tab
-    }
-
-    if (moveIdSet.has(tab.id)) {
-      continue
-    }
-
+  for (const tab of notMoveTabs) {
     if (tab.index < activeTab.index) {
       if (!prevTab || tab.index > prevTab.index) {
         prevTab = tab
@@ -399,6 +337,103 @@ async function activateNextTab (windowId, moveIds) {
   await tabs.update(id, {active: true})
 }
 
+// ピン留めされているかどうかを考慮してどの位置に移動すれば良いか決める
+// 返り値は [{ids: [...], index: .}, ...]
+async function checkPin (tabList, ids, windowId) {
+  const idToTab = new Map()
+  tabList.forEach((tab) => idToTab.set(tab.id, tab))
+
+  const pinneds = []
+  const notPinneds = []
+  ids.forEach((id) => {
+    const tab = idToTab.get(id)
+    if (tab.pinned) {
+      pinneds.push(id)
+    } else {
+      notPinneds.push(id)
+    }
+  })
+
+  if (pinneds.length <= 0) {
+    return [{ids, index: -1}]
+  }
+
+  const pinnedTabs = await tabs.query({windowId, pinned: true})
+  let lastPinnedIndex = -1
+  pinnedTabs.forEach((tab) => {
+    if (!lastPinnedIndex || tab.index > lastPinnedIndex) {
+      lastPinnedIndex = tab.index
+    }
+  })
+
+  return [{
+    ids: pinneds,
+    index: lastPinnedIndex + 1
+  }, {
+    ids: notPinneds,
+    index: -1
+  }]
+}
+
+// ピン留めを考慮しつつ 1つのタブを移す
+async function wrapMoveOne (tab, windowId) {
+  const index = (tab.pinned ? 0 : -1)
+  await moveOne(tab.id, windowId, index)
+}
+
+// ピン留めを考慮しつつ 1つのタブを新しいウインドウに移す
+async function wrapMoveOneToNewWindow (id) {
+  const tab = await tabs.get(id)
+  const windowInfo = await windows.create({tabId: id})
+  if (tab.pinned) {
+    await tabs.update(id, {pinned: true})
+  }
+  return windowInfo
+}
+
+// 未読み込みとピン留めを考慮しつつ複数のタブを移す
+async function wrapMoveSome (fromWindowId, ids, windowId) {
+  const tabList = await tabs.query({windowId: fromWindowId})
+
+  await activateBestTab(tabList, ids)
+
+  const entries = await checkPin(tabList, ids, windowId)
+  for (const entry of entries) {
+    await moveSome(entry.ids, windowId, entry.index)
+  }
+}
+
+// 未読み込みとピン留めを考慮しつつ複数のタブを新しいウインドウに移す
+async function wrapMoveSomeToNewWindow (fromWindowId, ids) {
+  const tabList = await tabs.query({windowId: fromWindowId})
+
+  await activateBestTab(tabList, ids)
+
+  const windowInfo = await wrapMoveOneToNewWindow(ids[0])
+
+  const entries = await checkPin(tabList, ids.slice(1), windowInfo.id)
+  for (const entry of entries) {
+    await moveSome(entry.ids, windowInfo.id, entry.index)
+  }
+}
+
+// 未読み込みとピン留めを考慮しつつ全てのタブを移す
+async function wrapMoveAll (fromWindowId, windowId) {
+  const tabList = await tabs.query({windowId: fromWindowId})
+  tabList.sort((tab1, tab2) => tab1.index - tab2.index)
+
+  const lastTab = tabList[tabList.length - 1]
+  if (!lastTab.active) {
+    await tabs.update(lastTab.id, {active: true})
+  }
+
+  const ids = tabList.map((tab) => tab.id)
+  const entries = await checkPin(tabList, ids, windowId)
+  for (const entry of entries) {
+    await moveSome(entry.ids, windowId, entry.index)
+  }
+}
+
 // 選択ウインドウから初期化通知と移動通知を受け取る
 runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
   debug('Message ' + JSON.stringify(message) + ' was received')
@@ -410,15 +445,10 @@ runtime.onMessage.addListener((message, sender, sendResponse) => (async function
     }
     case 'move': {
       const { tabIds } = message
-      if (tabIds.length <= 0) {
-        debug('No selected tabs')
-        return
-      }
-      await activateNextTab(fromWindowId, tabIds)
       if (toWindowId) {
-        await moveSome(tabIds, toWindowId, -1, selectReload)
+        await wrapMoveSome(fromWindowId, tabIds, toWindowId)
       } else {
-        await moveSomeToNewWindow(tabIds, selectReload)
+        await wrapMoveSomeToNewWindow(fromWindowId, tabIds)
       }
       break
     }
@@ -428,27 +458,11 @@ runtime.onMessage.addListener((message, sender, sendResponse) => (async function
 async function moveToNewWindow (tab, operation) {
   switch (operation) {
     case KEY_ONE: {
-      await moveOneToNewWindow(tab.id)
-      break
-    }
-    case KEY_ONE_RELOAD: {
-      await moveOneToNewWindow(tab.id)
-      break
-    }
-    case KEY_ALL: {
-      debug('No effect')
-      break
-    }
-    case KEY_ALL_RELOAD: {
-      debug('No effect')
+      await wrapMoveOneToNewWindow(tab.id)
       break
     }
     case KEY_SELECT: {
       await select(tab)
-      break
-    }
-    case KEY_SELECT_RELOAD: {
-      await select(tab, undefined, true)
       break
     }
   }
@@ -457,27 +471,15 @@ async function moveToNewWindow (tab, operation) {
 async function moveToExistWindow (tab, operation, windowId) {
   switch (operation) {
     case KEY_ONE: {
-      await moveOne(tab.id, windowId, -1).catch(onError)
-      break
-    }
-    case KEY_ONE_RELOAD: {
-      await moveOneWithReload(tab.id, windowId, -1).catch(onError)
+      await wrapMoveOne(tab, windowId)
       break
     }
     case KEY_ALL: {
-      await moveAll(tab.windowId, windowId, -1).catch(onError)
-      break
-    }
-    case KEY_ALL_RELOAD: {
-      await moveAll(tab.windowId, windowId, -1, true).catch(onError)
+      await wrapMoveAll(tab.windowId, windowId)
       break
     }
     case KEY_SELECT: {
       await select(tab, windowId)
-      break
-    }
-    case KEY_SELECT_RELOAD: {
-      await select(tab, windowId, true)
       break
     }
   }
@@ -507,7 +509,7 @@ async function reset () {
     case 1: {
       const key = menuKeys[0]
       addMenuItem(key, i18n.getMessage(KEY_MOVE_X, i18n.getMessage(key)))
-      if (![KEY_ALL, KEY_ALL_RELOAD].includes(key)) {
+      if (key !== KEY_ALL) {
         addMenuItem(key + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), key)
       }
       break
@@ -516,7 +518,7 @@ async function reset () {
       addMenuItem(KEY_MOVE, i18n.getMessage(KEY_MOVE))
       menuKeys.forEach((key) => {
         addMenuItem(key, i18n.getMessage(key), KEY_MOVE)
-        if (![KEY_ALL, KEY_ALL_RELOAD].includes(key)) {
+        if (key !== KEY_ALL) {
           addMenuItem(key + SEP + KEY_NEW_WINDOW, i18n.getMessage(KEY_NEW_WINDOW), key)
         }
       })
@@ -538,20 +540,11 @@ async function applySetting (result) {
   if (falseIffFalse(result[KEY_ONE])) {
     menuKeys.push(KEY_ONE)
   }
-  if (result[KEY_ONE_RELOAD]) {
-    menuKeys.push(KEY_ONE_RELOAD)
-  }
   if (falseIffFalse(result[KEY_ALL])) {
     menuKeys.push(KEY_ALL)
   }
-  if (result[KEY_ALL_RELOAD]) {
-    menuKeys.push(KEY_ALL_RELOAD)
-  }
   if (falseIffFalse(result[KEY_SELECT])) {
     menuKeys.push(KEY_SELECT)
-  }
-  if (result[KEY_SELECT_RELOAD]) {
-    menuKeys.push(KEY_SELECT_RELOAD)
   }
   selectWidth = result[KEY_SELECT_WIDTH] || 640
   selectHeight = result[KEY_SELECT_HEIGHT] || 480
