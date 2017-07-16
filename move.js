@@ -217,28 +217,11 @@ async function moveOne (id, windowId, index) {
 // 複数のタブを移す
 async function moveSome (ids, windowId, index) {
   let idx = index
+  // 固まるのを防ぐために 1つずつ移す
   for (const id of ids) {
     await moveOne(id, windowId, idx)
     idx = (idx < 0 ? idx : idx + 1)
   }
-}
-
-// 全てのタブを移す
-async function moveAll (fromWindowId, windowId, index) {
-  const tabList = await tabs.query({windowId: fromWindowId})
-  tabList.sort((tab1, tab2) => tab1.index - tab2.index)
-  // 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために末尾のタブにフォーカスする
-  await tabs.update(tabList[tabList.length - 1].id, {active: true})
-  await moveSome(tabList.map((tab) => tab.id), windowId, index)
-}
-
-async function moveOneToNewWindow (id) {
-  return windows.create({tabId: id})
-}
-
-async function moveSomeToNewWindow (ids) {
-  const windowInfo = await windows.create({tabId: ids[0]})
-  await moveSome(ids.slice(1), windowInfo.id, -1)
 }
 
 // タブ選択ウインドウは1つとする
@@ -295,31 +278,37 @@ async function select (tab, windowId) {
   sendUpdateMessage()
 }
 
-// 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために動かないタブか末尾のタブにフォーカスする
-async function activateNextTab (windowId, moveIds) {
-  const moveIdSet = new Set(moveIds)
+// 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために
+// 移動しないタブか末尾のタブにフォーカスする
+async function activateBestTab (tabList, ids) {
+  const idSet = new Set(ids)
 
-  const [activeTab] = await tabs.query({windowId, active: true})
-  if (!moveIdSet.has(activeTab.id)) {
-    return
+  let activeTab
+  let lastTab
+  let notMoveTabs = []
+  for (const tab of tabList) {
+    const move = idSet.has(tab.id)
+
+    if (tab.active) {
+      if (!move) {
+        // 移動しないタブにフォーカスしてる
+        return
+      }
+      activeTab = tab
+    }
+    if (!lastTab || tab.index > lastTab.index) {
+      lastTab = tab
+    }
+    if (!move) {
+      notMoveTabs.push(tab)
+    }
   }
 
-  // 末尾のタブ
-  let lastTab
   // フォーカスしているタブの後ろで最も近い動かないタブ
   let nextTab
   // フォーカスしているタブの前で最も近い動かないタブ
   let prevTab
-  const tabList = await tabs.query({windowId})
-  for (const tab of tabList) {
-    if (!lastTab || tab.index > lastTab.index) {
-      lastTab = tab
-    }
-
-    if (moveIdSet.has(tab.id)) {
-      continue
-    }
-
+  for (const tab of notMoveTabs) {
     if (tab.index < activeTab.index) {
       if (!prevTab || tab.index > prevTab.index) {
         prevTab = tab
@@ -348,6 +337,103 @@ async function activateNextTab (windowId, moveIds) {
   await tabs.update(id, {active: true})
 }
 
+// ピン留めされているかどうかを考慮してどの位置に移動すれば良いか決める
+// 返り値は [{ids: [...], index: .}, ...]
+async function checkPin (tabList, ids, windowId) {
+  const idToTab = new Map()
+  tabList.forEach((tab) => idToTab.set(tab.id, tab))
+
+  const pinneds = []
+  const notPinneds = []
+  ids.forEach((id) => {
+    const tab = idToTab.get(id)
+    if (tab.pinned) {
+      pinneds.push(id)
+    } else {
+      notPinneds.push(id)
+    }
+  })
+
+  if (pinneds.length <= 0) {
+    return [{ids, index: -1}]
+  }
+
+  const pinnedTabs = await tabs.query({windowId, pinned: true})
+  let lastPinnedIndex = -1
+  pinnedTabs.forEach((tab) => {
+    if (!lastPinnedIndex || tab.index > lastPinnedIndex) {
+      lastPinnedIndex = tab.index
+    }
+  })
+
+  return [{
+    ids: pinneds,
+    index: lastPinnedIndex + 1
+  }, {
+    ids: notPinneds,
+    index: -1
+  }]
+}
+
+// ピン留めを考慮しつつ 1つのタブを移す
+async function wrapMoveOne (tab, windowId) {
+  const index = (tab.pinned ? 0 : -1)
+  await moveOne(tab.id, windowId, index)
+}
+
+// ピン留めを考慮しつつ 1つのタブを新しいウインドウに移す
+async function wrapMoveOneToNewWindow (id) {
+  const tab = await tabs.get(id)
+  const windowInfo = await windows.create({tabId: id})
+  if (tab.pinned) {
+    await tabs.update(id, {pinned: true})
+  }
+  return windowInfo
+}
+
+// 未読み込みとピン留めを考慮しつつ複数のタブを移す
+async function wrapMoveSome (fromWindowId, ids, windowId) {
+  const tabList = await tabs.query({windowId: fromWindowId})
+
+  await activateBestTab(tabList, ids)
+
+  const entries = await checkPin(tabList, ids, windowId)
+  for (const entry of entries) {
+    await moveSome(entry.ids, windowId, entry.index)
+  }
+}
+
+// 未読み込みとピン留めを考慮しつつ複数のタブを新しいウインドウに移す
+async function wrapMoveSomeToNewWindow (fromWindowId, ids) {
+  const tabList = await tabs.query({windowId: fromWindowId})
+
+  await activateBestTab(tabList, ids)
+
+  const windowInfo = await wrapMoveOneToNewWindow(ids[0])
+
+  const entries = await checkPin(tabList, ids.slice(1), windowInfo.id)
+  for (const entry of entries) {
+    await moveSome(entry.ids, windowInfo.id, entry.index)
+  }
+}
+
+// 未読み込みとピン留めを考慮しつつ全てのタブを移す
+async function wrapMoveAll (fromWindowId, windowId) {
+  const tabList = await tabs.query({windowId: fromWindowId})
+  tabList.sort((tab1, tab2) => tab1.index - tab2.index)
+
+  const lastTab = tabList[tabList.length - 1]
+  if (!lastTab.active) {
+    await tabs.update(lastTab.id, {active: true})
+  }
+
+  const ids = tabList.map((tab) => tab.id)
+  const entries = await checkPin(tabList, ids, windowId)
+  for (const entry of entries) {
+    await moveSome(entry.ids, windowId, entry.index)
+  }
+}
+
 // 選択ウインドウから初期化通知と移動通知を受け取る
 runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
   debug('Message ' + JSON.stringify(message) + ' was received')
@@ -359,15 +445,10 @@ runtime.onMessage.addListener((message, sender, sendResponse) => (async function
     }
     case 'move': {
       const { tabIds } = message
-      if (tabIds.length <= 0) {
-        debug('No selected tabs')
-        return
-      }
-      await activateNextTab(fromWindowId, tabIds)
       if (toWindowId) {
-        await moveSome(tabIds, toWindowId, -1)
+        await wrapMoveSome(fromWindowId, tabIds, toWindowId)
       } else {
-        await moveSomeToNewWindow(tabIds)
+        await wrapMoveSomeToNewWindow(fromWindowId, tabIds)
       }
       break
     }
@@ -377,7 +458,7 @@ runtime.onMessage.addListener((message, sender, sendResponse) => (async function
 async function moveToNewWindow (tab, operation) {
   switch (operation) {
     case KEY_ONE: {
-      await moveOneToNewWindow(tab.id)
+      await wrapMoveOneToNewWindow(tab.id)
       break
     }
     case KEY_SELECT: {
@@ -390,11 +471,11 @@ async function moveToNewWindow (tab, operation) {
 async function moveToExistWindow (tab, operation, windowId) {
   switch (operation) {
     case KEY_ONE: {
-      await moveOne(tab.id, windowId, -1)
+      await wrapMoveOne(tab, windowId)
       break
     }
     case KEY_ALL: {
-      await moveAll(tab.windowId, windowId, -1)
+      await wrapMoveAll(tab.windowId, windowId)
       break
     }
     case KEY_SELECT: {
