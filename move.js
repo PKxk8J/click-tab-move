@@ -390,11 +390,11 @@ async function moveToNewWindow (tab, operation) {
 async function moveToExistWindow (tab, operation, windowId) {
   switch (operation) {
     case KEY_ONE: {
-      await moveOne(tab.id, windowId, -1).catch(onError)
+      await moveOne(tab.id, windowId, -1)
       break
     }
     case KEY_ALL: {
-      await moveAll(tab.windowId, windowId, -1).catch(onError)
+      await moveAll(tab.windowId, windowId, -1)
       break
     }
     case KEY_SELECT: {
