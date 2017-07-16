@@ -99,6 +99,9 @@ async function update (fromWindowId, toWindowId, toWindowTitle) {
     option.innerText = tab.title
     select.appendChild(option)
   }
+
+  select.focus()
+  await windows.update(windows.WINDOW_ID_CURRENT, {focused: true})
 }
 
 // move.js から起点になるメッセージを受け取る
