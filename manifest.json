@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "__MSG_name__",
-  "version": "1.1.2",
-  "description": "Move tabs to another window or a new window from right click menu on tabs.\n\nNot only moving one tab, you can select target tabs in popup window.\nYou can also merge two windows by moving all tabs to another window.",
+  "version": "2.0.0",
+  "description": "Move tabs to another window or a new window from right click menu on tabs.\n\nNot only moving one tab, you can select target tabs in popup window.\nYou can also merge two windows by moving all tabs in one window to the other window.",
   "applications": {
     "gecko": {
       "id": "{2bd73814-983c-42f3-a6d5-e68c4668a4cf}",
