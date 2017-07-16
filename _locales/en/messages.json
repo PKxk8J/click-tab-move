@@ -15,29 +15,17 @@
   "one": {
     "message": "One"
   },
-  "oneReload": {
-    "message": "One with Reload"
-  },
   "all": {
     "message": "All"
   },
-  "allReload": {
-    "message": "All with Reload"
-  },
   "select": {
     "message": "Select"
-  },
-  "selectReload": {
-    "message": "Select with Reload"
   },
   "menuItem": {
     "message": "Menu Items"
   },
   "save": {
     "message": "Save"
-  },
-  "reloadDescription": {
-    "message": "for Not Loaded Tabs in Linux"
   },
   "cancel": {
     "message": "Cancel"

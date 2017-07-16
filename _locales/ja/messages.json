@@ -8,29 +8,17 @@
   "one": {
     "message": "ひとつ"
   },
-  "oneReload": {
-    "message": "ひとつを読み込みながら"
-  },
   "all": {
     "message": "すべて"
   },
-  "allReload": {
-    "message": "すべてを読み込みながら"
-  },
   "select": {
     "message": "選択して"
-  },
-  "selectReload": {
-    "message": "選択して読み込みながら"
   },
   "menuItem": {
     "message": "メニュー項目"
   },
   "save": {
     "message": "保存"
-  },
-  "reloadDescription": {
-    "message": "Linuxでの読み込まれていないタブ用"
   },
   "cancel": {
     "message": "やめる"
