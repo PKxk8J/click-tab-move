@@ -65,6 +65,12 @@ let menuKeys = []
 let selectWidth = 640
 let selectHeight = 480
 
+// タブ選択ウインドウ
+// タブ選択ウインドウは1つとする
+let selectWindowId
+
+let selectStartedReaction
+
 // info ウインドウ情報
 // info.tab アクティブなタブの ID
 // info.title アクティブなタブのタイトル
@@ -149,43 +155,6 @@ function unsetActiveTab (windowId) {
   }
 }
 
-// 別のタブにフォーカスを移した
-tabs.onActivated.addListener((activeInfo) => (async function () {
-  debug('Tab' + activeInfo.tabId + ' became active')
-  const tab = await tabs.get(activeInfo.tabId)
-  setActiveTab(tab.id, tab.windowId, tab.title)
-})().catch(onError))
-
-// タブが変わった
-tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (!changeInfo.title) {
-    // タイトルは変わってなかった
-    return
-  }
-
-  const windowId = tabToWindow.get(tabId)
-  if (!windowId || windowId !== tab.windowId) {
-    // フォーカスしてないタブだった
-    return
-  }
-  // フォーカスしてるタブのタイトルが変わった
-  debug('Tab' + tab.id + ' was updated')
-  setActiveTab(tab.id, tab.windowId, tab.title)
-})
-
-// ウインドウができた
-windows.onCreated.addListener((window) => (async function () {
-  const [tab] = await tabs.query({windowId: window.id, active: true})
-  debug('Tab' + tab.id + ' is in new window' + tab.windowId)
-  setActiveTab(tab.id, tab.windowId, tab.title)
-})().catch(onError))
-
-// ウインドウがなくなった
-windows.onRemoved.addListener((windowId) => {
-  debug('Window' + windowId + ' was closed')
-  unsetActiveTab(windowId)
-})
-
 // フォーカスされたウインドウをメニューから消す
 async function filterWindow (windowId) {
   debug('Window' + windowId + ' is focused')
@@ -202,9 +171,6 @@ async function filterWindow (windowId) {
 
   removeItem(focusedWindowId)
 }
-
-// 別のウインドウにフォーカスを移した
-windows.onFocusChanged.addListener((windowId) => filterWindow(windowId).catch(onError))
 
 // 1つのタブを移す
 async function moveOne (id, windowId, index) {
@@ -224,30 +190,17 @@ async function moveSome (ids, windowId, index) {
   }
 }
 
-// タブ選択ウインドウは1つとする
-
-// タブ選択元のウインドウ
-let fromWindowId
-// 選択タブ移動先のウインドウ
-let toWindowId
-// タブ選択ウインドウ
-let selectWindowId
-
-// 選択ウインドウの表示を更新させる
-function sendUpdateMessage () {
-  const title = (toWindowId ? windowToInfo.get(toWindowId).title : i18n.getMessage(KEY_NEW_WINDOW))
-  runtime.sendMessage({
-    type: 'update',
-    fromWindowId,
-    toWindowId,
-    toWindowTitle: title
-  })
-}
-
 // 選択ウインドウをつくる
 async function select (tab, windowId) {
-  fromWindowId = tab.windowId
-  toWindowId = windowId
+  const fromWindowId = tab.windowId
+  const toWindowId = windowId
+  selectStartedReaction = () => {
+    runtime.sendMessage({
+      type: 'update',
+      fromWindowId,
+      toWindowId
+    })
+  }
 
   async function createSelectWindow () {
     const window = await windows.create({
@@ -275,7 +228,7 @@ async function select (tab, windowId) {
     return
   }
   debug('Reuse select window')
-  sendUpdateMessage()
+  selectStartedReaction()
 }
 
 // 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために
@@ -434,27 +387,6 @@ async function wrapMoveAll (fromWindowId, windowId) {
   }
 }
 
-// 選択ウインドウから初期化通知と移動通知を受け取る
-runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
-  debug('Message ' + JSON.stringify(message) + ' was received')
-
-  switch (message.type) {
-    case 'started': {
-      sendUpdateMessage()
-      break
-    }
-    case 'move': {
-      const { tabIds } = message
-      if (toWindowId) {
-        await wrapMoveSome(fromWindowId, tabIds, toWindowId)
-      } else {
-        await wrapMoveSomeToNewWindow(fromWindowId, tabIds)
-      }
-      break
-    }
-  }
-})().catch(onError))
-
 async function moveToNewWindow (tab, operation) {
   switch (operation) {
     case KEY_ONE: {
@@ -484,17 +416,6 @@ async function moveToExistWindow (tab, operation, windowId) {
     }
   }
 }
-
-// 右クリックメニューからの入力を処理
-contextMenus.onClicked.addListener((info, tab) => (async function () {
-  const tokens = info.menuItemId.split(SEP)
-
-  if (tokens[1] === KEY_NEW_WINDOW) {
-    await moveToNewWindow(tab, tokens[0])
-  } else {
-    await moveToExistWindow(tab, tokens[0], Number(tokens[1]))
-  }
-})().catch(onError))
 
 // メニューを初期化
 async function reset () {
@@ -552,15 +473,89 @@ async function applySetting (result) {
   await reset()
 }
 
-// リアルタイムで設定を反映させる
-storage.onChanged.addListener((changes, area) => (async function () {
-  const result = {}
-  Object.keys(changes).forEach((key) => { result[key] = changes[key].newValue })
-  await applySetting(result)
-})().catch(onError))
-
 // 初期化
-;(async function () {
+(async function () {
+  // 別のタブにフォーカスを移した
+  tabs.onActivated.addListener((activeInfo) => (async function () {
+    debug('Tab' + activeInfo.tabId + ' became active')
+    const tab = await tabs.get(activeInfo.tabId)
+    setActiveTab(tab.id, tab.windowId, tab.title)
+  })().catch(onError))
+
+  // タブが変わった
+  tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (!changeInfo.title) {
+      // タイトルは変わってなかった
+      return
+    }
+
+    const windowId = tabToWindow.get(tabId)
+    if (!windowId || windowId !== tab.windowId) {
+      // フォーカスしてないタブだった
+      return
+    }
+    // フォーカスしてるタブのタイトルが変わった
+    debug('Tab' + tab.id + ' was updated')
+    setActiveTab(tab.id, tab.windowId, tab.title)
+  })
+
+  // ウインドウができた
+  windows.onCreated.addListener((window) => (async function () {
+    const [tab] = await tabs.query({windowId: window.id, active: true})
+    debug('Tab' + tab.id + ' is in new window' + tab.windowId)
+    setActiveTab(tab.id, tab.windowId, tab.title)
+  })().catch(onError))
+
+  // ウインドウがなくなった
+  windows.onRemoved.addListener((windowId) => {
+    debug('Window' + windowId + ' was closed')
+    unsetActiveTab(windowId)
+  })
+
+  // 別のウインドウにフォーカスを移した
+  windows.onFocusChanged.addListener((windowId) => filterWindow(windowId).catch(onError))
+
+  // 選択ウインドウから初期化通知と移動通知を受け取る
+  runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
+    debug('Message ' + JSON.stringify(message) + ' was received')
+
+    switch (message.type) {
+      case 'started': {
+        if (selectStartedReaction) {
+          selectStartedReaction()
+        }
+        break
+      }
+      case 'move': {
+        const { tabIds, fromWindowId, toWindowId } = message
+        if (toWindowId) {
+          await wrapMoveSome(fromWindowId, tabIds, toWindowId)
+        } else {
+          await wrapMoveSomeToNewWindow(fromWindowId, tabIds)
+        }
+        break
+      }
+    }
+  })().catch(onError))
+
+  // 右クリックメニューからの入力を処理
+  contextMenus.onClicked.addListener((info, tab) => (async function () {
+    const tokens = info.menuItemId.split(SEP)
+
+    if (tokens[1] === KEY_NEW_WINDOW) {
+      await moveToNewWindow(tab, tokens[0])
+    } else {
+      await moveToExistWindow(tab, tokens[0], Number(tokens[1]))
+    }
+  })().catch(onError))
+
+  // リアルタイムで設定を反映させる
+  storage.onChanged.addListener((changes, area) => (async function () {
+    const result = {}
+    Object.keys(changes).forEach((key) => { result[key] = changes[key].newValue })
+    await applySetting(result)
+  })().catch(onError))
+
   const result = storageArea.get()
   await applySetting(result)
 })().catch(onError)

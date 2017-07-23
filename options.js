@@ -36,10 +36,6 @@ function falseIffFalse (bool) {
   return bool
 }
 
-[KEY_MENU_ITEM, KEY_ONE, KEY_ALL, KEY_SELECT, KEY_SELECT_SIZE, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE].forEach((key) => {
-  document.getElementById('label_' + key).innerText = i18n.getMessage(key)
-})
-
 // 現在の設定を表示する
 async function restore () {
   const result = await storageArea.get()
@@ -63,6 +59,7 @@ async function restore () {
   })
 }
 
+// 設定を保存する
 async function save () {
   const result = {}
   ;[KEY_ONE, KEY_ALL, KEY_SELECT].forEach((key) => {
@@ -76,8 +73,15 @@ async function save () {
   debug('Saved ' + JSON.stringify(result))
 }
 
-document.addEventListener('DOMContentLoaded', () => restore().catch(onError))
-document.getElementById('form').addEventListener('submit', (e) => (async function () {
-  e.preventDefault()
-  await save()
-})().catch(onError))
+// 初期化
+(async function () {
+  [KEY_MENU_ITEM, KEY_ONE, KEY_ALL, KEY_SELECT, KEY_SELECT_SIZE, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE].forEach((key) => {
+    document.getElementById('label_' + key).innerText = i18n.getMessage(key)
+  })
+
+  document.addEventListener('DOMContentLoaded', () => restore().catch(onError))
+  document.getElementById('form').addEventListener('submit', (e) => (async function () {
+    e.preventDefault()
+    await save()
+  })().catch(onError))
+})().catch(onError)
