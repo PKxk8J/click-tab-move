@@ -354,6 +354,10 @@ async function wrapMoveSome (fromWindowId, ids, windowId) {
 
 // 未読み込みとピン留めを考慮しつつ複数のタブを新しいウインドウに移す
 async function wrapMoveSomeToNewWindow (fromWindowId, ids) {
+  if (ids.length <= 0) {
+    return
+  }
+
   const tabList = await tabs.query({windowId: fromWindowId})
 
   await activateBestTab(tabList, ids)
