@@ -44,5 +44,8 @@
   },
   "newWindow": {
     "message": "New Window"
+  },
+  "selectSave": {
+    "message": "Save last window size"
   }
 }

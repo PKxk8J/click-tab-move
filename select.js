@@ -25,6 +25,9 @@ const RESIZE_INTERVAL = 500
 
 // ウインドウを閉じる
 async function close () {
+  const windowInfo = await windows.getCurrent()
+  runtime.sendMessage({type: 'selectSize', selectSize: [windowInfo.width, windowInfo.height]})
+
   const id = windows.WINDOW_ID_CURRENT
   await windows.remove(id)
   debug('Select window ' + id + ' was closed')
