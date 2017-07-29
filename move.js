@@ -7,12 +7,18 @@ const KEY_DEBUG = 'debug'
 
 const KEY_MOVE = 'move'
 const KEY_MOVE_X = 'moveX'
+
 const KEY_ONE = 'one'
 const KEY_ALL = 'all'
 const KEY_SELECT = 'select'
-const KEY_SELECT_WIDTH = 'selectWidth'
-const KEY_SELECT_HEIGHT = 'selectHeight'
+
+const KEY_MENU_ITEM = 'menuItem'
+const KEY_SELECT_SIZE = 'selectSize'
+
 const KEY_NEW_WINDOW = 'newWindow'
+
+const DEFAULT_MENU_ITEM = [KEY_ONE, KEY_ALL, KEY_SELECT]
+const DEFAULT_SELECT_SIZE = [640, 480]
 
 const SEP = '_'
 const ITEM_LENGTH = 64
@@ -26,14 +32,6 @@ function debug (message) {
 
 function onError (error) {
   console.error(error)
-}
-
-// bool が undefined でなく false のときだけ false になるように
-function falseIffFalse (bool) {
-  if (typeof bool === 'undefined') {
-    return true
-  }
-  return bool
 }
 
 // てきとうな長さで打ち切る
@@ -61,9 +59,6 @@ function addMenuItem (id, title, parentId) {
 }
 
 let menuKeys = []
-
-let selectWidth = 640
-let selectHeight = 480
 
 // タブ選択ウインドウ
 // タブ選択ウインドウは1つとする
@@ -203,11 +198,12 @@ async function select (tab, windowId) {
   }
 
   async function createSelectWindow () {
+    const selectSize = (await storageArea.get(KEY_SELECT_SIZE))[KEY_SELECT_SIZE] || DEFAULT_SELECT_SIZE
     const window = await windows.create({
       type: 'detached_panel',
       url: 'select.html',
-      width: selectWidth,
-      height: selectHeight
+      width: selectSize[0],
+      height: selectSize[1]
     })
     debug('Select window was created')
     selectWindowId = window.id
@@ -455,24 +451,6 @@ async function reset () {
   await filterWindow(windowInfo.id)
 }
 
-// 設定を反映させる
-async function applySetting (result) {
-  menuKeys = []
-  if (falseIffFalse(result[KEY_ONE])) {
-    menuKeys.push(KEY_ONE)
-  }
-  if (falseIffFalse(result[KEY_ALL])) {
-    menuKeys.push(KEY_ALL)
-  }
-  if (falseIffFalse(result[KEY_SELECT])) {
-    menuKeys.push(KEY_SELECT)
-  }
-  selectWidth = result[KEY_SELECT_WIDTH] || 640
-  selectHeight = result[KEY_SELECT_HEIGHT] || 480
-
-  await reset()
-}
-
 // 初期化
 (async function () {
   // 別のタブにフォーカスを移した
@@ -551,11 +529,13 @@ async function applySetting (result) {
 
   // リアルタイムで設定を反映させる
   storage.onChanged.addListener((changes, area) => (async function () {
-    const result = {}
-    Object.keys(changes).forEach((key) => { result[key] = changes[key].newValue })
-    await applySetting(result)
+    const menuItem = changes[KEY_MENU_ITEM]
+    if (menuItem) {
+      menuKeys = menuItem.newValue
+      await reset()
+    }
   })().catch(onError))
 
-  const result = storageArea.get()
-  await applySetting(result)
+  menuKeys = (await storageArea.get(KEY_MENU_ITEM))[KEY_MENU_ITEM] || DEFAULT_MENU_ITEM
+  await reset()
 })().catch(onError)
