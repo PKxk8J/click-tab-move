@@ -13,13 +13,13 @@
     "message": "Move $1"
   },
   "one": {
-    "message": "One"
+    "message": "This Tab"
   },
   "all": {
-    "message": "All"
+    "message": "All Tabs"
   },
   "select": {
-    "message": "Select"
+    "message": "Selected Tabs"
   },
   "menuItem": {
     "message": "Menu Items"
@@ -47,5 +47,11 @@
   },
   "selectSave": {
     "message": "Save last window size"
+  },
+  "right": {
+    "message": "Right Tabs"
+  },
+  "left": {
+    "message": "Left Tabs"
   }
 }

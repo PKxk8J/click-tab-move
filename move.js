@@ -9,6 +9,8 @@ const KEY_MOVE = 'move'
 const KEY_MOVE_X = 'moveX'
 
 const KEY_ONE = 'one'
+const KEY_RIGHT = 'right'
+const KEY_LEFT = 'left'
 const KEY_ALL = 'all'
 const KEY_SELECT = 'select'
 
@@ -18,7 +20,7 @@ const KEY_SELECT_SAVE = 'selectSave'
 
 const KEY_NEW_WINDOW = 'newWindow'
 
-const DEFAULT_MENU_ITEM = [KEY_ONE, KEY_ALL, KEY_SELECT]
+const DEFAULT_MENU_ITEM = [KEY_ONE, KEY_RIGHT, KEY_ALL]
 const DEFAULT_SELECT_SIZE = [640, 480]
 const DEFAULT_SELECT_SAVE = true
 
@@ -389,10 +391,27 @@ async function wrapMoveAll (fromWindowId, windowId) {
   }
 }
 
+// 左右どちらかのタブを列挙する
+async function listing (tab, right) {
+  const index = tab.index
+  const filter = (right ? (tab) => tab.index > index : (tab) => tab.index < index)
+  const tabList = (await tabs.query({windowId: tab.windowId})).filter(filter)
+  tabList.sort((tab1, tab2) => tab1.index - tab2.index)
+  return tabList.map((tab) => tab.id)
+}
+
 async function moveToNewWindow (tab, operation) {
   switch (operation) {
     case KEY_ONE: {
       await wrapMoveOneToNewWindow(tab.id)
+      break
+    }
+    case KEY_RIGHT: {
+      await wrapMoveSomeToNewWindow(tab.windowId, await listing(tab, true))
+      break
+    }
+    case KEY_LEFT: {
+      await wrapMoveSomeToNewWindow(tab.windowId, await listing(tab, false))
       break
     }
     case KEY_SELECT: {
@@ -406,6 +425,14 @@ async function moveToExistWindow (tab, operation, windowId) {
   switch (operation) {
     case KEY_ONE: {
       await wrapMoveOne(tab, windowId)
+      break
+    }
+    case KEY_RIGHT: {
+      await wrapMoveSome(tab.windowId, await listing(tab, true), windowId)
+      break
+    }
+    case KEY_LEFT: {
+      await wrapMoveSome(tab.windowId, await listing(tab, false), windowId)
       break
     }
     case KEY_ALL: {
