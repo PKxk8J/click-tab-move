@@ -37,5 +37,8 @@
   },
   "newWindow": {
     "message": "新しいウインドウ"
+  },
+  "selectSave": {
+    "message": "閉じたときのサイズを記憶する"
   }
 }

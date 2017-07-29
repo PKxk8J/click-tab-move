@@ -14,11 +14,13 @@ const KEY_SELECT = 'select'
 
 const KEY_MENU_ITEM = 'menuItem'
 const KEY_SELECT_SIZE = 'selectSize'
+const KEY_SELECT_SAVE = 'selectSave'
 
 const KEY_NEW_WINDOW = 'newWindow'
 
 const DEFAULT_MENU_ITEM = [KEY_ONE, KEY_ALL, KEY_SELECT]
 const DEFAULT_SELECT_SIZE = [640, 480]
+const DEFAULT_SELECT_SAVE = false
 
 const SEP = '_'
 const ITEM_LENGTH = 64
@@ -515,6 +517,15 @@ async function reset () {
         } else {
           await wrapMoveSomeToNewWindow(fromWindowId, tabIds)
         }
+        break
+      }
+      case 'selectSize': {
+        const selectSave = (await storageArea.get(KEY_SELECT_SAVE))[KEY_SELECT_SAVE] || DEFAULT_SELECT_SAVE
+        if (!selectSave) {
+          break
+        }
+        const { selectSize } = message
+        await storageArea.set({[KEY_SELECT_SIZE]: selectSize})
         break
       }
     }
