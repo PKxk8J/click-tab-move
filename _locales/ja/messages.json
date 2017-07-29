@@ -40,5 +40,11 @@
   },
   "selectSave": {
     "message": "閉じたときのサイズを記憶する"
+  },
+  "right": {
+    "message": "右側のタブ"
+  },
+  "left": {
+    "message": "左側のタブ"
   }
 }

@@ -47,5 +47,11 @@
   },
   "selectSave": {
     "message": "Save last window size"
+  },
+  "right": {
+    "message": "Right Tabs"
+  },
+  "left": {
+    "message": "Left Tabs"
   }
 }

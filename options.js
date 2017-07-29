@@ -6,6 +6,8 @@ const storageArea = storage.sync
 const KEY_DEBUG = 'debug'
 
 const KEY_ONE = 'one'
+const KEY_RIGHT = 'right'
+const KEY_LEFT = 'left'
 const KEY_ALL = 'all'
 const KEY_SELECT = 'select'
 
@@ -50,7 +52,7 @@ async function restore () {
   debug('Loaded ' + JSON.stringify({menuItem, selectSize, selectSave}))
 
   const menuItemSet = new Set(menuItem)
-  ;[KEY_ONE, KEY_ALL, KEY_SELECT].forEach((key) => {
+  ;[KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT].forEach((key) => {
     document.getElementById(key).checked = menuItemSet.has(key)
   })
 
@@ -63,7 +65,7 @@ async function restore () {
 // 設定を保存する
 async function save () {
   const menuItem = []
-  ;[KEY_ONE, KEY_ALL, KEY_SELECT].forEach((key) => {
+  ;[KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT].forEach((key) => {
     if (document.getElementById(key).checked) {
       menuItem.push(key)
     }
@@ -83,7 +85,7 @@ async function save () {
 
 // 初期化
 (async function () {
-  [KEY_MENU_ITEM, KEY_ONE, KEY_ALL, KEY_SELECT, KEY_SELECT_SIZE, KEY_WIDTH, KEY_HEIGHT, KEY_SELECT_SAVE, KEY_SAVE].forEach((key) => {
+  [KEY_MENU_ITEM, KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT, KEY_SELECT_SIZE, KEY_WIDTH, KEY_HEIGHT, KEY_SELECT_SAVE, KEY_SAVE].forEach((key) => {
     document.getElementById('label_' + key).innerText = i18n.getMessage(key)
   })
 
