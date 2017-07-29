@@ -13,13 +13,13 @@
     "message": "Move $1"
   },
   "one": {
-    "message": "One"
+    "message": "This Tab"
   },
   "all": {
-    "message": "All"
+    "message": "All Tabs"
   },
   "select": {
-    "message": "Select"
+    "message": "Selected Tabs"
   },
   "menuItem": {
     "message": "Menu Items"

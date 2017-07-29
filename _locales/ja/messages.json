@@ -3,16 +3,16 @@
     "message": "移す"
   },
   "moveX": {
-    "message": "$1移す"
+    "message": "$1を移す"
   },
   "one": {
-    "message": "ひとつ"
+    "message": "このタブ"
   },
   "all": {
-    "message": "すべて"
+    "message": "すべてのタブ"
   },
   "select": {
-    "message": "選択して"
+    "message": "選択したタブ"
   },
   "menuItem": {
     "message": "メニュー項目"
