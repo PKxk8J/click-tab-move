@@ -20,7 +20,7 @@ const KEY_NEW_WINDOW = 'newWindow'
 
 const DEFAULT_MENU_ITEM = [KEY_ONE, KEY_ALL, KEY_SELECT]
 const DEFAULT_SELECT_SIZE = [640, 480]
-const DEFAULT_SELECT_SAVE = false
+const DEFAULT_SELECT_SAVE = true
 
 const SEP = '_'
 const ITEM_LENGTH = 64

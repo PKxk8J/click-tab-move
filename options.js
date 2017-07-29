@@ -27,7 +27,7 @@ const KEY_SAVE = 'save'
 
 const DEFAULT_MENU_ITEM = [KEY_ONE, KEY_ALL, KEY_SELECT]
 const DEFAULT_SELECT_SIZE = [640, 480]
-const DEFAULT_SELECT_SAVE = false
+const DEFAULT_SELECT_SAVE = true
 
 const DEBUG = (i18n.getMessage(KEY_DEBUG) === 'debug')
 function debug (message) {
