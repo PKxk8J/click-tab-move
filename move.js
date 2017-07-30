@@ -5,9 +5,6 @@ const storageArea = storage.sync
 
 const KEY_DEBUG = 'debug'
 
-const KEY_MOVE = 'move'
-const KEY_MOVE_X = 'moveX'
-
 const KEY_ONE = 'one'
 const KEY_RIGHT = 'right'
 const KEY_LEFT = 'left'
@@ -18,6 +15,8 @@ const KEY_MENU_ITEM = 'menuItem'
 const KEY_SELECT_SIZE = 'selectSize'
 const KEY_SELECT_SAVE = 'selectSave'
 
+const KEY_MOVE = 'move'
+const KEY_MOVE_X = 'moveX'
 const KEY_NEW_WINDOW = 'newWindow'
 
 const DEFAULT_MENU_ITEM = [KEY_ONE, KEY_RIGHT, KEY_ALL]
@@ -210,7 +209,7 @@ async function select (tab, windowId) {
   }
 
   async function createSelectWindow () {
-    const selectSize = (await storageArea.get(KEY_SELECT_SIZE))[KEY_SELECT_SIZE] || DEFAULT_SELECT_SIZE
+    const selectSize = await getValue(KEY_SELECT_SIZE, DEFAULT_SELECT_SIZE)
     const window = await windows.create({
       type: 'detached_panel',
       url: 'select.html',
@@ -586,6 +585,6 @@ async function reset () {
     }
   })().catch(onError))
 
-  menuKeys = (await storageArea.get(KEY_MENU_ITEM))[KEY_MENU_ITEM] || DEFAULT_MENU_ITEM
+  menuKeys = await getValue(KEY_MENU_ITEM, DEFAULT_MENU_ITEM)
   await reset()
 })().catch(onError)
