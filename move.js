@@ -38,6 +38,14 @@ function onError (error) {
   console.error(error)
 }
 
+// 設定値を取得する
+async function getValue (key, defaultValue) {
+  const {
+    [key]: value = defaultValue
+  } = await storageArea.get(key)
+  return value
+}
+
 // てきとうな長さで打ち切る
 function cut (text, length) {
   if (text.length <= length) {
@@ -547,7 +555,7 @@ async function reset () {
         break
       }
       case 'selectSize': {
-        const selectSave = (await storageArea.get(KEY_SELECT_SAVE))[KEY_SELECT_SAVE] || DEFAULT_SELECT_SAVE
+        const selectSave = await getValue(KEY_SELECT_SAVE, DEFAULT_SELECT_SAVE)
         if (!selectSave) {
           break
         }
