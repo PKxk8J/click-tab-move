@@ -19,6 +19,9 @@ const KEY_WIDTH = 'width'
 const KEY_HEIGHT = 'height'
 const KEY_SAVE = 'save'
 
+const MENU_ITEM_KEYS = [KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT]
+const LABEL_KEYS = MENU_ITEM_KEYS.concat([KEY_MENU_ITEM, KEY_SELECT_SIZE, KEY_SELECT_SAVE, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE])
+
 /*
  * {
  *   "menuItem": ["one", "all", ...],
@@ -44,15 +47,17 @@ function onError (error) {
 
 // 現在の設定を表示する
 async function restore () {
+  const data = await storageArea.get()
+  debug('Loaded ' + JSON.stringify(data))
+
   const {
-    menuItem = DEFAULT_MENU_ITEM,
-    selectSize = DEFAULT_SELECT_SIZE,
-    selectSave = DEFAULT_SELECT_SAVE
-  } = await storageArea.get()
-  debug('Loaded ' + JSON.stringify({menuItem, selectSize, selectSave}))
+    [KEY_MENU_ITEM]: menuItem = DEFAULT_MENU_ITEM,
+    [KEY_SELECT_SIZE]: selectSize = DEFAULT_SELECT_SIZE,
+    [KEY_SELECT_SAVE]: selectSave = DEFAULT_SELECT_SAVE
+  } = data
 
   const menuItemSet = new Set(menuItem)
-  ;[KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT].forEach((key) => {
+  MENU_ITEM_KEYS.forEach((key) => {
     document.getElementById(key).checked = menuItemSet.has(key)
   })
 
@@ -65,7 +70,7 @@ async function restore () {
 // 設定を保存する
 async function save () {
   const menuItem = []
-  ;[KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT].forEach((key) => {
+  MENU_ITEM_KEYS.forEach((key) => {
     if (document.getElementById(key).checked) {
       menuItem.push(key)
     }
@@ -78,20 +83,23 @@ async function save () {
 
   const selectSave = document.getElementById(KEY_SELECT_SAVE).checked
 
-  const data = {menuItem, selectSize, selectSave}
+  const data = {
+    [KEY_MENU_ITEM]: menuItem,
+    [KEY_SELECT_SIZE]: selectSize,
+    [KEY_SELECT_SAVE]: selectSave
+  }
+  // 古い形式のデータを消す
+  await storageArea.clear()
   await storageArea.set(data)
   debug('Saved ' + JSON.stringify(data))
 }
 
 // 初期化
 (async function () {
-  [KEY_MENU_ITEM, KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT, KEY_SELECT_SIZE, KEY_WIDTH, KEY_HEIGHT, KEY_SELECT_SAVE, KEY_SAVE].forEach((key) => {
+  LABEL_KEYS.forEach((key) => {
     document.getElementById('label_' + key).innerText = i18n.getMessage(key)
   })
 
-  document.addEventListener('DOMContentLoaded', () => restore().catch(onError))
-  document.getElementById('form').addEventListener('submit', (e) => (async function () {
-    e.preventDefault()
-    await save()
-  })().catch(onError))
+  document.addEventListener('DOMContentLoaded', (e) => restore().catch(onError))
+  document.getElementById('save').addEventListener('click', (e) => save().catch(onError))
 })().catch(onError)

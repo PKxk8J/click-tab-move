@@ -113,11 +113,11 @@ async function update (fromWindowId, toWindowId) {
   ;[KEY_MOVE, KEY_CANCEL].forEach((key) => {
     document.getElementById('label_' + key).innerText = i18n.getMessage(key)
   })
-  document.getElementById(KEY_MOVE).addEventListener('click', () => (async function () {
+  document.getElementById(KEY_MOVE).addEventListener('click', (e) => (async function () {
     sendMoveMessage()
     await close()
   })().catch(onError))
-  document.getElementById(KEY_CANCEL).addEventListener('click', () => close().catch(onError))
+  document.getElementById(KEY_CANCEL).addEventListener('click', (e) => close().catch(onError))
 
   // move.js から起点になるメッセージを受け取る
   runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
