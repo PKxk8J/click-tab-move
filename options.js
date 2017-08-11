@@ -96,6 +96,20 @@ async function save () {
 
 // 初期化
 (async function () {
+  const ul = document.getElementById(KEY_MENU_ITEM)
+  MENU_ITEM_KEYS.forEach((key) => {
+    const input = document.createElement('input')
+    input.type = 'checkbox'
+    input.id = key
+    const span = document.createElement('span')
+    span.id = 'label_' + key
+    const li = document.createElement('li')
+    li.appendChild(input)
+    li.appendChild(span)
+
+    ul.appendChild(li)
+  })
+
   LABEL_KEYS.forEach((key) => {
     document.getElementById('label_' + key).innerText = i18n.getMessage(key)
   })
