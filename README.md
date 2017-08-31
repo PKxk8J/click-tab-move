@@ -16,7 +16,8 @@ browser.runtime.sendMessage('{2bd73814-983c-42f3-a6d5-e68c4668a4cf}', {
   type: 'move',
   keyType: 'right',
   tabId: 15,
-  toWindowId: 24
+  toWindowId: 24,
+  notification: false
 })
 ```
 
@@ -25,7 +26,8 @@ browser.runtime.sendMessage('{2bd73814-983c-42f3-a6d5-e68c4668a4cf}', {
   type: 'move',
   keyType: 'select',
   tabIds: [15, 46, 2],
-  toWindowId: 24
+  toWindowId: 24,
+  notification: false
 })
 ```
 
@@ -44,3 +46,4 @@ browser.runtime.sendMessage('{2bd73814-983c-42f3-a6d5-e68c4668a4cf}', {
 |tabId|number|The ID of a selected tab when keyType is `one` or `right` or `left` or `all`|
 |tabIds|Array of number|The IDs of selected tabs when keyType is `select`|
 |toWindowId|number|The ID of a destination window. undefined for new window|
+|notification|boolean|Whether to show notification|
