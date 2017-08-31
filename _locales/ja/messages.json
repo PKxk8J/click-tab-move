@@ -46,5 +46,25 @@
   },
   "left": {
     "message": "左側のタブ"
+  },
+  "notification": {
+    "message": "通知"
+  },
+  "moving": {
+    "message": "タブ移動中..."
+  },
+  "successMessage": {
+    "message": "タブ移動完了: $TIME$秒\n$MOVED$個のタブを移動",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "moved": {
+        "content": "$2"
+      }
+    }
+  },
+  "failureMessage": {
+    "message": "タブ移動失敗\n$1"
   }
 }

@@ -1,6 +1,6 @@
 'use strict'
 
-const { contextMenus, i18n, runtime, storage, tabs, windows } = browser
+const { contextMenus, i18n, notifications, runtime, storage, tabs, windows } = browser
 const storageArea = storage.sync
 
 const KEY_DEBUG = 'debug'
@@ -14,14 +14,23 @@ const KEY_SELECT = 'select'
 const KEY_MENU_ITEM = 'menuItem'
 const KEY_SELECT_SIZE = 'selectSize'
 const KEY_SELECT_SAVE = 'selectSave'
+const KEY_NOTIFICATION = 'notification'
 
 const KEY_MOVE = 'move'
 const KEY_MOVE_X = 'moveX'
 const KEY_NEW_WINDOW = 'newWindow'
 
+const KEY_NAME = 'name'
+const KEY_MOVING = 'moving'
+const KEY_SUCCESS_MESSAGE = 'successMessage'
+const KEY_FAILURE_MESSAGE = 'failureMessage'
+
 const DEFAULT_MENU_ITEM = [KEY_ONE, KEY_RIGHT, KEY_ALL]
 const DEFAULT_SELECT_SIZE = [640, 480]
 const DEFAULT_SELECT_SAVE = true
+const DEFAULT_NOTIFICATION = false
+
+const NOTIFICATION_ID = i18n.getMessage(KEY_NAME)
 
 const SEP = '_'
 const ITEM_LENGTH = 64
@@ -397,15 +406,43 @@ async function listing (tabId, keyType) {
   return tabList.map((tab) => tab.id)
 }
 
-// 前後処理で挟む
-async function wrapMoveCore (tabIds, toWindowId) {
-  await move(tabIds, toWindowId)
+// 通知を表示する
+async function notify (message) {
+  await notifications.create(NOTIFICATION_ID, {
+    'type': 'basic',
+    'title': NOTIFICATION_ID,
+    message: message
+  })
 }
 
 // 前後処理で挟む
-async function wrapMove (tabId, keyType, toWindowId) {
+async function wrapMoveCore (tabIds, toWindowId, notification) {
+  try {
+    if (notification) {
+      await notify(i18n.getMessage(KEY_MOVING))
+    }
+
+    const start = new Date()
+    await move(tabIds, toWindowId)
+    const seconds = (new Date() - start) / 1000
+    const message = i18n.getMessage(KEY_SUCCESS_MESSAGE, [seconds, tabIds.length])
+
+    debug(message)
+    if (notification) {
+      await notify(message)
+    }
+  } catch (e) {
+    onError(e)
+    if (notification) {
+      await notify(i18n.getMessage(KEY_FAILURE_MESSAGE, e))
+    }
+  }
+}
+
+// 前後処理で挟む
+async function wrapMove (tabId, keyType, toWindowId, notification) {
   const tabIds = await listing(tabId, keyType)
-  await wrapMoveCore(tabIds, toWindowId)
+  await wrapMoveCore(tabIds, toWindowId, notification)
 }
 
 // 初期化
@@ -471,7 +508,8 @@ async function wrapMove (tabId, keyType, toWindowId) {
       case KEY_RIGHT:
       case KEY_LEFT:
       case KEY_ALL: {
-        await wrapMove(tab.id, keyType, toWindowId)
+        const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
+        await wrapMove(tab.id, keyType, toWindowId, notification)
         break
       }
       case KEY_SELECT: {
@@ -511,7 +549,8 @@ async function wrapMove (tabId, keyType, toWindowId) {
         switch (keyType) {
           case KEY_SELECT: {
             const {tabIds} = message
-            await wrapMoveCore(tabIds, toWindowId)
+            const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
+            await wrapMoveCore(tabIds, toWindowId, notification)
             break
           }
         }
@@ -527,17 +566,18 @@ async function wrapMove (tabId, keyType, toWindowId) {
       case KEY_MOVE: {
         const {
           keyType,
-          toWindowId
+          toWindowId,
+          notification
         } = message
         switch (keyType) {
           case KEY_SELECT: {
             const {tabIds} = message
-            await wrapMoveCore(tabIds, toWindowId)
+            await wrapMoveCore(tabIds, toWindowId, notification)
             break
           }
           default: {
             const {tabId} = message
-            await wrapMove(tabId, keyType, toWindowId)
+            await wrapMove(tabId, keyType, toWindowId, notification)
             break
           }
         }

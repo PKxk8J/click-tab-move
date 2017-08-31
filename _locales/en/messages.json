@@ -53,5 +53,25 @@
   },
   "left": {
     "message": "Left Tabs"
+  },
+  "notification": {
+    "message": "Notification"
+  },
+  "moving": {
+    "message": "Moving tabs..."
+  },
+  "successMessage": {
+    "message": "Moving tabs completed in $TIME$ seconds.\n$MOVED$ tabs were moved.",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "moved": {
+        "content": "$2"
+      }
+    }
+  },
+  "failureMessage": {
+    "message": "Moving tabs failed.\n$1"
   }
 }
