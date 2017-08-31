@@ -312,22 +312,25 @@ async function activateBest (windowId, moveTabIds) {
     }
   }
 
-  let bestTabId
+  let bestTab
   if (nextTab) {
-    bestTabId = nextTab.id
+    bestTab = nextTab
   } else if (prevTab) {
-    bestTabId = prevTab.id
+    bestTab = prevTab
   } else {
-    bestTabId = lastTab.id
+    bestTab = lastTab
   }
 
-  if (bestTabId === activeTab.id) {
+  if (bestTab === activeTab) {
     // 全部が移動対象で activeTab が lastTab だった
+    return
+  } else if (activeTab.index + 1 === bestTab.index) {
+    // activeTab を移動させれば自然と bestTab にフォーカスが移る
     return
   }
 
-  await tabs.update(bestTabId, {active: true})
-  debug('Activated tab ' + bestTabId)
+  await tabs.update(bestTab.id, {active: true})
+  debug('Activated tab ' + bestTab.id)
 }
 
 // ひとつ移す
