@@ -504,12 +504,13 @@ async function wrapMove (tabId, keyType, toWindowId) {
       }
       case KEY_MOVE: {
         // 選択ウインドウからの選択結果
-        switch (message.keyType) {
+        const {
+          keyType,
+          toWindowId
+        } = message
+        switch (keyType) {
           case KEY_SELECT: {
-            const {
-              tabIds,
-              toWindowId
-            } = message
+            const {tabIds} = message
             await wrapMoveCore(tabIds, toWindowId)
             break
           }
@@ -524,21 +525,18 @@ async function wrapMove (tabId, keyType, toWindowId) {
     debug('Message ' + JSON.stringify(message) + ' was received')
     switch (message.type) {
       case KEY_MOVE: {
-        switch (message.keyType) {
+        const {
+          keyType,
+          toWindowId
+        } = message
+        switch (keyType) {
           case KEY_SELECT: {
-            const {
-              tabIds,
-              toWindowId
-            } = message
+            const {tabIds} = message
             await wrapMoveCore(tabIds, toWindowId)
             break
           }
           default: {
-            const {
-              tabId,
-              keyType,
-              toWindowId
-            } = message
+            const {tabId} = message
             await wrapMove(tabId, keyType, toWindowId)
             break
           }
