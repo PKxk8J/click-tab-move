@@ -4,6 +4,8 @@ const { i18n, runtime, tabs, windows } = browser
 
 const KEY_DEBUG = 'debug'
 
+const KEY_SELECT = 'select'
+
 const KEY_MOVE = 'move'
 const KEY_CANCEL = 'cancel'
 const KEY_MOVE_TO_X = 'moveToX'
@@ -35,7 +37,6 @@ async function close () {
 
 // 移動対象を move.js に通知する
 function sendMoveMessage () {
-  const fromWindowId = Number(document.getElementById('from').value)
   const toWindowId = Number(document.getElementById('to').value)
   const select = document.getElementById('select')
   const ids = []
@@ -44,7 +45,7 @@ function sendMoveMessage () {
       ids.push(Number(option.id))
     }
   }
-  runtime.sendMessage({type: 'move', fromWindowId, toWindowId, tabIds: ids})
+  runtime.sendMessage({type: KEY_MOVE, keyType: KEY_SELECT, tabIds: ids, toWindowId})
 }
 
 // 選択ボックスのサイズを変更する
