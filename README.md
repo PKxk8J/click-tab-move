@@ -9,7 +9,7 @@ https://addons.mozilla.org/addon/clicktabmove/
 
 ## <span id="messaging"/> Messaging
 
-Other extensions can use this extension by using [sendMessage](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/sendMessage)
+Other addons can use this addon by using [sendMessage](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/sendMessage)
 
 ```javascript
 browser.runtime.sendMessage('{2bd73814-983c-42f3-a6d5-e68c4668a4cf}', {
