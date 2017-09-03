@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "__MSG_name__",
   "version": "2.3.0",
-  "description": "Move tabs to another window or a new window from the right click menu on tabs.",
+  "description": "Move tabs to another window from the right click menu.",
   "applications": {
     "gecko": {
       "id": "{2bd73814-983c-42f3-a6d5-e68c4668a4cf}",
