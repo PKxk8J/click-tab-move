@@ -1,0 +1,77 @@
+{
+  "debug": {
+    "message": "release",
+    "description": "Set 'debug' to display debug log"
+  },
+  "name": {
+    "message": "ClickTabMove"
+  },
+  "move": {
+    "message": "移动"
+  },
+  "moveX": {
+    "message": "移动 $1"
+  },
+  "one": {
+    "message": "此标签页"
+  },
+  "all": {
+    "message": "所有标签页"
+  },
+  "select": {
+    "message": "选定标签页"
+  },
+  "menuItem": {
+    "message": "菜单项"
+  },
+  "save": {
+    "message": "保存"
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "moveToX": {
+    "message": "移动到 $1"
+  },
+  "selectSize": {
+    "message": "选择窗口大小"
+  },
+  "width": {
+    "message": "宽度"
+  },
+  "height": {
+    "message": "高度"
+  },
+  "newWindow": {
+    "message": "新窗口"
+  },
+  "selectSave": {
+    "message": "保存最后窗口大小"
+  },
+  "right": {
+    "message": "右侧标签页"
+  },
+  "left": {
+    "message": "左侧标签页"
+  },
+  "notification": {
+    "message": "通知"
+  },
+  "moving": {
+    "message": "移动标签页..."
+  },
+  "successMessage": {
+    "message": "移动标签页用了 $TIME$ 秒。\n$MOVED$ 个标签页已移动。",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "moved": {
+        "content": "$2"
+      }
+    }
+  },
+  "failureMessage": {
+    "message": "移动失败。\n$1"
+  }
+}
