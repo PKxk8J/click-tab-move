@@ -110,11 +110,12 @@ async function save () {
     const input = document.createElement('input')
     input.type = 'checkbox'
     input.id = key
-    const span = document.createElement('span')
-    span.id = 'label_' + key
+    const label = document.createElement('label')
+    label.id = 'label_' + key
+    label.setAttribute('for', key)
     const li = document.createElement('li')
     li.appendChild(input)
-    li.appendChild(span)
+    li.appendChild(label)
 
     ul.appendChild(li)
   })
