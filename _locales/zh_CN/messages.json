@@ -1,11 +1,4 @@
 {
-  "debug": {
-    "message": "release",
-    "description": "Set 'debug' to display debug log"
-  },
-  "name": {
-    "message": "ClickTabMove"
-  },
   "move": {
     "message": "移动"
   },
