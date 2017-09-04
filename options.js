@@ -112,7 +112,7 @@ async function save () {
     input.id = key
     const label = document.createElement('label')
     label.appendChild(input)
-    label.appendChild(document.createTextNode(i18n.getMessage(key)))
+    label.appendChild(document.createTextNode(' ' + i18n.getMessage(key)))
     const li = document.createElement('li')
     li.appendChild(label)
 
@@ -120,7 +120,7 @@ async function save () {
   })
 
   LABEL_KEYS.forEach((key) => {
-    document.getElementById('label_' + key).textContent = i18n.getMessage(key)
+    document.getElementById('label_' + key).textContent = ' ' + i18n.getMessage(key) + ' '
   })
 
   document.addEventListener('DOMContentLoaded', (e) => restore().catch(onError))
