@@ -9,21 +9,21 @@
 
     <form>
       <ul>
-        <li><span id="label_menuItem"></span>
+        <li><label name="menuItem"></label>
           <ul id="menuItem" style="list-style-type:none"></ul>
         </li>
-        <li><span id="label_selectSize"></span>
+        <li><label name="selectSize"></label>
           <ul style="list-style-type:none">
             <li>
-              <label><span id="label_width"></span><input id="width" type="number" min="0" required/></label>
-              <label><span id="label_height"></span><input id="height" type="number" min="0" required/></label>
+              <label><label name="width"></label><input id="width" type="number" min="0" required/></label>
+              <label><label name="height"></label><input id="height" type="number" min="0" required/></label>
             </li>
-            <li><label><input id="selectSave" type="checkbox"/><span id="label_selectSave"></span></label></li>
+            <li><label><input id="selectSave" type="checkbox"/><label name="selectSave"></label></label></li>
           </ul>
         </li>
-        <li><label><span id="label_notification"></span><input id="notification" type="checkbox"/></label></li>
+        <li><label><label name="notification"></label><input id="notification" type="checkbox"/></label></li>
       </ul>
-      <div align="right"><button id="save" type="button"><span id="label_save"></span></button></div>
+      <div align="right"><button id="save" type="button"><label name="save"></label></button></div>
     </form>
 
     <script src="options.js"></script>

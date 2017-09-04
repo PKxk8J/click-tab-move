@@ -21,7 +21,7 @@ const KEY_HEIGHT = 'height'
 const KEY_SAVE = 'save'
 
 const MENU_ITEM_KEYS = [KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT]
-const LABEL_KEYS = MENU_ITEM_KEYS.concat([KEY_MENU_ITEM, KEY_SELECT_SIZE, KEY_SELECT_SAVE, KEY_NOTIFICATION, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE])
+const LABEL_KEYS = [KEY_MENU_ITEM, KEY_SELECT_SIZE, KEY_SELECT_SAVE, KEY_NOTIFICATION, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE]
 
 /*
  * {
@@ -111,7 +111,7 @@ async function save () {
     input.type = 'checkbox'
     input.id = key
     const label = document.createElement('label')
-    label.id = 'label_' + key
+    label.textContent = i18n.getMessage(key)
     label.setAttribute('for', key)
     const li = document.createElement('li')
     li.appendChild(input)
@@ -121,7 +121,7 @@ async function save () {
   })
 
   LABEL_KEYS.forEach((key) => {
-    document.getElementById('label_' + key).innerText = i18n.getMessage(key)
+    document.querySelector(`label[name="${key}"]`).innerText = i18n.getMessage(key)
   })
 
   document.addEventListener('DOMContentLoaded', (e) => restore().catch(onError))
