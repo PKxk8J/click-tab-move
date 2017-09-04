@@ -111,17 +111,16 @@ async function save () {
     input.type = 'checkbox'
     input.id = key
     const label = document.createElement('label')
-    label.textContent = i18n.getMessage(key)
-    label.setAttribute('for', key)
+    label.appendChild(input)
+    label.appendChild(document.createTextNode(i18n.getMessage(key)))
     const li = document.createElement('li')
-    li.appendChild(input)
     li.appendChild(label)
 
     ul.appendChild(li)
   })
 
   LABEL_KEYS.forEach((key) => {
-    document.querySelector(`label[name="${key}"]`).innerText = i18n.getMessage(key)
+    document.getElementById('label_' + key).textContent = i18n.getMessage(key)
   })
 
   document.addEventListener('DOMContentLoaded', (e) => restore().catch(onError))
