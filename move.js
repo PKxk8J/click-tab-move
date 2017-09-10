@@ -15,6 +15,7 @@ const KEY_MENU_ITEM = 'menuItem'
 const KEY_SELECT_SIZE = 'selectSize'
 const KEY_SELECT_SAVE = 'selectSave'
 const KEY_NOTIFICATION = 'notification'
+const KEY_UPDATE = 'update'
 
 const KEY_MOVE = 'move'
 const KEY_MOVE_X = 'moveX'
@@ -229,7 +230,7 @@ async function reset () {
 async function select (fromWindowId, toWindowId, notification) {
   function resetWindow () {
     runtime.sendMessage({
-      type: 'update',
+      type: KEY_UPDATE,
       fromWindowId,
       toWindowId,
       notification
@@ -540,7 +541,7 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
   runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
     debug('Message ' + JSON.stringify(message) + ' was received')
     switch (message.type) {
-      case 'selectSize': {
+      case KEY_SELECT_SIZE: {
         // 選択ウインドウからのウインドウサイズ通知
         const selectSave = await getValue(KEY_SELECT_SAVE, DEFAULT_SELECT_SAVE)
         if (!selectSave) {
