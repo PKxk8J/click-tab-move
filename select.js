@@ -143,7 +143,4 @@ async function update (fromWindowId, toWindowId, notification) {
 
   // 選択ボックスを監視して必要ならサイズを変更する
   resizeLoop()
-
-  // move.js に下準備が終わったことを報せる
-  runtime.sendMessage({type: 'started'})
 })().catch(onError)

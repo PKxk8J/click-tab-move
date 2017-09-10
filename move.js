@@ -35,6 +35,8 @@ const NOTIFICATION_ID = i18n.getMessage(KEY_NAME)
 const SEP = '_'
 const ITEM_LENGTH = 64
 
+const POLLING_INTERVAL = 300
+
 const DEBUG = (i18n.getMessage(KEY_DEBUG) === 'debug')
 function debug (message) {
   if (DEBUG) {
@@ -83,8 +85,6 @@ let menuKeys = []
 // タブ選択ウインドウ
 // タブ選択ウインドウは1つとする
 let selectWindowId
-
-let selectStartedReaction
 
 // info ウインドウ情報
 // info.tab アクティブなタブの ID
@@ -227,13 +227,17 @@ async function reset () {
 
 // 選択ウインドウをつくる
 async function select (fromWindowId, toWindowId, notification) {
-  selectStartedReaction = () => {
+  function resetWindow () {
     runtime.sendMessage({
       type: 'update',
       fromWindowId,
       toWindowId,
       notification
     })
+  }
+
+  async function asleep (msec) {
+    return new Promise(resolve => setTimeout(resolve, msec))
   }
 
   async function createSelectWindow () {
@@ -248,6 +252,17 @@ async function select (fromWindowId, toWindowId, notification) {
     selectWindowId = window.id
     // 先に tabs.onUpdated が走ってしまうようなので除く
     unsetActiveTab(selectWindowId)
+
+    // メッセージを受け取れるようになるまで待つ
+    while (true) {
+      const tab = await tabs.get(window.tabs[0].id)
+      if (tab.url.endsWith('/select.html') && tab.status === 'complete') {
+        break
+      }
+      await asleep(POLLING_INTERVAL)
+    }
+
+    resetWindow()
   }
 
   if (!selectWindowId) {
@@ -262,8 +277,9 @@ async function select (fromWindowId, toWindowId, notification) {
     await createSelectWindow()
     return
   }
+
   debug('Reuse select window')
-  selectStartedReaction()
+  resetWindow()
 }
 
 // ピン留めされている最後のタブの位置を返す
@@ -524,13 +540,6 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
   runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
     debug('Message ' + JSON.stringify(message) + ' was received')
     switch (message.type) {
-      case 'started': {
-        // 選択ウインドウからの初期化通知
-        if (selectStartedReaction) {
-          selectStartedReaction()
-        }
-        break
-      }
       case 'selectSize': {
         // 選択ウインドウからのウインドウサイズ通知
         const selectSave = await getValue(KEY_SELECT_SAVE, DEFAULT_SELECT_SAVE)
