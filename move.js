@@ -464,6 +464,36 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
   await wrapMoveCore(tabIds, toWindowId, notification)
 }
 
+// 移動指令を捌く
+async function handleMoveMessage (message) {
+  const {
+    keyType,
+    toWindowId,
+    notification
+  } = message
+  switch (keyType) {
+    case KEY_ONE:
+    case KEY_RIGHT:
+    case KEY_LEFT:
+    case KEY_ALL: {
+      const {tabId} = message
+      await wrapMove(tabId, keyType, toWindowId, notification)
+      break
+    }
+    case KEY_SELECT: {
+      const {tabId} = message
+      const tab = await tabs.get(tabId)
+      await select(tab.windowId, toWindowId, notification)
+      break
+    }
+    case KEY_RAW: {
+      const {tabIds} = message
+      await wrapMoveCore(tabIds, toWindowId, notification)
+      break
+    }
+  }
+}
+
 // 初期化
 (async function () {
   // 別のタブにフォーカスを移した
@@ -553,19 +583,7 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
         break
       }
       case KEY_MOVE: {
-        // 選択ウインドウからの選択結果
-        const {
-          keyType,
-          toWindowId,
-          notification
-        } = message
-        switch (keyType) {
-          case KEY_RAW: {
-            const {tabIds} = message
-            await wrapMoveCore(tabIds, toWindowId, notification)
-            break
-          }
-        }
+        await handleMoveMessage(message)
         break
       }
     }
@@ -576,23 +594,7 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
     debug('Message ' + JSON.stringify(message) + ' was received')
     switch (message.type) {
       case KEY_MOVE: {
-        const {
-          keyType,
-          toWindowId,
-          notification
-        } = message
-        switch (keyType) {
-          case KEY_SELECT: {
-            const {tabIds} = message
-            await wrapMoveCore(tabIds, toWindowId, notification)
-            break
-          }
-          default: {
-            const {tabId} = message
-            await wrapMove(tabId, keyType, toWindowId, notification)
-            break
-          }
-        }
+        await handleMoveMessage(message)
         break
       }
     }
