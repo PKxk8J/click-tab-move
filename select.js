@@ -24,7 +24,7 @@ function onError (error) {
 }
 
 // 選択ボックスのサイズ変更のための監視間隔（ミリ秒）
-const RESIZE_INTERVAL = 500
+const RESIZE_INTERVAL = 300
 
 // ウインドウを閉じる
 async function close () {
