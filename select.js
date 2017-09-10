@@ -6,7 +6,8 @@ const KEY_DEBUG = 'debug'
 
 const KEY_SELECT = 'select'
 const KEY_SELECT_SIZE = 'selectSize'
-const KEY_UPDATE = 'update'
+const KEY_RAW = 'raw'
+const KEY_RESET = 'reset'
 const KEY_TO_WINDOW_ID = 'toWindowId'
 const KEY_NOTIFICATION = 'notification'
 
@@ -56,7 +57,7 @@ function sendResult () {
   const notification = Boolean(document.getElementById(KEY_NOTIFICATION).value)
   runtime.sendMessage({
     type: KEY_MOVE,
-    keyType: KEY_SELECT,
+    keyType: KEY_RAW,
     tabIds: ids,
     toWindowId,
     notification
@@ -140,7 +141,7 @@ async function reset (fromWindowId, toWindowId, notification) {
     debug('Message ' + JSON.stringify(message) + ' was received')
 
     switch (message.type) {
-      case KEY_UPDATE: {
+      case KEY_RESET: {
         const {
           fromWindowId,
           toWindowId,

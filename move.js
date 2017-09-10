@@ -15,7 +15,8 @@ const KEY_MENU_ITEM = 'menuItem'
 const KEY_SELECT_SIZE = 'selectSize'
 const KEY_SELECT_SAVE = 'selectSave'
 const KEY_NOTIFICATION = 'notification'
-const KEY_UPDATE = 'update'
+const KEY_RAW = 'raw'
+const KEY_RESET = 'reset'
 
 const KEY_MOVE = 'move'
 const KEY_MOVE_X = 'moveX'
@@ -230,7 +231,7 @@ async function reset () {
 async function select (fromWindowId, toWindowId, notification) {
   function resetWindow () {
     runtime.sendMessage({
-      type: KEY_UPDATE,
+      type: KEY_RESET,
       fromWindowId,
       toWindowId,
       notification
@@ -559,7 +560,7 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
           notification
         } = message
         switch (keyType) {
-          case KEY_SELECT: {
+          case KEY_RAW: {
             const {tabIds} = message
             await wrapMoveCore(tabIds, toWindowId, notification)
             break
