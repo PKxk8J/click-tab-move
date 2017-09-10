@@ -8,23 +8,32 @@
         margin: 0;
         padding: 0;
       }
+      .header {
+        font-size: large;
+        font-weight: bold;
+      }
+      .button_text {
+        font-weight: bold;
+      }
       .selectbox {
-        width: 100%;
+        width: 98%;
+        margin-left: 1%;
+        margin-right: 1%;
       }
     </style>
   </head>
 
   <body>
 
-    <div id="moveToX"></div>
+    <div align="center" id="moveToX" class="header"></div>
 
     <form id="form">
-      <input id="from" type="hidden" />
-      <input id="to" type="hidden" />
       <select id="select" class="selectbox" multiple size="10"></select>
+      <input id="toWindowId" type="hidden" />
+      <input id="notification" type="hidden" />
       <div align="center">
-        <button id="move" type="button"><span id="label_move"></span></button>
-        <button id="cancel" type="button"><span id="label_cancel"></span></button>
+        <button id="move" type="button"><span id="label_move" class="button_text"></span></button>
+        <button id="cancel" type="button"><span id="label_cancel" class="button_text"></span></button>
       </div>
     </form>
 

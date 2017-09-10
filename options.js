@@ -21,7 +21,7 @@ const KEY_HEIGHT = 'height'
 const KEY_SAVE = 'save'
 
 const MENU_ITEM_KEYS = [KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT]
-const LABEL_KEYS = [KEY_MENU_ITEM, KEY_SELECT_SIZE, KEY_SELECT_SAVE, KEY_NOTIFICATION, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE]
+const LABEL_KEYS = MENU_ITEM_KEYS.concat([KEY_MENU_ITEM, KEY_SELECT_SIZE, KEY_SELECT_SAVE, KEY_NOTIFICATION, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE])
 
 /*
  * {
@@ -110,9 +110,11 @@ async function save () {
     const input = document.createElement('input')
     input.type = 'checkbox'
     input.id = key
+    const span = document.createElement('span')
+    span.id = 'label_' + key
     const label = document.createElement('label')
     label.appendChild(input)
-    label.appendChild(document.createTextNode(' ' + i18n.getMessage(key)))
+    label.appendChild(span)
     const li = document.createElement('li')
     li.appendChild(label)
 

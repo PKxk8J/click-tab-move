@@ -15,6 +15,8 @@ const KEY_MENU_ITEM = 'menuItem'
 const KEY_SELECT_SIZE = 'selectSize'
 const KEY_SELECT_SAVE = 'selectSave'
 const KEY_NOTIFICATION = 'notification'
+const KEY_RAW = 'raw'
+const KEY_RESET = 'reset'
 
 const KEY_MOVE = 'move'
 const KEY_MOVE_X = 'moveX'
@@ -34,6 +36,8 @@ const NOTIFICATION_ID = i18n.getMessage(KEY_NAME)
 
 const SEP = '_'
 const ITEM_LENGTH = 64
+
+const POLLING_INTERVAL = 300
 
 const DEBUG = (i18n.getMessage(KEY_DEBUG) === 'debug')
 function debug (message) {
@@ -83,8 +87,6 @@ let menuKeys = []
 // タブ選択ウインドウ
 // タブ選択ウインドウは1つとする
 let selectWindowId
-
-let selectStartedReaction
 
 // info ウインドウ情報
 // info.tab アクティブなタブの ID
@@ -226,13 +228,18 @@ async function reset () {
 }
 
 // 選択ウインドウをつくる
-async function select (fromWindowId, toWindowId) {
-  selectStartedReaction = () => {
+async function select (fromWindowId, toWindowId, notification) {
+  function resetWindow () {
     runtime.sendMessage({
-      type: 'update',
+      type: KEY_RESET,
       fromWindowId,
-      toWindowId
+      toWindowId,
+      notification
     })
+  }
+
+  async function asleep (msec) {
+    return new Promise(resolve => setTimeout(resolve, msec))
   }
 
   async function createSelectWindow () {
@@ -247,6 +254,17 @@ async function select (fromWindowId, toWindowId) {
     selectWindowId = window.id
     // 先に tabs.onUpdated が走ってしまうようなので除く
     unsetActiveTab(selectWindowId)
+
+    // メッセージを受け取れるようになるまで待つ
+    while (true) {
+      const tab = await tabs.get(window.tabs[0].id)
+      if (tab.url.endsWith('/select.html') && tab.status === 'complete') {
+        break
+      }
+      await asleep(POLLING_INTERVAL)
+    }
+
+    resetWindow()
   }
 
   if (!selectWindowId) {
@@ -261,8 +279,9 @@ async function select (fromWindowId, toWindowId) {
     await createSelectWindow()
     return
   }
+
   debug('Reuse select window')
-  selectStartedReaction()
+  resetWindow()
 }
 
 // ピン留めされている最後のタブの位置を返す
@@ -445,6 +464,36 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
   await wrapMoveCore(tabIds, toWindowId, notification)
 }
 
+// 移動指令を捌く
+async function handleMoveMessage (message) {
+  const {
+    keyType,
+    toWindowId,
+    notification
+  } = message
+  switch (keyType) {
+    case KEY_ONE:
+    case KEY_RIGHT:
+    case KEY_LEFT:
+    case KEY_ALL: {
+      const {tabId} = message
+      await wrapMove(tabId, keyType, toWindowId, notification)
+      break
+    }
+    case KEY_SELECT: {
+      const {tabId} = message
+      const tab = await tabs.get(tabId)
+      await select(tab.windowId, toWindowId, notification)
+      break
+    }
+    case KEY_RAW: {
+      const {tabIds} = message
+      await wrapMoveCore(tabIds, toWindowId, notification)
+      break
+    }
+  }
+}
+
 // 初期化
 (async function () {
   // 別のタブにフォーカスを移した
@@ -503,17 +552,17 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
       toWindowLabel
     ] = info.menuItemId.split(SEP)
     const toWindowId = (toWindowLabel === KEY_NEW_WINDOW ? undefined : Number(toWindowLabel))
+    const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
     switch (keyType) {
       case KEY_ONE:
       case KEY_RIGHT:
       case KEY_LEFT:
       case KEY_ALL: {
-        const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
         await wrapMove(tab.id, keyType, toWindowId, notification)
         break
       }
       case KEY_SELECT: {
-        await select(tab.windowId, toWindowId)
+        await select(tab.windowId, toWindowId, notification)
         break
       }
     }
@@ -523,14 +572,7 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
   runtime.onMessage.addListener((message, sender, sendResponse) => (async function () {
     debug('Message ' + JSON.stringify(message) + ' was received')
     switch (message.type) {
-      case 'started': {
-        // 選択ウインドウからの初期化通知
-        if (selectStartedReaction) {
-          selectStartedReaction()
-        }
-        break
-      }
-      case 'selectSize': {
+      case KEY_SELECT_SIZE: {
         // 選択ウインドウからのウインドウサイズ通知
         const selectSave = await getValue(KEY_SELECT_SAVE, DEFAULT_SELECT_SAVE)
         if (!selectSave) {
@@ -541,19 +583,7 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
         break
       }
       case KEY_MOVE: {
-        // 選択ウインドウからの選択結果
-        const {
-          keyType,
-          toWindowId
-        } = message
-        switch (keyType) {
-          case KEY_SELECT: {
-            const {tabIds} = message
-            const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
-            await wrapMoveCore(tabIds, toWindowId, notification)
-            break
-          }
-        }
+        await handleMoveMessage(message)
         break
       }
     }
@@ -564,23 +594,7 @@ async function wrapMove (tabId, keyType, toWindowId, notification) {
     debug('Message ' + JSON.stringify(message) + ' was received')
     switch (message.type) {
       case KEY_MOVE: {
-        const {
-          keyType,
-          toWindowId,
-          notification
-        } = message
-        switch (keyType) {
-          case KEY_SELECT: {
-            const {tabIds} = message
-            await wrapMoveCore(tabIds, toWindowId, notification)
-            break
-          }
-          default: {
-            const {tabId} = message
-            await wrapMove(tabId, keyType, toWindowId, notification)
-            break
-          }
-        }
+        await handleMoveMessage(message)
         break
       }
     }
