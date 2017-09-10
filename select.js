@@ -5,6 +5,7 @@ const { i18n, runtime, tabs, windows } = browser
 const KEY_DEBUG = 'debug'
 
 const KEY_SELECT = 'select'
+const KEY_NOTIFICATION = 'notification'
 
 const KEY_MOVE = 'move'
 const KEY_CANCEL = 'cancel'
@@ -45,7 +46,8 @@ function sendMoveMessage () {
       ids.push(Number(option.id))
     }
   }
-  runtime.sendMessage({type: KEY_MOVE, keyType: KEY_SELECT, tabIds: ids, toWindowId})
+  const notification = Boolean(document.getElementById(KEY_NOTIFICATION).value)
+  runtime.sendMessage({type: KEY_MOVE, keyType: KEY_SELECT, tabIds: ids, toWindowId, notification})
 }
 
 // 選択ボックスのサイズを変更する
@@ -73,7 +75,7 @@ function resizeLoop () {
 }
 
 // 表示を更新する
-async function update (fromWindowId, toWindowId) {
+async function update (fromWindowId, toWindowId, notification) {
   let title
   if (toWindowId) {
     const [tab] = await tabs.query({windowId: toWindowId, active: true})
@@ -92,6 +94,8 @@ async function update (fromWindowId, toWindowId) {
 
   const tabList = await tabs.query({windowId: fromWindowId})
   tabList.sort((tab1, tab2) => tab1.index - tab2.index)
+
+  document.getElementById(KEY_NOTIFICATION).value = notification
 
   const select = document.getElementById('select')
   while (select.firstChild) {
@@ -126,8 +130,12 @@ async function update (fromWindowId, toWindowId) {
 
     switch (message.type) {
       case 'update': {
-        const { fromWindowId, toWindowId } = message
-        await update(fromWindowId, toWindowId)
+        const {
+          fromWindowId,
+          toWindowId,
+          notification = false
+        } = message
+        await update(fromWindowId, toWindowId, notification)
         break
       }
     }
