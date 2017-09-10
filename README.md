@@ -24,7 +24,7 @@ browser.runtime.sendMessage('{2bd73814-983c-42f3-a6d5-e68c4668a4cf}', {
 ```javascript
 browser.runtime.sendMessage('{2bd73814-983c-42f3-a6d5-e68c4668a4cf}', {
   type: 'move',
-  keyType: raw',
+  keyType: 'raw',
   tabIds: [15, 46, 2],
   toWindowId: 24,
   notification: false
