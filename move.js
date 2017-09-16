@@ -195,7 +195,7 @@ var _export
   }
 
   // 移す
-  async function _move (tabIds, toWindowId) {
+  async function run (tabIds, toWindowId) {
     if (tabIds.length <= 0) {
       return
     } else if (toWindowId) {
@@ -214,7 +214,7 @@ var _export
       await activateBest(tab.windowId, tabIds)
     }
     const windowInfo = await moveOneToNewWindow(tab)
-    await _move(tabIds.slice(1), windowInfo.id)
+    await run(tabIds.slice(1), windowInfo.id)
   }
 
   // 対象のタブを列挙する
@@ -251,14 +251,14 @@ var _export
   }
 
   // 前後処理で挟む
-  async function wrapMoveCore (tabIds, toWindowId, notification) {
+  async function wrappedRawRun (tabIds, toWindowId, notification) {
     try {
       if (notification) {
         await notify(i18n.getMessage(KEY_MOVING))
       }
 
       const start = new Date()
-      await _move(tabIds, toWindowId)
+      await run(tabIds, toWindowId)
       const seconds = (new Date() - start) / 1000
       const message = i18n.getMessage(KEY_SUCCESS_MESSAGE, [seconds, tabIds.length])
 
@@ -275,9 +275,9 @@ var _export
   }
 
   // 前後処理で挟む
-  async function wrapMove (tabId, keyType, toWindowId, notification) {
+  async function wrappedRun (tabId, keyType, toWindowId, notification) {
     const tabIds = await listing(tabId, keyType)
-    await wrapMoveCore(tabIds, toWindowId, notification)
+    await wrappedRawRun(tabIds, toWindowId, notification)
   }
 
   function handler (message, sender, sendResponse) {
@@ -303,7 +303,7 @@ var _export
           switch (keyType) {
             case KEY_RAW: {
               const {tabIds} = message
-              await wrapMoveCore(tabIds, toWindowId, notification)
+              await wrappedRawRun(tabIds, toWindowId, notification)
             }
           }
           break
@@ -319,8 +319,8 @@ var _export
   })().catch(onError)
 
   _export = Object.freeze({
-    run: wrapMove,
-    rawRun: wrapMoveCore,
+    run: wrappedRun,
+    rawRun: wrappedRawRun,
     select,
     getSelectWindowId
   })

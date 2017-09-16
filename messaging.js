@@ -18,6 +18,11 @@
     debug,
     onError
   } = common
+  const {
+    run,
+    select,
+    rawRun
+  } = move
 
   function handler (message, sender, sendResponse) {
     (async function () {
@@ -35,18 +40,18 @@
             case KEY_LEFT:
             case KEY_ALL: {
               const {tabId} = message
-              await move.run(tabId, keyType, toWindowId, notification)
+              await run(tabId, keyType, toWindowId, notification)
               break
             }
             case KEY_SELECT: {
               const {tabId} = message
               const [tab] = await tabs.get(tabId)
-              await move.select(tab.windowId, toWindowId, notification)
+              await select(tab.windowId, toWindowId, notification)
               break
             }
             case KEY_RAW: {
               const {tabIds} = message
-              await move.rawRun(tabIds, toWindowId, notification)
+              await rawRun(tabIds, toWindowId, notification)
               break
             }
           }
