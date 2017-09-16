@@ -1,24 +1,29 @@
 'use strict'
 
-const { i18n, storage } = browser
-const storageArea = storage.sync
-
-const KEY_DEBUG = 'debug'
-
-const KEY_ONE = 'one'
-const KEY_RIGHT = 'right'
-const KEY_LEFT = 'left'
-const KEY_ALL = 'all'
-const KEY_SELECT = 'select'
-
-const KEY_MENU_ITEM = 'menuItem'
-const KEY_SELECT_SIZE = 'selectSize'
-const KEY_SELECT_SAVE = 'selectSave'
-const KEY_NOTIFICATION = 'notification'
-
-const KEY_WIDTH = 'width'
-const KEY_HEIGHT = 'height'
-const KEY_SAVE = 'save'
+const {
+  i18n
+} = browser
+const {
+  KEY_ONE,
+  KEY_RIGHT,
+  KEY_LEFT,
+  KEY_ALL,
+  KEY_SELECT,
+  KEY_MENU_ITEM,
+  KEY_SELECT_SIZE,
+  KEY_WIDTH,
+  KEY_HEIGHT,
+  KEY_SELECT_SAVE,
+  KEY_NOTIFICATION,
+  KEY_SAVE,
+  DEFAULT_MENU_ITEM,
+  DEFAULT_SELECT_SIZE,
+  DEFAULT_SELECT_SAVE,
+  DEFAULT_NOTIFICATION,
+  storageArea,
+  debug,
+  onError
+} = common
 
 const MENU_ITEM_KEYS = [KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT]
 const LABEL_KEYS = MENU_ITEM_KEYS.concat([KEY_MENU_ITEM, KEY_SELECT_SIZE, KEY_SELECT_SAVE, KEY_NOTIFICATION, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE])
@@ -31,22 +36,6 @@ const LABEL_KEYS = MENU_ITEM_KEYS.concat([KEY_MENU_ITEM, KEY_SELECT_SIZE, KEY_SE
  *   "notification": true
  * }
  */
-
-const DEFAULT_MENU_ITEM = [KEY_ONE, KEY_RIGHT, KEY_ALL]
-const DEFAULT_SELECT_SIZE = [640, 480]
-const DEFAULT_SELECT_SAVE = true
-const DEFAULT_NOTIFICATION = false
-
-const DEBUG = (i18n.getMessage(KEY_DEBUG) === 'debug')
-function debug (message) {
-  if (DEBUG) {
-    console.log(message)
-  }
-}
-
-function onError (error) {
-  console.error(error)
-}
 
 // 現在の設定を表示する
 async function restore () {
@@ -126,5 +115,5 @@ async function save () {
   })
 
   document.addEventListener('DOMContentLoaded', (e) => restore().catch(onError))
-  document.getElementById('save').addEventListener('click', (e) => save().catch(onError))
+  document.getElementById(KEY_SAVE).addEventListener('click', (e) => save().catch(onError))
 })().catch(onError)

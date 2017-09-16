@@ -1,34 +1,26 @@
 'use strict'
 
-const { i18n, runtime, tabs, windows } = browser
-
-const KEY_DEBUG = 'debug'
-
-const KEY_SELECT = 'select'
-const KEY_SELECT_SIZE = 'selectSize'
-const KEY_RAW = 'raw'
-const KEY_RESET = 'reset'
-const KEY_TO_WINDOW_ID = 'toWindowId'
-const KEY_NOTIFICATION = 'notification'
-
-const KEY_MOVE = 'move'
-const KEY_CANCEL = 'cancel'
-const KEY_MOVE_TO_X = 'moveToX'
-const KEY_NEW_WINDOW = 'newWindow'
-
-const DEBUG = (i18n.getMessage(KEY_DEBUG) === 'debug')
-function debug (message) {
-  if (DEBUG) {
-    console.log(message)
-  }
-}
-
-function onError (error) {
-  console.error(error)
-}
-
-// 選択ボックスのサイズ変更のための監視間隔（ミリ秒）
-const RESIZE_INTERVAL = 300
+const {
+  i18n,
+  runtime,
+  tabs,
+  windows
+} = browser
+const {
+  KEY_SELECT,
+  KEY_RAW,
+  KEY_MOVE,
+  KEY_MOVE_TO_X,
+  KEY_SELECT_SIZE,
+  KEY_NOTIFICATION,
+  KEY_RESET,
+  KEY_NEW_WINDOW,
+  KEY_CANCEL,
+  KEY_TO_WINDOW_ID,
+  POLLING_INTERVAL,
+  debug,
+  onError
+} = common
 
 // ウインドウを閉じる
 async function close () {
@@ -85,7 +77,7 @@ function resizeSelectBox () {
 
 function resizeLoop () {
   resizeSelectBox()
-  setTimeout(resizeLoop, RESIZE_INTERVAL)
+  setTimeout(resizeLoop, POLLING_INTERVAL)
 }
 
 // 表示を更新する
