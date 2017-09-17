@@ -28,6 +28,11 @@
     onError,
     getValue
   } = common
+  const {
+    run,
+    select,
+    getSelectWindowId
+  } = move
 
   const SEP = '_'
   const ITEM_LENGTH = 64
@@ -107,7 +112,7 @@
 
   // フォーカスしてるタブで状態を更新する
   function setActiveTab (tabId, windowId, title) {
-    if (windowId === move.getSelectWindowId()) {
+    if (windowId === getSelectWindowId()) {
       return
     }
 
@@ -261,11 +266,11 @@
         case KEY_RIGHT:
         case KEY_LEFT:
         case KEY_ALL: {
-          await move.run(tab.id, keyType, toWindowId, notification)
+          await run(tab.id, keyType, toWindowId, notification)
           break
         }
         case KEY_SELECT: {
-          await move.select(tab.windowId, toWindowId, notification, unsetActiveTab)
+          await select(tab.windowId, toWindowId, notification, unsetActiveTab)
           break
         }
       }
