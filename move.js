@@ -186,11 +186,18 @@ var _export
 
   // ひとつを新しいウインドウに移す
   async function moveOneToNewWindow (tab) {
-    const windowInfo = await windows.create({tabId: tab.id})
-    if (tab.pinned) {
-      await tabs.update(tab.id, {pinned: true})
-    }
-    debug('Tab' + tab.id + ' moved to new window' + windowInfo.id + '[0]')
+    // 未ロードのタブを以下のようにウインドウ作成時に渡すと失敗する (Firefox 55)
+    // const windowInfo = await windows.create({tabId: tab.id})
+    // if (tab.pinned) {
+    //   await tabs.update(tab.id, {pinned: true})
+    // }
+    // debug('Tab' + tab.id + ' moved to new window' + windowInfo.id + '[0]')
+
+    const windowInfo = await windows.create()
+    const tabIds = windowInfo.tabs.map((tab) => tab.id)
+    await moveOne(tab, windowInfo.id)
+    await tabs.remove(tabIds)
+
     return windowInfo
   }
 
