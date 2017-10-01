@@ -22,7 +22,7 @@
     KEY_MOVE,
     KEY_MOVE_X,
     KEY_NEW_WINDOW,
-    DEFAULT_MENU_ITEM,
+    DEFAULT_MENU_ITEMS,
     DEFAULT_NOTIFICATION,
     debug,
     onError,
@@ -276,7 +276,7 @@
       }
     })().catch(onError))
 
-    menuKeys = await getValue(KEY_MENU_ITEM, DEFAULT_MENU_ITEM)
+    menuKeys = await getValue(KEY_MENU_ITEM, DEFAULT_MENU_ITEMS)
     await reset()
   })().catch(onError)
 }
