@@ -31,7 +31,8 @@ var _export
     storageArea,
     debug,
     onError,
-    getValue
+    getValue,
+    asleep
   } = common
 
   // タブ選択ウインドウ
@@ -51,10 +52,6 @@ var _export
         toWindowId,
         notification
       })
-    }
-
-    async function asleep (msec) {
-      return new Promise(resolve => setTimeout(resolve, msec))
     }
 
     async function createSelectWindow () {

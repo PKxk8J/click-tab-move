@@ -37,6 +37,10 @@ var _export
     return value
   }
 
+  async function asleep (msec) {
+    return new Promise(resolve => setTimeout(resolve, msec))
+  }
+
   _export = Object.freeze({
     KEY_ONE,
     KEY_RIGHT,
@@ -72,7 +76,8 @@ var _export
     storageArea,
     debug,
     onError: console.error,
-    getValue
+    getValue,
+    asleep
   })
 }
 
