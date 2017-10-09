@@ -60,6 +60,17 @@
   "moving": {
     "message": "Moving tabs..."
   },
+  "progress": {
+    "message": "Moving tabs... $PROGRESS$% completed in $TIME$ seconds.",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "progress": {
+        "content": "$2"
+      }
+    }
+  },
   "successMessage": {
     "message": "Moving tabs completed in $TIME$ seconds.\n$MOVED$ tabs were moved.",
     "placeholders": {

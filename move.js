@@ -21,13 +21,16 @@ var _export
     KEY_SELECT_SIZE,
     KEY_SELECT_SAVE,
     KEY_MOVING,
+    KEY_PROGRESS,
     KEY_SUCCESS_MESSAGE,
     KEY_FAILURE_MESSAGE,
     KEY_RESET,
     DEFAULT_SELECT_SIZE,
     DEFAULT_SELECT_SAVE,
     NOTIFICATION_ID,
+    NOTIFICATION_INTERVAL,
     POLLING_INTERVAL,
+    BULK_SIZE,
     storageArea,
     debug,
     onError,
@@ -174,15 +177,27 @@ var _export
     debug('Activated tab ' + bestTab.id)
   }
 
-  // ひとつ移す
-  async function moveOne (tab, toWindowId) {
-    const index = (tab.pinned ? await searchLastPinnedIndex(toWindowId) + 1 : -1)
-    const [movedTab] = await tabs.move(tab.id, {windowId: toWindowId, index})
-    debug('Tab' + movedTab.id + ' moved to window' + movedTab.windowId + '[' + movedTab.index + ']')
+  async function runWithWindow (pinnedTabIds, unpinnedTabIds, toWindowId, progress) {
+    if (pinnedTabIds.length > 0) {
+      const index = await searchLastPinnedIndex(toWindowId) + 1
+      for (let i = 0; i < pinnedTabIds.length; i += BULK_SIZE) {
+        const target = pinnedTabIds.slice(i, i + BULK_SIZE)
+        await tabs.move(target, {windowId: toWindowId, index})
+        debug('Pinned tabs' + target + ' moved to window' + toWindowId)
+        progress.done += target.length
+      }
+    }
+    if (unpinnedTabIds.length > 0) {
+      for (let i = 0; i < unpinnedTabIds.length; i += BULK_SIZE) {
+        const target = unpinnedTabIds.slice(i, i + BULK_SIZE)
+        await tabs.move(target, {windowId: toWindowId, index: -1})
+        debug('Tabs' + target + ' moved to window' + toWindowId)
+        progress.done += target.length
+      }
+    }
   }
 
-  // ひとつを新しいウインドウに移す
-  async function moveOneToNewWindow (tab) {
+  async function runWithNewWindow (pinnedTabIds, unpinnedTabIds, progress) {
     // 未ロードのタブを以下のようにウインドウ作成時に渡すと失敗する (Firefox 55)
     // const windowInfo = await windows.create({tabId: tab.id})
     // if (tab.pinned) {
@@ -192,33 +207,49 @@ var _export
 
     const windowInfo = await windows.create()
     const tabIds = windowInfo.tabs.map((tab) => tab.id)
-    await moveOne(tab, windowInfo.id)
-    await tabs.remove(tabIds)
 
-    return windowInfo
+    if (pinnedTabIds.length > 0) {
+      const target = pinnedTabIds.slice(0, BULK_SIZE)
+      await tabs.move(target, {windowId: windowInfo.id, index: 0})
+      debug('Pinned tabs' + target + ' moved to window' + windowInfo.id)
+      progress.done += target.length
+      await tabs.remove(tabIds)
+      await runWithWindow(pinnedTabIds.slice(target.length), unpinnedTabIds, windowInfo.id, progress)
+    } else {
+      const target = unpinnedTabIds.slice(0, BULK_SIZE)
+      await tabs.move(target, {windowId: windowInfo.id, index: -1})
+      debug('Tabs' + target + ' moved to window' + windowInfo.id)
+      progress.done += target.length
+      await tabs.remove(tabIds)
+      await runWithWindow(pinnedTabIds, unpinnedTabIds.slice(target.length), windowInfo.id, progress)
+    }
   }
 
   // 移す
-  async function run (tabIds, toWindowId) {
+  async function run (tabIds, toWindowId, progress) {
     if (tabIds.length <= 0) {
-      return
-    } else if (toWindowId) {
-      for (const tabId of tabIds) {
-        const tab = await tabs.get(tabId)
-        if (tab.active) {
-          await activateBest(tab.windowId, tabIds)
-        }
-        await moveOne(tab, toWindowId)
-      }
       return
     }
 
-    const tab = await tabs.get(tabIds[0])
-    if (tab.active) {
-      await activateBest(tab.windowId, tabIds)
+    const pinnedTabIds = []
+    const unpinnedTabIds = []
+    for (const tabId of tabIds) {
+      const tab = await tabs.get(tabId)
+      if (tab.pinned) {
+        pinnedTabIds.push(tabId)
+      } else {
+        unpinnedTabIds.push(tabId)
+      }
+      if (tab.active) {
+        await activateBest(tab.windowId, tabIds)
+      }
     }
-    const windowInfo = await moveOneToNewWindow(tab)
-    await run(tabIds.slice(1), windowInfo.id)
+
+    if (toWindowId) {
+      await runWithWindow(pinnedTabIds, unpinnedTabIds, toWindowId, progress)
+    } else {
+      await runWithNewWindow(pinnedTabIds, unpinnedTabIds, progress)
+    }
   }
 
   // 対象のタブを列挙する
@@ -245,35 +276,63 @@ var _export
     return tabList.map((tab) => tab.id)
   }
 
+  async function startProgressNotification (progress) {
+    while (true) {
+      await asleep(NOTIFICATION_INTERVAL)
+      if (progress.end || progress.error) {
+        break
+      }
+      notify(progress)
+    }
+  }
+
   // 通知を表示する
-  async function notify (message) {
+  async function notify (progress) {
+    let message
+    if (progress.error) {
+      message = i18n.getMessage(KEY_FAILURE_MESSAGE, progress.error)
+    } else if (progress.end) {
+      const seconds = (progress.end - progress.start) / 1000
+      message = i18n.getMessage(KEY_SUCCESS_MESSAGE, [seconds, progress.all, progress.done])
+    } else if (progress.start && progress.all) {
+      const seconds = (new Date() - progress.start) / 1000
+      const percentage = Math.floor(progress.done * 100 / progress.all)
+      message = i18n.getMessage(KEY_PROGRESS, [seconds, percentage])
+    } else {
+      message = i18n.getMessage(KEY_MOVING)
+    }
     await notifications.create(NOTIFICATION_ID, {
       'type': 'basic',
       'title': NOTIFICATION_ID,
-      message: message
+      message
     })
   }
 
   // 前後処理で挟む
   async function wrappedRawRun (tabIds, toWindowId, notification) {
+    const progress = {
+      all: tabIds.length,
+      done: 0
+    }
     try {
       if (notification) {
-        await notify(i18n.getMessage(KEY_MOVING))
+        await notify(progress)
+        startProgressNotification(progress)
+        progress.start = new Date()
       }
 
-      const start = new Date()
-      await run(tabIds, toWindowId)
-      const seconds = (new Date() - start) / 1000
-      const message = i18n.getMessage(KEY_SUCCESS_MESSAGE, [seconds, tabIds.length])
+      await run(tabIds, toWindowId, progress)
+      debug('Finished')
 
-      debug(message)
       if (notification) {
-        await notify(message)
+        progress.end = new Date()
+        await notify(progress)
       }
     } catch (e) {
       onError(e)
       if (notification) {
-        await notify(i18n.getMessage(KEY_FAILURE_MESSAGE, e))
+        progress.error = e
+        await notify(progress)
       }
     }
   }
