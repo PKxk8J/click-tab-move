@@ -180,8 +180,8 @@ var _export
   async function runWithWindow (pinnedTabIds, unpinnedTabIds, toWindowId, progress) {
     if (pinnedTabIds.length > 0) {
       const index = await searchLastPinnedIndex(toWindowId) + 1
-      for (let i = 0; i < pinnedTabIds.length; i += BULK_SIZE) {
-        const target = pinnedTabIds.slice(i, i + BULK_SIZE)
+      for (let i = pinnedTabIds.length - 1; i >= 0; i -= BULK_SIZE) {
+        const target = pinnedTabIds.slice(Math.max(i, 0), i + BULK_SIZE)
         await tabs.move(target, {windowId: toWindowId, index})
         debug('Pinned tabs' + target + ' moved to window' + toWindowId)
         progress.done += target.length
