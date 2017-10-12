@@ -37,6 +37,9 @@ var _export
     getValue,
     asleep
   } = common
+  const {
+    isActiveTab
+  } = monitor
 
   // タブ選択ウインドウ
   // タブ選択ウインドウは1つとする
@@ -114,8 +117,8 @@ var _export
 
   // 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために
   // 移動しないタブか末尾のタブにフォーカスする
-  async function activateBest (windowId, moveTabIds) {
-    const moveTabIdSet = new Set(moveTabIds)
+  async function activateBest (windowId, pinnedTabIds, unpinnedTabIds) {
+    const moveTabIdSet = new Set(pinnedTabIds.concat(unpinnedTabIds))
 
     const tabList = await tabs.query({windowId})
 
@@ -177,21 +180,31 @@ var _export
     debug('Activated tab ' + bestTab.id)
   }
 
+  async function moveTarget (tabIds, toWindowId, index, pinnedTabIds, unpinnedTabIds) {
+    for (const tabId of tabIds) {
+      if (isActiveTab(tabId)) {
+        const tab = await tabs.get(tabId)
+        await activateBest(tab.windowId, pinnedTabIds, unpinnedTabIds)
+        break
+      }
+    }
+    await tabs.move(tabIds, {windowId: toWindowId, index})
+    debug('Tabs' + tabIds + ' moved to window' + toWindowId + ' ' + index)
+  }
+
   async function runWithWindow (pinnedTabIds, unpinnedTabIds, toWindowId, progress) {
     if (pinnedTabIds.length > 0) {
       const index = await searchLastPinnedIndex(toWindowId) + 1
       for (let i = pinnedTabIds.length - 1; i >= 0; i -= BULK_SIZE) {
         const target = pinnedTabIds.slice(Math.max(i, 0), i + BULK_SIZE)
-        await tabs.move(target, {windowId: toWindowId, index})
-        debug('Pinned tabs' + target + ' moved to window' + toWindowId)
+        await moveTarget(target, toWindowId, index, pinnedTabIds, unpinnedTabIds)
         progress.done += target.length
       }
     }
     if (unpinnedTabIds.length > 0) {
       for (let i = 0; i < unpinnedTabIds.length; i += BULK_SIZE) {
         const target = unpinnedTabIds.slice(i, i + BULK_SIZE)
-        await tabs.move(target, {windowId: toWindowId, index: -1})
-        debug('Tabs' + target + ' moved to window' + toWindowId)
+        await moveTarget(target, toWindowId, -1, pinnedTabIds, unpinnedTabIds)
         progress.done += target.length
       }
     }
@@ -208,21 +221,22 @@ var _export
     const windowInfo = await windows.create()
     const tabIds = windowInfo.tabs.map((tab) => tab.id)
 
+    let target
+    let nextPinnedTabIds
+    let nextUnpinnedTabIds
     if (pinnedTabIds.length > 0) {
-      const target = pinnedTabIds.slice(0, BULK_SIZE)
-      await tabs.move(target, {windowId: windowInfo.id, index: 0})
-      debug('Pinned tabs' + target + ' moved to window' + windowInfo.id)
-      progress.done += target.length
-      await tabs.remove(tabIds)
-      await runWithWindow(pinnedTabIds.slice(target.length), unpinnedTabIds, windowInfo.id, progress)
+      target = pinnedTabIds.slice(0, 1)
+      nextPinnedTabIds = pinnedTabIds.slice(1)
+      nextUnpinnedTabIds = unpinnedTabIds
     } else {
-      const target = unpinnedTabIds.slice(0, BULK_SIZE)
-      await tabs.move(target, {windowId: windowInfo.id, index: -1})
-      debug('Tabs' + target + ' moved to window' + windowInfo.id)
-      progress.done += target.length
-      await tabs.remove(tabIds)
-      await runWithWindow(pinnedTabIds, unpinnedTabIds.slice(target.length), windowInfo.id, progress)
+      target = unpinnedTabIds.slice(0, 1)
+      nextPinnedTabIds = pinnedTabIds
+      nextUnpinnedTabIds = unpinnedTabIds.slice(1)
     }
+    moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds)
+    await tabs.remove(tabIds)
+    progress.done += target.length
+    await runWithWindow(nextPinnedTabIds, nextUnpinnedTabIds, windowInfo.id, progress)
   }
 
   // 移す

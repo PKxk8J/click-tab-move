@@ -18,6 +18,7 @@
   "background": {
     "scripts": [
       "common.js",
+      "monitor.js",
       "move.js",
       "messaging.js",
       "menu.js"
