@@ -117,8 +117,12 @@ var _export
 
   // 未読み込みのタブにフォーカスが移って読み込んでしまうのを防ぐために
   // 移動しないタブか末尾のタブにフォーカスする
-  async function activateBest (windowId, pinnedTabIds, unpinnedTabIds) {
-    const moveTabIdSet = new Set(pinnedTabIds.concat(unpinnedTabIds))
+  async function activateBest (windowId, ...excludeedTabIdLists) {
+    const excludedTabIds = []
+    for (const excludeedTabIdList of excludeedTabIdLists) {
+      Array.prototype.push.apply(excludedTabIds, excludeedTabIdList)
+    }
+    const moveTabIdSet = new Set(excludedTabIds)
 
     const tabList = await tabs.query({windowId})
 
@@ -233,7 +237,7 @@ var _export
       nextPinnedTabIds = pinnedTabIds
       nextUnpinnedTabIds = unpinnedTabIds.slice(1)
     }
-    moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds)
+    await moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds)
     await tabs.remove(tabIds)
     progress.done += target.length
     await runWithWindow(nextPinnedTabIds, nextUnpinnedTabIds, windowInfo.id, progress)
