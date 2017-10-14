@@ -53,6 +53,17 @@
   "moving": {
     "message": "タブ移動中..."
   },
+  "progress": {
+    "message": "タブ移動中... $PROGRESS$%完了: $TIME$秒",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "progress": {
+        "content": "$2"
+      }
+    }
+  },
   "successMessage": {
     "message": "タブ移動完了: $TIME$秒\n$MOVED$個のタブを移動",
     "placeholders": {

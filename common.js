@@ -29,16 +29,16 @@ var _export
     }
   }
 
-  function onError (error) {
-    console.error(error)
-  }
-
   // 設定値を取得する
   async function getValue (key, defaultValue) {
     const {
       [key]: value = defaultValue
     } = await storageArea.get(key)
     return value
+  }
+
+  async function asleep (msec) {
+    return new Promise(resolve => setTimeout(resolve, msec))
   }
 
   _export = Object.freeze({
@@ -58,6 +58,7 @@ var _export
     KEY_NOTIFICATION: 'notification',
     KEY_SAVE: 'save',
     KEY_MOVING: 'moving',
+    KEY_PROGRESS: 'progress',
     KEY_SUCCESS_MESSAGE: 'successMessage',
     KEY_FAILURE_MESSAGE: 'failureMessage',
     KEY_RESET: 'reset',
@@ -65,17 +66,21 @@ var _export
     KEY_NEW_WINDOW: 'newWindow',
     KEY_CANCEL: 'cancel',
     KEY_TO_WINDOW_ID: 'toWindowId',
+    ALL_MENU_ITEMS: [KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT],
     DEFAULT_MENU_ITEM: [KEY_ONE, KEY_RIGHT, KEY_ALL],
     DEFAULT_SELECT_SIZE: [640, 480],
     DEFAULT_SELECT_SAVE: true,
     DEFAULT_NOTIFICATION: false,
     NOTIFICATION_ID: i18n.getMessage(KEY_NAME),
+    NOTIFICATION_INTERVAL: 10 * 1000,
     POLLING_INTERVAL: 300,
+    BULK_SIZE: 5,
     DEBUG,
     storageArea,
     debug,
-    onError,
-    getValue
+    onError: console.error,
+    getValue,
+    asleep
   })
 }
 

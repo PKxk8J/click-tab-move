@@ -19,7 +19,8 @@ const {
   KEY_TO_WINDOW_ID,
   POLLING_INTERVAL,
   debug,
-  onError
+  onError,
+  asleep
 } = common
 
 // ウインドウを閉じる
@@ -75,9 +76,11 @@ function resizeSelectBox () {
   }
 }
 
-function resizeLoop () {
-  resizeSelectBox()
-  setTimeout(resizeLoop, POLLING_INTERVAL)
+async function startResizeLoop () {
+  while (true) {
+    resizeSelectBox()
+    await asleep(POLLING_INTERVAL)
+  }
 }
 
 // 表示を更新する
@@ -146,5 +149,5 @@ async function reset (fromWindowId, toWindowId, notification) {
   })().catch(onError))
 
   // 選択ボックスを監視して必要ならサイズを変更する
-  resizeLoop()
+  startResizeLoop()
 })().catch(onError)

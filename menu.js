@@ -22,7 +22,7 @@
     KEY_MOVE,
     KEY_MOVE_X,
     KEY_NEW_WINDOW,
-    DEFAULT_MENU_ITEM,
+    DEFAULT_MENU_ITEMS,
     DEFAULT_NOTIFICATION,
     debug,
     onError,
@@ -33,6 +33,9 @@
     select,
     getSelectWindowId
   } = move
+  const {
+    setActiveTabCallbacks
+  } = monitor
 
   const SEP = '_'
   const ITEM_LENGTH = 64
@@ -63,14 +66,8 @@
 
   let menuKeys = []
 
-  // info ウインドウ情報
-  // info.tab アクティブなタブの ID
-  // info.title アクティブなタブのタイトル
-
-  // ウインドウ ID からウインドウ情報
-  const windowToInfo = new Map()
-  // タブ ID からウインドウ ID
-  const tabToWindow = new Map()
+  // ウインドウ ID からウインドウでフォーカスされてるタブのタイトル
+  const windowToTitle = new Map()
 
   let focusedWindowId
 
@@ -110,39 +107,28 @@
     menuKeys.forEach((key) => remove(key + SEP + windowId).catch(onError))
   }
 
-  // フォーカスしてるタブで状態を更新する
-  function setActiveTab (tabId, windowId, title) {
+  // ウインドウの表示名を更新する
+  function setWindowTitle (windowId, title) {
     if (windowId === getSelectWindowId()) {
       return
     }
 
-    let info = windowToInfo.get(windowId)
-    if (info) {
-      if (info.tab !== tabId) {
-        tabToWindow.delete(info.tab)
-        tabToWindow.set(tabId, windowId)
-        info.tab = tabId
-      }
-      if (info.title !== title) {
-        info.title = title
+    let oldTitle = windowToTitle.get(windowId)
+    if (oldTitle) {
+      if (oldTitle !== title) {
+        windowToTitle.set(windowId, title)
         updateItem(windowId, title)
       }
     } else {
-      info = {
-        tab: tabId,
-        title: title
-      }
-      windowToInfo.set(windowId, info)
-      tabToWindow.set(tabId, windowId)
+      windowToTitle.set(windowId, title)
       addItem(windowId, title)
     }
   }
 
-  function unsetActiveTab (windowId) {
-    const info = windowToInfo.get(windowId)
-    if (info) {
-      windowToInfo.delete(windowId)
-      tabToWindow.delete(info.tab)
+  function unsetWindowTitle (windowId) {
+    const title = windowToTitle.get(windowId)
+    if (title) {
+      windowToTitle.delete(windowId)
       removeItem(windowId)
     }
   }
@@ -151,13 +137,13 @@
   async function filterWindow (windowId) {
     debug('Window' + windowId + ' is focused')
 
-    const old = focusedWindowId
+    const oldWindowId = focusedWindowId
     focusedWindowId = windowId
 
-    if (old) {
-      const info = windowToInfo.get(old)
-      if (info) {
-        addItem(old, info.title)
+    if (oldWindowId) {
+      const title = windowToTitle.get(oldWindowId)
+      if (title) {
+        addItem(oldWindowId, title)
       }
     }
 
@@ -166,8 +152,7 @@
 
   // メニューを初期化
   async function reset () {
-    windowToInfo.clear()
-    tabToWindow.clear()
+    windowToTitle.clear()
     await contextMenus.removeAll()
 
     switch (menuKeys.length) {
@@ -195,7 +180,7 @@
 
     const tabList = await tabs.query({active: true})
     for (const tab of tabList) {
-      setActiveTab(tab.id, tab.windowId, tab.title)
+      setWindowTitle(tab.windowId, tab.title)
     }
 
     const windowInfo = await windows.getCurrent()
@@ -204,41 +189,24 @@
 
   // 初期化
   (async function () {
-    // 別のタブにフォーカスを移した
-    tabs.onActivated.addListener((activeInfo) => (async function () {
-      debug('Tab' + activeInfo.tabId + ' became active')
-      const tab = await tabs.get(activeInfo.tabId)
-      setActiveTab(tab.id, tab.windowId, tab.title)
-    })().catch(onError))
+    setActiveTabCallbacks((windowId, tabId) => (async function () {
+      const tab = await tabs.get(tabId)
+      setWindowTitle(windowId, tab.title)
+    })().catch(onError), unsetWindowTitle)
 
     // タブが変わった
     tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-      if (!changeInfo.title) {
+      if (!tab.active) {
+        // フォーカスしてないタブだった
+        return
+      } else if (!changeInfo.title) {
         // タイトルは変わってなかった
         return
       }
 
-      const windowId = tabToWindow.get(tabId)
-      if (!windowId || windowId !== tab.windowId) {
-        // フォーカスしてないタブだった
-        return
-      }
       // フォーカスしてるタブのタイトルが変わった
-      debug('Tab' + tab.id + ' was updated')
-      setActiveTab(tab.id, tab.windowId, tab.title)
-    })
-
-    // ウインドウができた
-    windows.onCreated.addListener((window) => (async function () {
-      const [tab] = await tabs.query({windowId: window.id, active: true})
-      debug('Tab' + tab.id + ' is in new window' + tab.windowId)
-      setActiveTab(tab.id, tab.windowId, tab.title)
-    })().catch(onError))
-
-    // ウインドウがなくなった
-    windows.onRemoved.addListener((windowId) => {
-      debug('Window' + windowId + ' was closed')
-      unsetActiveTab(windowId)
+      debug('Title of window' + tab.windowId + ' was changed')
+      setWindowTitle(tab.windowId, tab.title)
     })
 
     // 別のウインドウにフォーカスを移した
@@ -270,13 +238,13 @@
           break
         }
         case KEY_SELECT: {
-          await select(tab.windowId, toWindowId, notification, unsetActiveTab)
+          await select(tab.windowId, toWindowId, notification, unsetWindowTitle)
           break
         }
       }
     })().catch(onError))
 
-    menuKeys = await getValue(KEY_MENU_ITEM, DEFAULT_MENU_ITEM)
+    menuKeys = await getValue(KEY_MENU_ITEM, DEFAULT_MENU_ITEMS)
     await reset()
   })().catch(onError)
 }
