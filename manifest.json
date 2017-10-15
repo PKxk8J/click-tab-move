@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "__MSG_name__",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Move tabs to another window from the right click menu.",
   "applications": {
     "gecko": {

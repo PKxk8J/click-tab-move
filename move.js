@@ -197,19 +197,22 @@ var _export
   }
 
   async function runWithWindow (pinnedTabIds, unpinnedTabIds, toWindowId, progress) {
+    async function _run (target, index) {
+      await moveTarget(target, toWindowId, index, pinnedTabIds, unpinnedTabIds)
+      progress.done += target.length
+    }
+
     if (pinnedTabIds.length > 0) {
       const index = await searchLastPinnedIndex(toWindowId) + 1
-      for (let i = pinnedTabIds.length - 1; i >= 0; i -= BULK_SIZE) {
-        const target = pinnedTabIds.slice(Math.max(i, 0), i + BULK_SIZE)
-        await moveTarget(target, toWindowId, index, pinnedTabIds, unpinnedTabIds)
-        progress.done += target.length
+      for (let i = pinnedTabIds.length; i > 0; i -= BULK_SIZE) {
+        const target = pinnedTabIds.slice(Math.max(i - BULK_SIZE, 0), i)
+        await _run(target, index)
       }
     }
     if (unpinnedTabIds.length > 0) {
       for (let i = 0; i < unpinnedTabIds.length; i += BULK_SIZE) {
         const target = unpinnedTabIds.slice(i, i + BULK_SIZE)
-        await moveTarget(target, toWindowId, -1, pinnedTabIds, unpinnedTabIds)
-        progress.done += target.length
+        await _run(target, -1)
       }
     }
   }
