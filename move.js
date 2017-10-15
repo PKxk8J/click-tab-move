@@ -204,8 +204,8 @@ var _export
 
     if (pinnedTabIds.length > 0) {
       const index = await searchLastPinnedIndex(toWindowId) + 1
-      for (let i = pinnedTabIds.length - 1; i >= 0; i -= BULK_SIZE) {
-        const target = pinnedTabIds.slice(Math.max(i, 0), i + BULK_SIZE)
+      for (let i = pinnedTabIds.length; i > 0; i -= BULK_SIZE) {
+        const target = pinnedTabIds.slice(Math.max(i - BULK_SIZE, 0), i)
         await _run(target, index)
       }
     }
