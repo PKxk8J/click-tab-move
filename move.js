@@ -232,14 +232,15 @@ var _export
     let nextPinnedTabIds
     let nextUnpinnedTabIds
     if (pinnedTabIds.length > 0) {
-      target = pinnedTabIds.slice(0, 1)
-      nextPinnedTabIds = pinnedTabIds.slice(1)
+      target = pinnedTabIds.slice(0, BULK_SIZE)
+      nextPinnedTabIds = pinnedTabIds.slice(target.length)
       nextUnpinnedTabIds = unpinnedTabIds
     } else {
-      target = unpinnedTabIds.slice(0, 1)
+      target = unpinnedTabIds.slice(0, BULK_SIZE)
       nextPinnedTabIds = pinnedTabIds
-      nextUnpinnedTabIds = unpinnedTabIds.slice(1)
+      nextUnpinnedTabIds = unpinnedTabIds.slice(target.length)
     }
+
     await moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds)
     await tabs.remove(tabIds)
     progress.done += target.length
