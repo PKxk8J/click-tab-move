@@ -219,11 +219,11 @@ var _export
 
   async function runWithNewWindow (pinnedTabIds, unpinnedTabIds, progress) {
     // 未ロードのタブを以下のようにウインドウ作成時に渡すと失敗する (Firefox 55)
-    // const windowInfo = await windows.create({tabId: tab.id})
-    // if (tab.pinned) {
-    //   await tabs.update(tab.id, {pinned: true})
+    // TODO Firefox 57 からは discarded を調べてリロードしてからやれば良い
+    // const windowInfo = await windows.create({tabId})
+    // if (pinned) {
+    //   await tabs.update(tabId, {pinned})
     // }
-    // debug('Tab' + tab.id + ' moved to new window' + windowInfo.id + '[0]')
 
     let target
     let nextPinnedTabIds
