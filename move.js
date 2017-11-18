@@ -225,9 +225,6 @@ var _export
     // }
     // debug('Tab' + tab.id + ' moved to new window' + windowInfo.id + '[0]')
 
-    const windowInfo = await windows.create()
-    const tabIds = windowInfo.tabs.map((tab) => tab.id)
-
     let target
     let nextPinnedTabIds
     let nextUnpinnedTabIds
@@ -241,8 +238,11 @@ var _export
       nextUnpinnedTabIds = unpinnedTabIds.slice(target.length)
     }
 
+    const windowInfo = await windows.create()
+    const tabIds = windowInfo.tabs.map((tab) => tab.id)
     await moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds)
     await tabs.remove(tabIds)
+
     progress.done += target.length
     await runWithWindow(nextPinnedTabIds, nextUnpinnedTabIds, windowInfo.id, progress)
   }
