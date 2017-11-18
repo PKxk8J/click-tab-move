@@ -219,29 +219,30 @@ var _export
 
   async function runWithNewWindow (pinnedTabIds, unpinnedTabIds, progress) {
     // 未ロードのタブを以下のようにウインドウ作成時に渡すと失敗する (Firefox 55)
-    // const windowInfo = await windows.create({tabId: tab.id})
-    // if (tab.pinned) {
-    //   await tabs.update(tab.id, {pinned: true})
+    // TODO Firefox 57 からは discarded を調べてリロードしてからやれば良い
+    // const windowInfo = await windows.create({tabId})
+    // if (pinned) {
+    //   await tabs.update(tabId, {pinned})
     // }
-    // debug('Tab' + tab.id + ' moved to new window' + windowInfo.id + '[0]')
-
-    const windowInfo = await windows.create()
-    const tabIds = windowInfo.tabs.map((tab) => tab.id)
 
     let target
     let nextPinnedTabIds
     let nextUnpinnedTabIds
     if (pinnedTabIds.length > 0) {
-      target = pinnedTabIds.slice(0, 1)
-      nextPinnedTabIds = pinnedTabIds.slice(1)
+      target = pinnedTabIds.slice(0, BULK_SIZE)
+      nextPinnedTabIds = pinnedTabIds.slice(target.length)
       nextUnpinnedTabIds = unpinnedTabIds
     } else {
-      target = unpinnedTabIds.slice(0, 1)
+      target = unpinnedTabIds.slice(0, BULK_SIZE)
       nextPinnedTabIds = pinnedTabIds
-      nextUnpinnedTabIds = unpinnedTabIds.slice(1)
+      nextUnpinnedTabIds = unpinnedTabIds.slice(target.length)
     }
+
+    const windowInfo = await windows.create()
+    const tabIds = windowInfo.tabs.map((tab) => tab.id)
     await moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds)
     await tabs.remove(tabIds)
+
     progress.done += target.length
     await runWithWindow(nextPinnedTabIds, nextUnpinnedTabIds, windowInfo.id, progress)
   }
