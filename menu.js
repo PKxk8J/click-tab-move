@@ -71,7 +71,7 @@
     })
   }
 
-  let menuKeys = []
+  let menuKeys = DEFAULT_MENU_ITEMS
 
   // ウインドウ ID からウインドウでフォーカスされてるタブのタイトル
   const windowToTitle = new Map()
