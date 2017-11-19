@@ -243,6 +243,7 @@
         keyType,
         toWindowLabel
       ] = info.menuItemId.split(SEP)
+      tab = tab || (await tabs.query({active: true, currentWindow: true}))[0]
       const toWindowId = (toWindowLabel === KEY_NEW_WINDOW ? undefined : Number(toWindowLabel))
       const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
       switch (keyType) {
