@@ -13,6 +13,8 @@ var _export
   const KEY_DEBUG = 'debug'
   const KEY_NAME = 'name'
 
+  const KEY_TAB = 'tab'
+
   const KEY_ONE = 'one'
   const KEY_RIGHT = 'right'
   const KEY_LEFT = 'left'
@@ -42,6 +44,7 @@ var _export
   }
 
   _export = Object.freeze({
+    KEY_TAB,
     KEY_ONE,
     KEY_RIGHT,
     KEY_LEFT,
@@ -50,7 +53,8 @@ var _export
     KEY_RAW: 'raw',
     KEY_MOVE: 'move',
     KEY_MOVE_X: 'moveX',
-    KEY_MENU_ITEM: 'menuItem',
+    KEY_CONTEXTS: 'contexts',
+    KEY_MENU_ITEMS: 'menuItems',
     KEY_SELECT_SIZE: 'selectSize',
     KEY_WIDTH: 'width',
     KEY_HEIGHT: 'height',
@@ -66,8 +70,10 @@ var _export
     KEY_NEW_WINDOW: 'newWindow',
     KEY_CANCEL: 'cancel',
     KEY_TO_WINDOW_ID: 'toWindowId',
+    ALL_CONTEXTS: [KEY_TAB, KEY_ALL],
+    DEFAULT_CONTEXTS: [KEY_TAB],
     ALL_MENU_ITEMS: [KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT],
-    DEFAULT_MENU_ITEM: [KEY_ONE, KEY_RIGHT, KEY_ALL],
+    DEFAULT_MENU_ITEMS: [KEY_ONE, KEY_RIGHT, KEY_ALL],
     DEFAULT_SELECT_SIZE: [640, 480],
     DEFAULT_SELECT_SAVE: true,
     DEFAULT_NOTIFICATION: false,

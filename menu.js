@@ -17,11 +17,13 @@
     KEY_LEFT,
     KEY_ALL,
     KEY_SELECT,
-    KEY_MENU_ITEM,
+    KEY_CONTEXTS,
+    KEY_MENU_ITEMS,
     KEY_NOTIFICATION,
     KEY_MOVE,
     KEY_MOVE_X,
     KEY_NEW_WINDOW,
+    DEFAULT_CONTEXTS,
     DEFAULT_MENU_ITEMS,
     DEFAULT_NOTIFICATION,
     debug,
@@ -48,12 +50,17 @@
     return text.substring(0, length) + '...'
   }
 
+  let menuContexts = DEFAULT_CONTEXTS
+
   // 右クリックメニューに項目を追加する
   function addMenuItem (id, title, parentId) {
+    if (menuContexts.length <= 0) {
+      return
+    }
     contextMenus.create({
       id,
       title,
-      contexts: ['tab'],
+      contexts: menuContexts,
       parentId
     }, () => {
       if (runtime.lastError) {
@@ -64,7 +71,7 @@
     })
   }
 
-  let menuKeys = []
+  let menuKeys = DEFAULT_MENU_ITEMS
 
   // ウインドウ ID からウインドウでフォーカスされてるタブのタイトル
   const windowToTitle = new Map()
@@ -214,9 +221,18 @@
 
     // リアルタイムで設定を反映させる
     storage.onChanged.addListener((changes, area) => (async function () {
-      const menuItem = changes[KEY_MENU_ITEM]
-      if (menuItem && menuItem.newValue) {
-        menuKeys = menuItem.newValue
+      const contexts = changes[KEY_CONTEXTS]
+      const items = changes[KEY_MENU_ITEMS]
+
+      const hasContexts = contexts && contexts.newValue
+      const hasItems = items && items.newValue
+      if (hasContexts) {
+        menuContexts = contexts.newValue
+      }
+      if (hasItems) {
+        menuKeys = items.newValue
+      }
+      if (hasContexts || hasItems) {
         await reset()
       }
     })().catch(onError))
@@ -227,6 +243,7 @@
         keyType,
         toWindowLabel
       ] = info.menuItemId.split(SEP)
+      tab = tab || (await tabs.query({active: true, currentWindow: true}))[0]
       const toWindowId = (toWindowLabel === KEY_NEW_WINDOW ? undefined : Number(toWindowLabel))
       const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
       switch (keyType) {
@@ -244,7 +261,8 @@
       }
     })().catch(onError))
 
-    menuKeys = await getValue(KEY_MENU_ITEM, DEFAULT_MENU_ITEMS)
+    menuContexts = await getValue(KEY_CONTEXTS, DEFAULT_CONTEXTS)
+    menuKeys = await getValue(KEY_MENU_ITEMS, DEFAULT_MENU_ITEMS)
     await reset()
   })().catch(onError)
 }

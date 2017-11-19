@@ -14,7 +14,7 @@
   "select": {
     "message": "選択したタブ"
   },
-  "menuItem": {
+  "menuItems": {
     "message": "メニュー項目"
   },
   "save": {
@@ -77,5 +77,14 @@
   },
   "failureMessage": {
     "message": "タブ移動失敗\n$1"
+  },
+  "contexts": {
+    "message": "クリックメニュー"
+  },
+  "contextTab": {
+    "message": "タブ"
+  },
+  "contextAll": {
+    "message": "ページ"
   }
 }

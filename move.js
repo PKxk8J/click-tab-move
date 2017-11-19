@@ -80,6 +80,7 @@ var _export
         if (tab.url.endsWith('/select.html') && tab.status === 'complete') {
           break
         }
+        debug('Waiting select window...')
         await asleep(POLLING_INTERVAL)
       }
 

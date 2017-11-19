@@ -21,7 +21,7 @@
   "select": {
     "message": "Selected Tabs"
   },
-  "menuItem": {
+  "menuItems": {
     "message": "Menu Items"
   },
   "save": {
@@ -84,5 +84,14 @@
   },
   "failureMessage": {
     "message": "Moving tabs failed.\n$1"
+  },
+  "contexts": {
+    "message": "Click Menu"
+  },
+  "contextTab": {
+    "message": "On Tabs"
+  },
+  "contextAll": {
+    "message": "On Pages"
   }
 }
