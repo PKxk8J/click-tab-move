@@ -50,7 +50,7 @@ var _export
     KEY_RAW: 'raw',
     KEY_MOVE: 'move',
     KEY_MOVE_X: 'moveX',
-    KEY_MENU_ITEM: 'menuItem',
+    KEY_MENU_ITEMS: 'menuItems',
     KEY_SELECT_SIZE: 'selectSize',
     KEY_WIDTH: 'width',
     KEY_HEIGHT: 'height',

@@ -17,7 +17,7 @@
     KEY_LEFT,
     KEY_ALL,
     KEY_SELECT,
-    KEY_MENU_ITEM,
+    KEY_MENU_ITEMS,
     KEY_NOTIFICATION,
     KEY_MOVE,
     KEY_MOVE_X,
@@ -214,9 +214,9 @@
 
     // リアルタイムで設定を反映させる
     storage.onChanged.addListener((changes, area) => (async function () {
-      const menuItem = changes[KEY_MENU_ITEM]
-      if (menuItem && menuItem.newValue) {
-        menuKeys = menuItem.newValue
+      const menuItems = changes[KEY_MENU_ITEMS]
+      if (menuItems && menuItems.newValue) {
+        menuKeys = menuItems.newValue
         await reset()
       }
     })().catch(onError))
@@ -244,7 +244,7 @@
       }
     })().catch(onError))
 
-    menuKeys = await getValue(KEY_MENU_ITEM, DEFAULT_MENU_ITEMS)
+    menuKeys = await getValue(KEY_MENU_ITEMS, DEFAULT_MENU_ITEMS)
     await reset()
   })().catch(onError)
 }

@@ -14,7 +14,7 @@
   "select": {
     "message": "選択したタブ"
   },
-  "menuItem": {
+  "menuItems": {
     "message": "メニュー項目"
   },
   "save": {

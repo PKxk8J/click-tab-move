@@ -21,7 +21,7 @@
   "select": {
     "message": "Selected Tabs"
   },
-  "menuItem": {
+  "menuItems": {
     "message": "Menu Items"
   },
   "save": {
