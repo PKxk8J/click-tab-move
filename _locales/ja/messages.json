@@ -77,5 +77,14 @@
   },
   "failureMessage": {
     "message": "タブ移動失敗\n$1"
+  },
+  "contexts": {
+    "message": "クリックメニュー"
+  },
+  "contextTab": {
+    "message": "タブ上"
+  },
+  "contextAll": {
+    "message": "ページ上"
   }
 }

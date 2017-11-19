@@ -84,5 +84,14 @@
   },
   "failureMessage": {
     "message": "Moving tabs failed.\n$1"
+  },
+  "contexts": {
+    "message": "Click Menu"
+  },
+  "contextTab": {
+    "message": "on Tabs"
+  },
+  "contextAll": {
+    "message": "on Pages"
   }
 }

@@ -17,11 +17,13 @@
     KEY_LEFT,
     KEY_ALL,
     KEY_SELECT,
+    KEY_CONTEXTS,
     KEY_MENU_ITEMS,
     KEY_NOTIFICATION,
     KEY_MOVE,
     KEY_MOVE_X,
     KEY_NEW_WINDOW,
+    DEFAULT_CONTEXTS,
     DEFAULT_MENU_ITEMS,
     DEFAULT_NOTIFICATION,
     debug,
@@ -48,12 +50,17 @@
     return text.substring(0, length) + '...'
   }
 
+  let menuContexts = DEFAULT_CONTEXTS
+
   // 右クリックメニューに項目を追加する
   function addMenuItem (id, title, parentId) {
+    if (menuContexts.length <= 0) {
+      return
+    }
     contextMenus.create({
       id,
       title,
-      contexts: ['tab'],
+      contexts: menuContexts,
       parentId
     }, () => {
       if (runtime.lastError) {
@@ -214,9 +221,18 @@
 
     // リアルタイムで設定を反映させる
     storage.onChanged.addListener((changes, area) => (async function () {
-      const menuItems = changes[KEY_MENU_ITEMS]
-      if (menuItems && menuItems.newValue) {
-        menuKeys = menuItems.newValue
+      const contexts = changes[KEY_CONTEXTS]
+      const items = changes[KEY_MENU_ITEMS]
+
+      const hasContexts = contexts && contexts.newValue
+      const hasItems = items && items.newValue
+      if (hasContexts) {
+        menuContexts = contexts.newValue
+      }
+      if (hasItems) {
+        menuKeys = items.newValue
+      }
+      if (hasContexts || hasItems) {
         await reset()
       }
     })().catch(onError))
@@ -244,6 +260,7 @@
       }
     })().catch(onError))
 
+    menuContexts = await getValue(KEY_CONTEXTS, DEFAULT_CONTEXTS)
     menuKeys = await getValue(KEY_MENU_ITEMS, DEFAULT_MENU_ITEMS)
     await reset()
   })().catch(onError)
