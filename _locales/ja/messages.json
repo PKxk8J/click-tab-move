@@ -82,9 +82,9 @@
     "message": "クリックメニュー"
   },
   "contextTab": {
-    "message": "タブ上"
+    "message": "タブ"
   },
   "contextAll": {
-    "message": "ページ上"
+    "message": "ページ"
   }
 }
