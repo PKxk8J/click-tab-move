@@ -193,7 +193,9 @@ var _export
         break
       }
     }
-    await tabs.move(tabIds, {windowId: toWindowId, index})
+    const newTabs = await tabs.move(tabIds, {windowId: toWindowId, index})
+    await windows.update(toWindowId, {focused: true})
+    await tabs.update(newTabs[newTabs.length - 1].id, {active: true})
     debug('Tabs' + tabIds + ' moved to window' + toWindowId + ' ' + index)
   }
 
