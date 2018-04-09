@@ -13,11 +13,14 @@ const {
   KEY_MOVE_TO_X,
   KEY_SELECT_SIZE,
   KEY_NOTIFICATION,
+  KEY_FOCUS,
   KEY_RESET,
   KEY_NEW_WINDOW,
   KEY_CANCEL,
   KEY_TO_WINDOW_ID,
   POLLING_INTERVAL,
+  DEFAULT_NOTIFICATION,
+  DEFAULT_FOCUS,
   debug,
   onError,
   asleep
@@ -47,13 +50,15 @@ function sendResult () {
     }
   }
   const toWindowId = Number(document.getElementById(KEY_TO_WINDOW_ID).value)
-  const notification = Boolean(document.getElementById(KEY_NOTIFICATION).value)
+  const notification = document.getElementById(KEY_NOTIFICATION).value === 'true'
+  const focus = document.getElementById(KEY_FOCUS).value === 'true'
   runtime.sendMessage({
     type: KEY_MOVE,
     keyType: KEY_RAW,
     tabIds: ids,
     toWindowId,
-    notification
+    notification,
+    focus
   })
 }
 
@@ -84,7 +89,7 @@ async function startResizeLoop () {
 }
 
 // 表示を更新する
-async function reset (fromWindowId, toWindowId, notification) {
+async function reset (fromWindowId, toWindowId, notification, focus) {
   let title
   if (toWindowId) {
     const [tab] = await tabs.query({windowId: toWindowId, active: true})
@@ -102,7 +107,9 @@ async function reset (fromWindowId, toWindowId, notification) {
   const tabList = await tabs.query({windowId: fromWindowId})
   tabList.sort((tab1, tab2) => tab1.index - tab2.index)
 
-  document.getElementById(KEY_NOTIFICATION).value = notification
+  document.getElementById(KEY_NOTIFICATION).value = String(notification)
+
+  document.getElementById(KEY_FOCUS).value = String(focus)
 
   const select = document.getElementById(KEY_SELECT)
   while (select.firstChild) {
@@ -140,9 +147,10 @@ async function reset (fromWindowId, toWindowId, notification) {
         const {
           fromWindowId,
           toWindowId,
-          notification = false
+          notification = DEFAULT_NOTIFICATION,
+          focus = DEFAULT_FOCUS
         } = message
-        await reset(fromWindowId, toWindowId, notification)
+        await reset(fromWindowId, toWindowId, notification, focus)
         break
       }
     }

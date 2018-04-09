@@ -12,6 +12,7 @@ const {
   KEY_SELECT_SAVE,
   KEY_NOTIFICATION,
   KEY_SAVE,
+  KEY_FOCUS,
   ALL_CONTEXTS,
   DEFAULT_CONTEXTS,
   ALL_MENU_ITEMS,
@@ -19,6 +20,7 @@ const {
   DEFAULT_SELECT_SIZE,
   DEFAULT_SELECT_SAVE,
   DEFAULT_NOTIFICATION,
+  DEFAULT_FOCUS,
   storageArea,
   debug,
   onError
@@ -28,7 +30,17 @@ function toContextLabelKey (key) {
   return 'context' + key.charAt(0).toUpperCase() + key.slice(1)
 }
 
-const LABEL_KEYS = ALL_CONTEXTS.map(toContextLabelKey).concat(ALL_MENU_ITEMS, [KEY_CONTEXTS, KEY_MENU_ITEMS, KEY_SELECT_SIZE, KEY_SELECT_SAVE, KEY_NOTIFICATION, KEY_WIDTH, KEY_HEIGHT, KEY_SAVE])
+const LABEL_KEYS = ALL_CONTEXTS.map(toContextLabelKey).concat(ALL_MENU_ITEMS, [
+  KEY_CONTEXTS,
+  KEY_MENU_ITEMS,
+  KEY_SELECT_SIZE,
+  KEY_SELECT_SAVE,
+  KEY_NOTIFICATION,
+  KEY_WIDTH,
+  KEY_HEIGHT,
+  KEY_SAVE,
+  KEY_FOCUS
+])
 
 /*
  * {
@@ -36,7 +48,8 @@ const LABEL_KEYS = ALL_CONTEXTS.map(toContextLabelKey).concat(ALL_MENU_ITEMS, [K
  *   "menuItems": ["one", "all", ...],
  *   "selectSize": [640, 480],
  *   "selectSave": false,
- *   "notification": true
+ *   "notification": true,
+ *   "focus": false
  * }
  */
 
@@ -50,7 +63,8 @@ async function restore () {
     [KEY_MENU_ITEMS]: menuItems = DEFAULT_MENU_ITEMS,
     [KEY_SELECT_SIZE]: selectSize = DEFAULT_SELECT_SIZE,
     [KEY_SELECT_SAVE]: selectSave = DEFAULT_SELECT_SAVE,
-    [KEY_NOTIFICATION]: notification = DEFAULT_NOTIFICATION
+    [KEY_NOTIFICATION]: notification = DEFAULT_NOTIFICATION,
+    [KEY_FOCUS]: focus = DEFAULT_FOCUS
   } = data
 
   const contextSet = new Set(contexts)
@@ -69,6 +83,8 @@ async function restore () {
   document.getElementById(KEY_SELECT_SAVE).checked = selectSave
 
   document.getElementById(KEY_NOTIFICATION).checked = notification
+
+  document.getElementById(KEY_FOCUS).checked = focus
 }
 
 // 設定を保存する
@@ -96,12 +112,15 @@ async function save () {
 
   const notification = document.getElementById(KEY_NOTIFICATION).checked
 
+  const focus = document.getElementById(KEY_FOCUS).checked
+
   const data = {
     [KEY_CONTEXTS]: contexts,
     [KEY_MENU_ITEMS]: menuItems,
     [KEY_SELECT_SIZE]: selectSize,
     [KEY_SELECT_SAVE]: selectSave,
-    [KEY_NOTIFICATION]: notification
+    [KEY_NOTIFICATION]: notification,
+    [KEY_FOCUS]: focus
   }
   // 古い形式のデータを消す
   await storageArea.clear()

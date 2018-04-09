@@ -57,6 +57,9 @@
   "notification": {
     "message": "Notification"
   },
+  "focus": {
+    "message": "Focus on the moved tab"
+  },
   "moving": {
     "message": "Moving tabs..."
   },

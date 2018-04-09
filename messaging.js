@@ -32,7 +32,8 @@
           const {
             keyType,
             toWindowId,
-            notification
+            notification,
+            focus
           } = message
           switch (keyType) {
             case KEY_ONE:
@@ -40,18 +41,18 @@
             case KEY_LEFT:
             case KEY_ALL: {
               const {tabId} = message
-              await run(tabId, keyType, toWindowId, notification)
+              await run(tabId, keyType, toWindowId, notification, focus)
               break
             }
             case KEY_SELECT: {
               const {tabId} = message
               const [tab] = await tabs.get(tabId)
-              await select(tab.windowId, toWindowId, notification)
+              await select(tab.windowId, toWindowId, notification, focus)
               break
             }
             case KEY_RAW: {
               const {tabIds} = message
-              await rawRun(tabIds, toWindowId, notification)
+              await rawRun(tabIds, toWindowId, notification, focus)
               break
             }
           }
