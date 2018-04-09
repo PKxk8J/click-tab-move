@@ -50,13 +50,14 @@ var _export
   }
 
   // 選択ウインドウをつくる
-  async function select (fromWindowId, toWindowId, notification, onCreate) {
+  async function select (fromWindowId, toWindowId, notification, focus, onCreate) {
     function resetWindow () {
       runtime.sendMessage({
         type: KEY_RESET,
         fromWindowId,
         toWindowId,
-        notification
+        notification,
+        focus
       })
     }
 
@@ -185,7 +186,7 @@ var _export
     debug('Activated tab ' + bestTab.id)
   }
 
-  async function moveTarget (tabIds, toWindowId, index, pinnedTabIds, unpinnedTabIds) {
+  async function moveTarget (tabIds, toWindowId, index, pinnedTabIds, unpinnedTabIds, focus) {
     for (const tabId of tabIds) {
       if (isActiveTab(tabId)) {
         const tab = await tabs.get(tabId)
@@ -194,14 +195,16 @@ var _export
       }
     }
     const newTabs = await tabs.move(tabIds, {windowId: toWindowId, index})
-    await windows.update(toWindowId, {focused: true})
-    await tabs.update(newTabs[newTabs.length - 1].id, {active: true})
+    if (focus) {
+      await windows.update(toWindowId, {focused: true})
+      await tabs.update(newTabs[newTabs.length - 1].id, {active: true})
+    }
     debug('Tabs' + tabIds + ' moved to window' + toWindowId + ' ' + index)
   }
 
-  async function runWithWindow (pinnedTabIds, unpinnedTabIds, toWindowId, progress) {
-    async function _run (target, index) {
-      await moveTarget(target, toWindowId, index, pinnedTabIds, unpinnedTabIds)
+  async function runWithWindow (pinnedTabIds, unpinnedTabIds, toWindowId, progress, focus) {
+    async function _run (target, index, focus) {
+      await moveTarget(target, toWindowId, index, pinnedTabIds, unpinnedTabIds, focus)
       progress.done += target.length
     }
 
@@ -209,18 +212,18 @@ var _export
       const index = await searchLastPinnedIndex(toWindowId) + 1
       for (let i = pinnedTabIds.length; i > 0; i -= BULK_SIZE) {
         const target = pinnedTabIds.slice(Math.max(i - BULK_SIZE, 0), i)
-        await _run(target, index)
+        await _run(target, index, focus && unpinnedTabIds.length === 0)
       }
     }
     if (unpinnedTabIds.length > 0) {
       for (let i = 0; i < unpinnedTabIds.length; i += BULK_SIZE) {
         const target = unpinnedTabIds.slice(i, i + BULK_SIZE)
-        await _run(target, -1)
+        await _run(target, -1, focus)
       }
     }
   }
 
-  async function runWithNewWindow (pinnedTabIds, unpinnedTabIds, progress) {
+  async function runWithNewWindow (pinnedTabIds, unpinnedTabIds, progress, focus) {
     // 未ロードのタブを以下のようにウインドウ作成時に渡すと失敗する (Firefox 55)
     // TODO Firefox 57 からは discarded を調べてリロードしてからやれば良い
     // const windowInfo = await windows.create({tabId})
@@ -243,15 +246,15 @@ var _export
 
     const windowInfo = await windows.create()
     const tabIds = windowInfo.tabs.map((tab) => tab.id)
-    await moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds)
+    await moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds, focus)
     await tabs.remove(tabIds)
 
     progress.done += target.length
-    await runWithWindow(nextPinnedTabIds, nextUnpinnedTabIds, windowInfo.id, progress)
+    await runWithWindow(nextPinnedTabIds, nextUnpinnedTabIds, windowInfo.id, progress, focus)
   }
 
   // 移す
-  async function run (tabIds, toWindowId, progress) {
+  async function run (tabIds, toWindowId, progress, focus) {
     if (tabIds.length <= 0) {
       return
     }
@@ -271,9 +274,9 @@ var _export
     }
 
     if (toWindowId) {
-      await runWithWindow(pinnedTabIds, unpinnedTabIds, toWindowId, progress)
+      await runWithWindow(pinnedTabIds, unpinnedTabIds, toWindowId, progress, focus)
     } else {
-      await runWithNewWindow(pinnedTabIds, unpinnedTabIds, progress)
+      await runWithNewWindow(pinnedTabIds, unpinnedTabIds, progress, focus)
     }
   }
 
@@ -334,7 +337,7 @@ var _export
   }
 
   // 前後処理で挟む
-  async function wrappedRawRun (tabIds, toWindowId, notification) {
+  async function wrappedRawRun (tabIds, toWindowId, notification, focus) {
     const progress = {
       all: tabIds.length,
       done: 0
@@ -346,7 +349,7 @@ var _export
         progress.start = new Date()
       }
 
-      await run(tabIds, toWindowId, progress)
+      await run(tabIds, toWindowId, progress, focus)
       debug('Finished')
 
       if (notification) {
@@ -363,9 +366,9 @@ var _export
   }
 
   // 前後処理で挟む
-  async function wrappedRun (tabId, keyType, toWindowId, notification) {
+  async function wrappedRun (tabId, keyType, toWindowId, notification, focus) {
     const tabIds = await listing(tabId, keyType)
-    await wrappedRawRun(tabIds, toWindowId, notification)
+    await wrappedRawRun(tabIds, toWindowId, notification, focus)
   }
 
   function handler (message, sender, sendResponse) {
@@ -386,12 +389,13 @@ var _export
           const {
             keyType,
             toWindowId,
-            notification
+            notification,
+            focus
           } = message
           switch (keyType) {
             case KEY_RAW: {
               const {tabIds} = message
-              await wrappedRawRun(tabIds, toWindowId, notification)
+              await wrappedRawRun(tabIds, toWindowId, notification, focus)
             }
           }
           break

@@ -50,6 +50,9 @@
   "notification": {
     "message": "通知"
   },
+  "focus": {
+    "message": "移動させたタブにフォーカスする"
+  },
   "moving": {
     "message": "タブ移動中..."
   },

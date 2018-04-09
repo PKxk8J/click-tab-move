@@ -20,12 +20,14 @@
     KEY_CONTEXTS,
     KEY_MENU_ITEMS,
     KEY_NOTIFICATION,
+    KEY_FOCUS,
     KEY_MOVE,
     KEY_MOVE_X,
     KEY_NEW_WINDOW,
     DEFAULT_CONTEXTS,
     DEFAULT_MENU_ITEMS,
     DEFAULT_NOTIFICATION,
+    DEFAULT_FOCUS,
     debug,
     onError,
     getValue
@@ -246,16 +248,17 @@
       tab = tab || (await tabs.query({active: true, currentWindow: true}))[0]
       const toWindowId = (toWindowLabel === KEY_NEW_WINDOW ? undefined : Number(toWindowLabel))
       const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
+      const focus = await getValue(KEY_FOCUS, DEFAULT_FOCUS)
       switch (keyType) {
         case KEY_ONE:
         case KEY_RIGHT:
         case KEY_LEFT:
         case KEY_ALL: {
-          await run(tab.id, keyType, toWindowId, notification)
+          await run(tab.id, keyType, toWindowId, notification, focus)
           break
         }
         case KEY_SELECT: {
-          await select(tab.windowId, toWindowId, notification, unsetWindowTitle)
+          await select(tab.windowId, toWindowId, notification, focus, unsetWindowTitle)
           break
         }
       }
