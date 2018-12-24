@@ -92,7 +92,7 @@ async function startResizeLoop () {
 async function reset (fromWindowId, toWindowId, notification, focus) {
   let title
   if (toWindowId) {
-    const [tab] = await tabs.query({windowId: toWindowId, active: true})
+    const [tab] = await tabs.query({ windowId: toWindowId, active: true })
     title = i18n.getMessage(KEY_MOVE_TO_X, toWindowId + ': ' + tab.title)
     document.getElementById(KEY_TO_WINDOW_ID).value = toWindowId
   } else {
@@ -104,7 +104,7 @@ async function reset (fromWindowId, toWindowId, notification, focus) {
   const header = document.getElementById(KEY_MOVE_TO_X)
   header.textContent = title
 
-  const tabList = await tabs.query({windowId: fromWindowId})
+  const tabList = await tabs.query({ windowId: fromWindowId })
   tabList.sort((tab1, tab2) => tab1.index - tab2.index)
 
   document.getElementById(KEY_NOTIFICATION).value = String(notification)
@@ -123,7 +123,7 @@ async function reset (fromWindowId, toWindowId, notification, focus) {
   }
 
   select.focus()
-  await windows.update(windows.WINDOW_ID_CURRENT, {focused: true})
+  await windows.update(windows.WINDOW_ID_CURRENT, { focused: true })
 }
 
 // 初期化

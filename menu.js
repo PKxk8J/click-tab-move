@@ -189,7 +189,7 @@
       }
     }
 
-    const tabList = await tabs.query({active: true})
+    const tabList = await tabs.query({ active: true })
     for (const tab of tabList) {
       setWindowTitle(tab.windowId, tab.title)
     }
@@ -247,7 +247,7 @@
         keyType,
         toWindowLabel
       ] = info.menuItemId.split(SEP)
-      tab = tab || (await tabs.query({active: true, currentWindow: true}))[0]
+      tab = tab || (await tabs.query({ active: true, currentWindow: true }))[0]
       const toWindowId = (toWindowLabel === KEY_NEW_WINDOW ? undefined : Number(toWindowLabel))
       const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
       const focus = await getValue(KEY_FOCUS, DEFAULT_FOCUS)

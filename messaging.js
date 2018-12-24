@@ -44,18 +44,18 @@
             case KEY_LEFT:
             case KEY_THIS_AND_LEFT:
             case KEY_ALL: {
-              const {tabId} = message
+              const { tabId } = message
               await run(tabId, keyType, toWindowId, notification, focus)
               break
             }
             case KEY_SELECT: {
-              const {tabId} = message
+              const { tabId } = message
               const [tab] = await tabs.get(tabId)
               await select(tab.windowId, toWindowId, notification, focus)
               break
             }
             case KEY_RAW: {
-              const {tabIds} = message
+              const { tabIds } = message
               await rawRun(tabIds, toWindowId, notification, focus)
               break
             }

@@ -109,7 +109,7 @@ var _export
 
   // ピン留めされている最後のタブの位置を返す
   async function searchLastPinnedIndex (windowId) {
-    const pinnedTabList = await tabs.query({windowId, pinned: true})
+    const pinnedTabList = await tabs.query({ windowId, pinned: true })
     let lastIndex = -1
     for (const pinnedTab of pinnedTabList) {
       if (pinnedTab.index > lastIndex) {
@@ -128,7 +128,7 @@ var _export
     }
     const moveTabIdSet = new Set(excludedTabIds)
 
-    const tabList = await tabs.query({windowId})
+    const tabList = await tabs.query({ windowId })
 
     let activeTab
     let lastTab
@@ -184,7 +184,7 @@ var _export
       return
     }
 
-    await tabs.update(bestTab.id, {active: true})
+    await tabs.update(bestTab.id, { active: true })
     debug('Activated tab ' + bestTab.id)
   }
 
@@ -196,10 +196,10 @@ var _export
         break
       }
     }
-    const newTabs = await tabs.move(tabIds, {windowId: toWindowId, index})
+    const newTabs = await tabs.move(tabIds, { windowId: toWindowId, index })
     if (focus) {
-      await windows.update(toWindowId, {focused: true})
-      await tabs.update(newTabs[newTabs.length - 1].id, {active: true})
+      await windows.update(toWindowId, { focused: true })
+      await tabs.update(newTabs[newTabs.length - 1].id, { active: true })
     }
     debug('Tabs' + tabIds + ' moved to window' + toWindowId + ' ' + index)
   }
@@ -289,7 +289,7 @@ var _export
     }
 
     const tab = await tabs.get(tabId)
-    let tabList = await tabs.query({windowId: tab.windowId})
+    let tabList = await tabs.query({ windowId: tab.windowId })
 
     switch (keyType) {
       case KEY_RIGHT: {
@@ -392,7 +392,7 @@ var _export
             break
           }
           const { selectSize } = message
-          await storageArea.set({[KEY_SELECT_SIZE]: selectSize})
+          await storageArea.set({ [KEY_SELECT_SIZE]: selectSize })
           break
         }
         case KEY_MOVE: {
@@ -404,7 +404,7 @@ var _export
           } = message
           switch (keyType) {
             case KEY_RAW: {
-              const {tabIds} = message
+              const { tabIds } = message
               await wrappedRawRun(tabIds, toWindowId, notification, focus)
             }
           }
