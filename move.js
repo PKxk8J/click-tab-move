@@ -234,21 +234,24 @@ var _export
     // }
 
     let target
+    let index
     let nextPinnedTabIds
     let nextUnpinnedTabIds
     if (pinnedTabIds.length > 0) {
       target = pinnedTabIds.slice(0, BULK_SIZE)
+      index = 0
       nextPinnedTabIds = pinnedTabIds.slice(target.length)
       nextUnpinnedTabIds = unpinnedTabIds
     } else {
       target = unpinnedTabIds.slice(0, BULK_SIZE)
+      index = -1
       nextPinnedTabIds = pinnedTabIds
       nextUnpinnedTabIds = unpinnedTabIds.slice(target.length)
     }
 
     const windowInfo = await windows.create()
     const tabIds = windowInfo.tabs.map((tab) => tab.id)
-    await moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds, focus)
+    await moveTarget(target, windowInfo.id, index, pinnedTabIds, unpinnedTabIds, focus)
     await tabs.remove(tabIds)
 
     progress.done += target.length
