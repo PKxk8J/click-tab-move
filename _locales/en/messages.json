@@ -51,8 +51,14 @@
   "right": {
     "message": "Right Tabs"
   },
+  "thisAndRight": {
+    "message": "This and Right Tabs"
+  },
   "left": {
     "message": "Left Tabs"
+  },
+  "thisAndLeft": {
+    "message": "This and Left Tabs"
   },
   "notification": {
     "message": "Notification"

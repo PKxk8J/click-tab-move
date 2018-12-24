@@ -57,7 +57,7 @@ var _export
     //     return
     //   }
     // }
-    const [tab] = await tabs.query({windowId: window.id, active: true})
+    const [tab] = await tabs.query({ windowId: window.id, active: true })
     update(window.id, tab.id)
   })().catch(onError))
 

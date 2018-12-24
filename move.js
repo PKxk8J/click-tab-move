@@ -15,7 +15,9 @@ var _export
   const {
     KEY_ONE,
     KEY_RIGHT,
+    KEY_THIS_AND_RIGHT,
     KEY_LEFT,
+    KEY_THIS_AND_LEFT,
     KEY_RAW,
     KEY_MOVE,
     KEY_SELECT_SIZE,
@@ -107,7 +109,7 @@ var _export
 
   // ピン留めされている最後のタブの位置を返す
   async function searchLastPinnedIndex (windowId) {
-    const pinnedTabList = await tabs.query({windowId, pinned: true})
+    const pinnedTabList = await tabs.query({ windowId, pinned: true })
     let lastIndex = -1
     for (const pinnedTab of pinnedTabList) {
       if (pinnedTab.index > lastIndex) {
@@ -126,7 +128,7 @@ var _export
     }
     const moveTabIdSet = new Set(excludedTabIds)
 
-    const tabList = await tabs.query({windowId})
+    const tabList = await tabs.query({ windowId })
 
     let activeTab
     let lastTab
@@ -182,7 +184,7 @@ var _export
       return
     }
 
-    await tabs.update(bestTab.id, {active: true})
+    await tabs.update(bestTab.id, { active: true })
     debug('Activated tab ' + bestTab.id)
   }
 
@@ -194,10 +196,10 @@ var _export
         break
       }
     }
-    const newTabs = await tabs.move(tabIds, {windowId: toWindowId, index})
+    const newTabs = await tabs.move(tabIds, { windowId: toWindowId, index })
     if (focus) {
-      await windows.update(toWindowId, {focused: true})
-      await tabs.update(newTabs[newTabs.length - 1].id, {active: true})
+      await windows.update(toWindowId, { focused: true })
+      await tabs.update(newTabs[newTabs.length - 1].id, { active: true })
     }
     debug('Tabs' + tabIds + ' moved to window' + toWindowId + ' ' + index)
   }
@@ -232,21 +234,24 @@ var _export
     // }
 
     let target
+    let index
     let nextPinnedTabIds
     let nextUnpinnedTabIds
     if (pinnedTabIds.length > 0) {
       target = pinnedTabIds.slice(0, BULK_SIZE)
+      index = 0
       nextPinnedTabIds = pinnedTabIds.slice(target.length)
       nextUnpinnedTabIds = unpinnedTabIds
     } else {
       target = unpinnedTabIds.slice(0, BULK_SIZE)
+      index = -1
       nextPinnedTabIds = pinnedTabIds
       nextUnpinnedTabIds = unpinnedTabIds.slice(target.length)
     }
 
     const windowInfo = await windows.create()
     const tabIds = windowInfo.tabs.map((tab) => tab.id)
-    await moveTarget(target, windowInfo.id, 0, pinnedTabIds, unpinnedTabIds, focus)
+    await moveTarget(target, windowInfo.id, index, pinnedTabIds, unpinnedTabIds, focus)
     await tabs.remove(tabIds)
 
     progress.done += target.length
@@ -287,15 +292,23 @@ var _export
     }
 
     const tab = await tabs.get(tabId)
-    let tabList = await tabs.query({windowId: tab.windowId})
+    let tabList = await tabs.query({ windowId: tab.windowId })
 
     switch (keyType) {
       case KEY_RIGHT: {
         tabList = tabList.filter((tab2) => tab2.index > tab.index)
         break
       }
+      case KEY_THIS_AND_RIGHT: {
+        tabList = tabList.filter((tab2) => tab2.index >= tab.index)
+        break
+      }
       case KEY_LEFT: {
         tabList = tabList.filter((tab2) => tab2.index < tab.index)
+        break
+      }
+      case KEY_THIS_AND_LEFT: {
+        tabList = tabList.filter((tab2) => tab2.index <= tab.index)
         break
       }
     }
@@ -382,7 +395,7 @@ var _export
             break
           }
           const { selectSize } = message
-          await storageArea.set({[KEY_SELECT_SIZE]: selectSize})
+          await storageArea.set({ [KEY_SELECT_SIZE]: selectSize })
           break
         }
         case KEY_MOVE: {
@@ -394,7 +407,7 @@ var _export
           } = message
           switch (keyType) {
             case KEY_RAW: {
-              const {tabIds} = message
+              const { tabIds } = message
               await wrappedRawRun(tabIds, toWindowId, notification, focus)
             }
           }

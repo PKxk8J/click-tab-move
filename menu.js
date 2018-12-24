@@ -14,7 +14,9 @@
   const {
     KEY_ONE,
     KEY_RIGHT,
+    KEY_THIS_AND_RIGHT,
     KEY_LEFT,
+    KEY_THIS_AND_LEFT,
     KEY_ALL,
     KEY_SELECT,
     KEY_CONTEXTS,
@@ -187,7 +189,7 @@
       }
     }
 
-    const tabList = await tabs.query({active: true})
+    const tabList = await tabs.query({ active: true })
     for (const tab of tabList) {
       setWindowTitle(tab.windowId, tab.title)
     }
@@ -245,14 +247,16 @@
         keyType,
         toWindowLabel
       ] = info.menuItemId.split(SEP)
-      tab = tab || (await tabs.query({active: true, currentWindow: true}))[0]
+      tab = tab || (await tabs.query({ active: true, currentWindow: true }))[0]
       const toWindowId = (toWindowLabel === KEY_NEW_WINDOW ? undefined : Number(toWindowLabel))
       const notification = await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION)
       const focus = await getValue(KEY_FOCUS, DEFAULT_FOCUS)
       switch (keyType) {
         case KEY_ONE:
         case KEY_RIGHT:
+        case KEY_THIS_AND_RIGHT:
         case KEY_LEFT:
+        case KEY_THIS_AND_LEFT:
         case KEY_ALL: {
           await run(tab.id, keyType, toWindowId, notification, focus)
           break

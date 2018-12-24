@@ -17,7 +17,9 @@ var _export
 
   const KEY_ONE = 'one'
   const KEY_RIGHT = 'right'
+  const KEY_THIS_AND_RIGHT = 'thisAndRight'
   const KEY_LEFT = 'left'
+  const KEY_THIS_AND_LEFT = 'thisAndLeft'
   const KEY_ALL = 'all'
   const KEY_SELECT = 'select'
 
@@ -47,7 +49,9 @@ var _export
     KEY_TAB,
     KEY_ONE,
     KEY_RIGHT,
+    KEY_THIS_AND_RIGHT,
     KEY_LEFT,
+    KEY_THIS_AND_LEFT,
     KEY_ALL,
     KEY_SELECT,
     KEY_RAW: 'raw',
@@ -73,7 +77,7 @@ var _export
     KEY_TO_WINDOW_ID: 'toWindowId',
     ALL_CONTEXTS: [KEY_TAB, KEY_ALL],
     DEFAULT_CONTEXTS: [KEY_TAB],
-    ALL_MENU_ITEMS: [KEY_ONE, KEY_RIGHT, KEY_LEFT, KEY_ALL, KEY_SELECT],
+    ALL_MENU_ITEMS: [KEY_ONE, KEY_RIGHT, KEY_THIS_AND_RIGHT, KEY_LEFT, KEY_THIS_AND_LEFT, KEY_ALL, KEY_SELECT],
     DEFAULT_MENU_ITEMS: [KEY_ONE, KEY_RIGHT, KEY_ALL],
     DEFAULT_SELECT_SIZE: [640, 480],
     DEFAULT_SELECT_SAVE: true,
