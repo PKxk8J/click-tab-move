@@ -10,7 +10,9 @@
   const {
     KEY_ONE,
     KEY_RIGHT,
+    KEY_THIS_AND_RIGHT,
     KEY_LEFT,
+    KEY_THIS_AND_LEFT,
     KEY_ALL,
     KEY_SELECT,
     KEY_RAW,
@@ -38,7 +40,9 @@
           switch (keyType) {
             case KEY_ONE:
             case KEY_RIGHT:
+            case KEY_THIS_AND_RIGHT:
             case KEY_LEFT:
+            case KEY_THIS_AND_LEFT:
             case KEY_ALL: {
               const {tabId} = message
               await run(tabId, keyType, toWindowId, notification, focus)

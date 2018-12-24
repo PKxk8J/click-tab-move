@@ -44,8 +44,14 @@
   "right": {
     "message": "右側のタブ"
   },
+  "thisAndRight": {
+    "message": "ここから右のタブ"
+  },
   "left": {
     "message": "左側のタブ"
+  },
+  "thisAndLeft": {
+    "message": "ここから左のタブ"
   },
   "notification": {
     "message": "通知"

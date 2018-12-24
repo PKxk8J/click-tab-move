@@ -14,7 +14,9 @@
   const {
     KEY_ONE,
     KEY_RIGHT,
+    KEY_THIS_AND_RIGHT,
     KEY_LEFT,
+    KEY_THIS_AND_LEFT,
     KEY_ALL,
     KEY_SELECT,
     KEY_CONTEXTS,
@@ -252,7 +254,9 @@
       switch (keyType) {
         case KEY_ONE:
         case KEY_RIGHT:
+        case KEY_THIS_AND_RIGHT:
         case KEY_LEFT:
+        case KEY_THIS_AND_LEFT:
         case KEY_ALL: {
           await run(tab.id, keyType, toWindowId, notification, focus)
           break

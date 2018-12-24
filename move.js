@@ -15,7 +15,9 @@ var _export
   const {
     KEY_ONE,
     KEY_RIGHT,
+    KEY_THIS_AND_RIGHT,
     KEY_LEFT,
+    KEY_THIS_AND_LEFT,
     KEY_RAW,
     KEY_MOVE,
     KEY_SELECT_SIZE,
@@ -294,8 +296,16 @@ var _export
         tabList = tabList.filter((tab2) => tab2.index > tab.index)
         break
       }
+      case KEY_THIS_AND_RIGHT: {
+        tabList = tabList.filter((tab2) => tab2.index >= tab.index)
+        break
+      }
       case KEY_LEFT: {
         tabList = tabList.filter((tab2) => tab2.index < tab.index)
+        break
+      }
+      case KEY_THIS_AND_LEFT: {
+        tabList = tabList.filter((tab2) => tab2.index <= tab.index)
         break
       }
     }
