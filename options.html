@@ -1,38 +1,40 @@
 <!DOCTYPE html>
 
 <html>
-  <head>
+<head>
     <meta charset="utf-8">
-  </head>
+</head>
 
-  <body>
+<body>
 
-    <form>
-      <ul>
+<form>
+    <ul>
         <li><span id="label_contexts"></span>
-          <ul id="contexts" style="list-style-type:none"></ul>
+            <ul id="contexts" style="list-style-type:none"></ul>
         </li>
         <li><span id="label_menuItems"></span>
-          <ul id="menuItems" style="list-style-type:none"></ul>
+            <ul id="menuItems" style="list-style-type:none"></ul>
         </li>
         <li><span id="label_selectSize"></span>
-          <ul style="list-style-type:none">
-            <li>
-              <label><span id="label_width"></span><input id="width" type="number" min="0" required/></label>
-              <label><span id="label_height"></span><input id="height" type="number" min="0" required/></label>
-            </li>
-            <li><label><input id="selectSave" type="checkbox"/><span id="label_selectSave"></span></label></li>
-          </ul>
+            <ul style="list-style-type:none">
+                <li>
+                    <label><span id="label_width"></span><input id="width" type="number" min="0" required/></label>
+                    <label><span id="label_height"></span><input id="height" type="number" min="0" required/></label>
+                </li>
+                <li><label><input id="selectSave" type="checkbox"/><span id="label_selectSave"></span></label></li>
+            </ul>
         </li>
         <li><label><input id="notification" type="checkbox"/><span id="label_notification"></span></label></li>
         <li><label><input id="focus" type="checkbox"/><span id="label_focus"></span></label></li>
-      </ul>
-      <div><button id="save" type="button"><span id="label_save"></span></button></div>
-    </form>
+    </ul>
+    <div>
+        <button id="save" type="button"><span id="label_save"></span></button>
+    </div>
+</form>
 
-    <script src="common.js"></script>
-    <script src="options.js"></script>
+<script src="common.js"></script>
+<script src="options.js"></script>
 
-  </body>
+</body>
 
 </html>
