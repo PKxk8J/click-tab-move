@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="color-scheme" content="light dark">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            color-scheme: light dark;
+            --page-bg: Canvas;
+            --surface: Field;
+            --text: CanvasText;
+            --muted-border: color-mix(in srgb, CanvasText 18%, transparent);
+            --accent: AccentColor;
+            font: 14px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        html,
+        body {
+            min-block-size: 100%;
+            margin: 0;
+            background: var(--page-bg);
+            color: var(--text);
+        }
+
+        body {
+            display: grid;
+        }
+
+        .select-page {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 12px;
+            min-block-size: 100vh;
+            padding: 14px;
+        }
+
+        h1 {
+            margin: 0;
+            overflow-wrap: anywhere;
+            font-size: 1rem;
+            font-weight: 680;
+        }
+
+        select {
+            inline-size: 100%;
+            min-block-size: 220px;
+            border: 1px solid var(--muted-border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text);
+            font: inherit;
+        }
+
+        select:focus-visible,
+        button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button {
+            min-inline-size: 7rem;
+            padding: 7px 12px;
+            border: 1px solid var(--muted-border);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text);
+            font: inherit;
+            font-weight: 620;
+        }
+    </style>
+</head>
+
+<body>
+
+<main class="select-page">
+    <h1 id="moveToX"></h1>
+    <select id="select" multiple size="12"></select>
+    <input id="toWindowId" type="hidden">
+    <input id="notification" type="hidden">
+    <input id="focus" type="hidden">
+    <div class="actions">
+        <button id="move" type="button"><span id="label_move"></span></button>
+        <button id="cancel" type="button"><span id="label_cancel"></span></button>
+    </div>
+</main>
+
+<script type="module" src="select.js"></script>
+
+</body>
+
+</html>

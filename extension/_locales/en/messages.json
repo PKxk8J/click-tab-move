@@ -6,6 +6,9 @@
   "name": {
     "message": "ClickTabMove"
   },
+  "description": {
+    "message": "Move tabs to another window from the right click menu."
+  },
   "move": {
     "message": "Move"
   },
@@ -24,8 +27,23 @@
   "menuItems": {
     "message": "Menu Items"
   },
-  "save": {
-    "message": "Save"
+  "settings": {
+    "message": "Settings"
+  },
+  "feedback": {
+    "message": "Feedback"
+  },
+  "behavior": {
+    "message": "Behavior"
+  },
+  "saveStatusSaving": {
+    "message": "Saving..."
+  },
+  "saveStatusSaved": {
+    "message": "Saved"
+  },
+  "saveStatusFailed": {
+    "message": "Save failed"
   },
   "cancel": {
     "message": "Cancel"
@@ -46,7 +64,7 @@
     "message": "New Window"
   },
   "selectSave": {
-    "message": "Save last window size"
+    "message": "Save last select window size"
   },
   "right": {
     "message": "Right Tabs"

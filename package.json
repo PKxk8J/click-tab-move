@@ -1,0 +1,19 @@
+{
+  "name": "click-tab-move",
+  "type": "module",
+  "private": true,
+  "description": "Firefox の右クリックメニューからタブを別のウィンドウへ移動します。",
+  "scripts": {
+    "lint": "npm run lint:web-ext && npm run lint:js",
+    "lint:web-ext": "web-ext --config web-ext-config.mjs lint",
+    "lint:js": "eslint .",
+    "test": "node --test",
+    "build": "web-ext --config web-ext-config.mjs build --overwrite-dest",
+    "run": "web-ext --config web-ext-config.mjs run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.28.0",
+    "eslint": "^9.28.0",
+    "web-ext": "^10.3.0"
+  }
+}

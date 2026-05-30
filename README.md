@@ -1,49 +1,46 @@
 # click-tab-move
 
-タブ右クリックからタブを別のウインドウに移動させる Firefox アドオン。
-
-e10s 対応。
+タブ右クリックからタブを別のウィンドウへ移動させる Firefox 専用アドオン。
 
 https://addons.mozilla.org/addon/clicktabmove/
 
+## 機能
 
-## <span id="messaging"/> Messaging
+- このタブを移動
+- 右側のタブを移動
+- ここから右のタブを移動
+- 左側のタブを移動
+- ここから左のタブを移動
+- すべてのタブを別ウィンドウへ移動
+- ポップアップで選択したタブを移動
+- 固定タブは固定タブのまま移動
+- 設定で右クリックメニューの表示場所と項目を選択
+- 通知は設定で有効にした場合のみ使用
 
-Other addons can use this addon by using [sendMessage](https://developer.mozilla.org/Add-ons/WebExtensions/API/runtime/sendMessage)
+すべてのタブを別ウィンドウへ移動すると、2 つのウィンドウを統合できます。
 
-```javascript
-browser.runtime.sendMessage('{2bd73814-983c-42f3-a6d5-e68c4668a4cf}', {
-  type: 'move',
-  keyType: 'right',
-  tabId: 15,
-  toWindowId: 24,
-  notification: false
-})
+タブグループや分割ビューは特別扱いせず、Firefox の通常のタブ移動 API に従って移動します。
+
+## 動作要件
+
+- Firefox 142 以降
+- Node.js 現行 LTS
+
+## 開発
+
+```sh
+npm install
+npm run lint
+npm run test
+npm run build
 ```
 
-```javascript
-browser.runtime.sendMessage('{2bd73814-983c-42f3-a6d5-e68c4668a4cf}', {
-  type: 'move',
-  keyType: 'raw',
-  tabIds: [15, 46, 2],
-  toWindowId: 24,
-  notification: false
-})
-```
+アドオンのバージョンは `extension/manifest.json` で管理します。
+`npm run build` は `web-ext-artifacts/clicktabmove-<version>.zip` を作成します。
 
+`npm run run` は、この拡張機能を一時的に読み込んだ Firefox を起動します。
+拡張機能のソースは `extension/` にあります。
 
-#### extensionId
+## プライバシー
 
-`{2bd73814-983c-42f3-a6d5-e68c4668a4cf}`
-
-
-#### message
-
-|Property name|Type|Description|
-|:--|:--|:--|
-|type|string|`move`|
-|keyType|string|`one`, `right`, `thisAndRight`, `left`, `thisAndLeft`, `all`, `select`, or `raw`|
-|tabId|number|The ID of a selected tab when keyType is `one`, `right`, `thisAndRight`, `left`, `thisAndLeft`, `all`, or `select`|
-|tabIds|Array of number|The IDs of selected tabs when keyType is `raw`|
-|toWindowId|number|The ID of a destination window. undefined for new window|
-|notification|boolean|Whether to show notification|
+この拡張機能はユーザーデータを収集または送信しません。

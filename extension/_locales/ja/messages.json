@@ -1,4 +1,14 @@
 {
+  "debug": {
+    "message": "release",
+    "description": "Set 'debug' to display debug log"
+  },
+  "name": {
+    "message": "ClickTabMove"
+  },
+  "description": {
+    "message": "右クリックメニューからタブを別のウィンドウへ移動します。"
+  },
   "move": {
     "message": "移す"
   },
@@ -17,8 +27,23 @@
   "menuItems": {
     "message": "メニュー項目"
   },
-  "save": {
-    "message": "保存"
+  "settings": {
+    "message": "設定"
+  },
+  "feedback": {
+    "message": "フィードバック"
+  },
+  "behavior": {
+    "message": "動作"
+  },
+  "saveStatusSaving": {
+    "message": "保存中..."
+  },
+  "saveStatusSaved": {
+    "message": "保存しました"
+  },
+  "saveStatusFailed": {
+    "message": "保存できませんでした"
   },
   "cancel": {
     "message": "やめる"
@@ -27,7 +52,7 @@
     "message": "$1へ移す"
   },
   "selectSize": {
-    "message": "選択ウインドウサイズ"
+    "message": "選択ウィンドウサイズ"
   },
   "width": {
     "message": "幅"
@@ -36,10 +61,10 @@
     "message": "高さ"
   },
   "newWindow": {
-    "message": "新しいウインドウ"
+    "message": "新しいウィンドウ"
   },
   "selectSave": {
-    "message": "閉じたときのサイズを記憶する"
+    "message": "閉じたときの選択ウィンドウサイズを記憶する"
   },
   "right": {
     "message": "右側のタブ"

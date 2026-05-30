@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+
+<main class="options-page">
+    <header class="page-header">
+        <p class="eyebrow" id="label_settings"></p>
+        <h1 id="label_name"></h1>
+        <p class="save-status" id="saveStatus" role="status" aria-live="polite"></p>
+    </header>
+
+    <section class="settings-section" aria-labelledby="label_contexts">
+        <div class="section-heading">
+            <h2 id="label_contexts"></h2>
+        </div>
+        <div class="toggle-list" id="contexts"></div>
+    </section>
+
+    <section class="settings-section" aria-labelledby="label_menuItems">
+        <div class="section-heading">
+            <h2 id="label_menuItems"></h2>
+        </div>
+        <div class="toggle-list" id="menuItems"></div>
+    </section>
+
+    <section class="settings-section" aria-labelledby="label_selectSize">
+        <div class="section-heading">
+            <h2 id="label_selectSize"></h2>
+        </div>
+        <div class="number-list" id="selectSize"></div>
+    </section>
+
+    <section class="settings-section" aria-labelledby="label_behavior">
+        <div class="section-heading">
+            <h2 id="label_behavior"></h2>
+        </div>
+        <div class="toggle-list" id="behavior"></div>
+    </section>
+
+    <section class="settings-section" aria-labelledby="label_feedback">
+        <div class="section-heading">
+            <h2 id="label_feedback"></h2>
+        </div>
+        <div class="toggle-list" id="notificationSetting"></div>
+    </section>
+</main>
+
+<script type="module" src="options.js"></script>
+
+</body>
+
+</html>

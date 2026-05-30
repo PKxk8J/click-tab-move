@@ -1,0 +1,232 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light dark;
+  --page-bg: Canvas;
+  --surface: Field;
+  --surface-hover: color-mix(in srgb, AccentColor 8%, Field);
+  --text: CanvasText;
+  --muted: color-mix(in srgb, CanvasText 64%, transparent);
+  --border: color-mix(in srgb, CanvasText 18%, transparent);
+  --control-bg: color-mix(in srgb, CanvasText 12%, transparent);
+  --control-border: color-mix(in srgb, CanvasText 24%, transparent);
+  --accent: AccentColor;
+  --accent-text: AccentColorText;
+  --danger: #c50042;
+  --focus: color-mix(in srgb, AccentColor 70%, CanvasText);
+  font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html {
+  min-block-size: 100%;
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+body {
+  min-block-size: 100%;
+  margin: 0;
+  background: var(--page-bg);
+}
+
+.options-page {
+  inline-size: min(880px, calc(100% - 32px));
+  margin-inline: auto;
+  padding-block: 32px 48px;
+}
+
+.page-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 24px;
+  align-items: end;
+  padding-block-end: 22px;
+}
+
+.eyebrow,
+.save-status,
+h1,
+h2 {
+  margin: 0;
+}
+
+.eyebrow {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+h1 {
+  font-size: 1.7rem;
+  font-weight: 680;
+}
+
+h2 {
+  font-size: 1rem;
+  font-weight: 680;
+}
+
+.save-status {
+  min-block-size: 1.45em;
+  min-inline-size: 8ch;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: end;
+}
+
+.save-status[data-state="error"] {
+  color: var(--danger);
+}
+
+.settings-section {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.62fr) minmax(0, 1.38fr);
+  gap: 20px;
+  padding-block: 24px;
+  border-block-start: 1px solid var(--border);
+}
+
+.section-heading {
+  padding-block-start: 10px;
+}
+
+.toggle-list,
+.number-list {
+  display: grid;
+  gap: 10px;
+}
+
+.toggle-row,
+.number-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  min-block-size: 56px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.toggle-row {
+  cursor: pointer;
+}
+
+.toggle-row:hover,
+.number-field:hover {
+  background: var(--surface-hover);
+}
+
+.setting-title {
+  display: block;
+  overflow-wrap: anywhere;
+  font-weight: 560;
+}
+
+.number-field input {
+  inline-size: 8rem;
+  min-inline-size: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.number-field input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  inline-size: 42px;
+  block-size: 24px;
+}
+
+.switch-input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch-control {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--control-bg);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.switch-control::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, CanvasText 28%, transparent);
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+
+.switch-input:checked + .switch-control {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.switch-input:checked + .switch-control::after {
+  background: var(--accent-text);
+  transform: translateX(18px);
+}
+
+.switch-input:focus-visible + .switch-control {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --danger: #ff8ab3;
+  }
+}
+
+@media (max-width: 720px) {
+  .options-page {
+    inline-size: min(100% - 24px, 880px);
+    padding-block: 24px 36px;
+  }
+
+  .page-header,
+  .settings-section {
+    grid-template-columns: 1fr;
+  }
+
+  .save-status {
+    justify-self: start;
+    text-align: start;
+  }
+
+  .section-heading {
+    padding-block-start: 0;
+  }
+
+  .number-field {
+    grid-template-columns: 1fr;
+  }
+
+  .number-field input {
+    inline-size: 100%;
+  }
+}
