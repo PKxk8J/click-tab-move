@@ -25,7 +25,7 @@
     "message": "選択したタブ"
   },
   "menuItems": {
-    "message": "メニュー項目"
+    "message": "移動対象"
   },
   "settings": {
     "message": "設定"
@@ -62,6 +62,102 @@
   },
   "newWindow": {
     "message": "新しいウィンドウ"
+  },
+  "newGroup": {
+    "message": "新しいグループ"
+  },
+  "global": {
+    "message": "全体"
+  },
+  "group": {
+    "message": "グループ"
+  },
+  "windowEntry": {
+    "message": "ウィンドウ$1: $2"
+  },
+  "groupEntry": {
+    "message": "ウィンドウ$1 / グループ$2: $3"
+  },
+  "untitledGroup": {
+    "message": "名前なしのグループ"
+  },
+  "targetSubjectTab": {
+    "message": "このタブ"
+  },
+  "targetSubjectGroup": {
+    "message": "このグループ"
+  },
+  "targetGlobalRight": {
+    "message": "$1より右側のタブ・グループ"
+  },
+  "targetGlobalThisAndRight": {
+    "message": "$1と右側のタブ・グループ"
+  },
+  "targetGlobalLeft": {
+    "message": "$1より左側のタブ・グループ"
+  },
+  "targetGlobalThisAndLeft": {
+    "message": "$1と左側のタブ・グループ"
+  },
+  "targetGlobalAll": {
+    "message": "全てのタブ・グループ"
+  },
+  "targetGlobalSelect": {
+    "message": "選択したタブ・グループ"
+  },
+  "targetGroupRight": {
+    "message": "グループ内のこのタブより右側のタブ"
+  },
+  "targetGroupThisAndRight": {
+    "message": "グループ内のこのタブと右側のタブ"
+  },
+  "targetGroupLeft": {
+    "message": "グループ内のこのタブより左側のタブ"
+  },
+  "targetGroupThisAndLeft": {
+    "message": "グループ内のこのタブと左側のタブ"
+  },
+  "targetGroupSelect": {
+    "message": "グループ内の選択したタブ"
+  },
+  "menuItem_global_one": {
+    "message": "クリックしたタブ・グループ"
+  },
+  "menuItem_global_right": {
+    "message": "クリックしたタブ・グループより右側のタブ・グループ"
+  },
+  "menuItem_global_thisAndRight": {
+    "message": "クリックしたタブ・グループと右側のタブ・グループ"
+  },
+  "menuItem_global_left": {
+    "message": "クリックしたタブ・グループより左側のタブ・グループ"
+  },
+  "menuItem_global_thisAndLeft": {
+    "message": "クリックしたタブ・グループと左側のタブ・グループ"
+  },
+  "menuItem_global_all": {
+    "message": "全てのタブ・グループ"
+  },
+  "menuItem_global_select": {
+    "message": "選択したタブ・グループ"
+  },
+  "menuItem_group_one": {
+    "message": "クリックしたタブ"
+  },
+  "menuItem_group_right": {
+    "message": "クリックしたタブより右側"
+  },
+  "menuItem_group_thisAndRight": {
+    "message": "クリックしたタブと右側"
+  },
+  "menuItem_group_left": {
+    "message": "クリックしたタブより左側"
+  },
+  "menuItem_group_thisAndLeft": {
+    "message": "クリックしたタブと左側"
+  },
+  "menuItem_group_select": {
+    "message": "選択したタブ"
   },
   "selectSave": {
     "message": "閉じたときの選択ウィンドウサイズを記憶する"

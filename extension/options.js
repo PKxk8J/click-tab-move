@@ -1,6 +1,7 @@
 import {
   ALL_CONTEXTS,
   ALL_MENU_ITEMS,
+  ALL_MENU_SCOPES,
   DEFAULT_FOCUS,
   DEFAULT_NOTIFICATION,
   DEFAULT_SELECT_SAVE,
@@ -20,6 +21,7 @@ import {
   KEY_SELECT_SIZE,
   KEY_SETTINGS,
   KEY_WIDTH,
+  MENU_ITEMS_BY_SCOPE,
   NOTIFICATION_PERMISSION,
   debug,
   normalizeContexts,
@@ -48,8 +50,8 @@ function getContextInputId (key) {
   return KEY_CONTEXTS + '_' + key
 }
 
-function getMenuInputId (key) {
-  return KEY_MENU_ITEMS + '_' + key
+function getMenuScopeInputId (scope, key) {
+  return KEY_MENU_ITEMS + '_' + scope + '_' + key
 }
 
 function setLabelText (id, key) {
@@ -96,9 +98,12 @@ async function restore () {
       contextSet.has(key)
   })
 
-  const menuItemSet = new Set(menuItems)
-  ALL_MENU_ITEMS.forEach((key) => {
-    document.getElementById(getMenuInputId(key)).checked = menuItemSet.has(key)
+  ALL_MENU_SCOPES.forEach((scope) => {
+    const scopeItems = MENU_ITEMS_BY_SCOPE[scope]
+    scopeItems.forEach((key) => {
+      document.getElementById(getMenuScopeInputId(scope, key)).checked =
+        menuItems[key]?.includes(scope) || false
+    })
   })
 
   document.getElementById(KEY_WIDTH).value = selectSize[0]
@@ -126,10 +131,19 @@ async function save () {
     }
   })
 
-  const menuItems = []
+  const menuItems = {}
   ALL_MENU_ITEMS.forEach((key) => {
-    if (document.getElementById(getMenuInputId(key)).checked) {
-      menuItems.push(key)
+    const scopes = []
+    ALL_MENU_SCOPES.forEach((scope) => {
+      if (!MENU_ITEMS_BY_SCOPE[scope].includes(key)) {
+        return
+      }
+      if (document.getElementById(getMenuScopeInputId(scope, key)).checked) {
+        scopes.push(scope)
+      }
+    })
+    if (scopes.length > 0) {
+      menuItems[key] = scopes
     }
   })
 
@@ -225,6 +239,28 @@ function addCheckboxEntry (labelKey, container, inputId) {
   container.appendChild(createToggleLabel(labelKey, inputId))
 }
 
+function addMenuItemEntry (scope, key, container) {
+  addCheckboxEntry('menuItem_' + scope + '_' + key, container,
+    getMenuScopeInputId(scope, key))
+}
+
+function addMenuScopeSection (scope, container) {
+  const title = document.createElement('h3')
+  title.textContent = i18n.getMessage(scope)
+
+  const list = document.createElement('div')
+  list.className = 'toggle-list menu-scope-list'
+  MENU_ITEMS_BY_SCOPE[scope].forEach((key) => {
+    addMenuItemEntry(scope, key, list)
+  })
+
+  const section = document.createElement('section')
+  section.className = 'menu-scope'
+  section.appendChild(title)
+  section.appendChild(list)
+  container.appendChild(section)
+}
+
 function createNumberField (labelKey, inputId) {
   const label = document.createElement('label')
   label.className = 'number-field'
@@ -273,8 +309,8 @@ async function init () {
   })
 
   const itemContainer = document.getElementById(KEY_MENU_ITEMS)
-  ALL_MENU_ITEMS.forEach((key) => {
-    addCheckboxEntry(key, itemContainer, getMenuInputId(key))
+  ALL_MENU_SCOPES.forEach((scope) => {
+    addMenuScopeSection(scope, itemContainer)
   })
 
   const selectSizeContainer = document.getElementById(KEY_SELECT_SIZE)

@@ -7,6 +7,8 @@ const state = {
   nextWindowId: 10,
   tabs: [],
   moved: [],
+  grouped: [],
+  groupMoved: [],
   removed: [],
   activated: [],
   windowUpdates: [],
@@ -14,6 +16,7 @@ const state = {
   notificationAllowed: true,
   notificationError: undefined,
   storageData: {},
+  nextGroupId: 1000,
 }
 
 function cloneTab (tab) {
@@ -46,12 +49,16 @@ function resetTabs (tabs) {
   state.tabs = tabs.map((tab) => ({
     pinned: false,
     active: false,
+    groupId: -1,
+    splitViewId: -1,
     title: 'Tab ' + tab.id,
     url: 'https://example.com/' + tab.id,
     status: 'complete',
     ...tab,
   }))
   state.moved = []
+  state.grouped = []
+  state.groupMoved = []
   state.removed = []
   state.activated = []
   state.windowUpdates = []
@@ -59,6 +66,7 @@ function resetTabs (tabs) {
   state.notificationAllowed = true
   state.notificationError = undefined
   state.storageData = {}
+  state.nextGroupId = 1000
   normalizeIndexes()
 }
 
@@ -87,6 +95,46 @@ function moveTabIds (ids, properties) {
   normalizeIndexes()
   state.moved.push({ ids: idList, windowId: targetWindowId, index: properties.index })
   return movingTabs.map(cloneTab)
+}
+
+function moveGroup (groupId, properties) {
+  const groupTab = state.tabs.find((tab) => tab.groupId === groupId)
+  const windowId = properties.windowId ?? groupTab.windowId
+  const ids = getWindowTabs(groupTab.windowId).
+    filter((tab) => tab.groupId === groupId).
+    map((tab) => tab.id)
+  moveTabIds(ids, { windowId, index: properties.index })
+  state.groupMoved.push({ groupId, windowId, index: properties.index })
+}
+
+function groupTabs (tabIds, groupId) {
+  const idList = Array.isArray(tabIds) ? tabIds : [tabIds]
+  const targetGroupId = groupId ?? state.nextGroupId++
+  const targetGroupTab = state.tabs.find((tab) => tab.groupId === targetGroupId)
+  const targetWindowId = targetGroupTab?.windowId
+  state.tabs.forEach((tab) => {
+    if (!idList.includes(tab.id)) {
+      return
+    }
+    tab.groupId = targetGroupId
+    if (targetWindowId !== undefined) {
+      tab.windowId = targetWindowId
+    }
+  })
+  normalizeIndexes()
+  state.grouped.push({ ids: idList, groupId: targetGroupId })
+  return targetGroupId
+}
+
+function getMemberships () {
+  return [...state.tabs].
+    sort((tab1, tab2) => tab1.id - tab2.id).
+    map((tab) => ({
+      id: tab.id,
+      windowId: tab.windowId,
+      groupId: tab.groupId,
+      splitViewId: tab.splitViewId,
+    }))
 }
 
 globalThis.browser = {
@@ -145,7 +193,31 @@ globalThis.browser = {
       },
     },
   },
+  tabGroups: {
+    TAB_GROUP_ID_NONE: -1,
+    move: async (groupId, properties) => {
+      moveGroup(groupId, properties)
+      return { id: groupId }
+    },
+    query: async () => {
+      const groups = []
+      const knownGroupIds = new Set()
+      for (const tab of state.tabs) {
+        if (tab.groupId === -1 || knownGroupIds.has(tab.groupId)) {
+          continue
+        }
+        knownGroupIds.add(tab.groupId)
+        groups.push({
+          id: tab.groupId,
+          windowId: tab.windowId,
+          title: 'Group ' + tab.groupId,
+        })
+      }
+      return groups
+    },
+  },
   tabs: {
+    SPLIT_VIEW_ID_NONE: -1,
     query: async (query) => {
       let result = state.tabs
       if (query.windowId !== undefined) {
@@ -163,6 +235,9 @@ globalThis.browser = {
       return result.map(cloneTab)
     },
     get: async (id) => cloneTab(state.tabs.find((tab) => tab.id === id)),
+    group: async (properties) => {
+      return groupTabs(properties.tabIds, properties.groupId)
+    },
     move: async (ids, properties) => moveTabIds(ids, properties),
     remove: async (ids) => {
       const idList = Array.isArray(ids) ? ids : [ids]
@@ -246,11 +321,21 @@ test('設定値を正規化する', () => {
   assert.deepEqual(normalizeContexts(undefined), ['tab'])
   assert.deepEqual(normalizeContexts(['all', 'unknown', 'tab']), ['tab', 'all'])
   assert.deepEqual(normalizeContexts('tab'), [])
-  assert.deepEqual(normalizeMenuItems(undefined), ['one', 'right', 'all'])
-  assert.deepEqual(normalizeMenuItems(['select', 'unknown', 'left']), [
-    'left',
-    'select',
-  ])
+  assert.deepEqual(normalizeMenuItems(undefined), {
+    one: ['global'],
+    right: ['global'],
+    all: ['global'],
+  })
+  assert.deepEqual(normalizeMenuItems(['select', 'unknown', 'left']), {
+    left: ['global'],
+    select: ['global'],
+  })
+  assert.deepEqual(normalizeMenuItems({
+    one: ['group', 'unknown', 'global'],
+    all: ['group'],
+  }), {
+    one: ['global', 'group'],
+  })
   assert.equal(normalizeNotification(undefined), false)
   assert.equal(normalizeNotification(true), true)
   assert.equal(normalizeNotification('true'), false)
@@ -275,6 +360,37 @@ test('クリック位置から移動対象タブを列挙する', async () => {
   assert.deepEqual(await listTargetTabIds(2, 'left'), [1])
   assert.deepEqual(await listTargetTabIds(2, 'thisAndLeft'), [1, 2])
   assert.deepEqual(await listTargetTabIds(2, 'all'), [1, 2, 3, 4])
+})
+
+test('全体ではグループと分割ビューを単位にして移動対象タブを列挙する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0 },
+    { id: 2, windowId: 1, index: 1, groupId: 10 },
+    { id: 3, windowId: 1, index: 2, groupId: 10 },
+    { id: 4, windowId: 1, index: 3, splitViewId: 7 },
+    { id: 5, windowId: 1, index: 4, splitViewId: 7 },
+    { id: 6, windowId: 1, index: 5 },
+  ])
+
+  assert.deepEqual(await listTargetTabIds(2, 'one'), [2, 3])
+  assert.deepEqual(await listTargetTabIds(2, 'right'), [4, 5, 6])
+  assert.deepEqual(await listTargetTabIds(4, 'one'), [4, 5])
+  assert.deepEqual(await listTargetTabIds(4, 'thisAndLeft'), [1, 2, 3, 4, 5])
+})
+
+test('グループではグループ内のタブと分割ビューを単位にして移動対象タブを列挙する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0 },
+    { id: 2, windowId: 1, index: 1, groupId: 10 },
+    { id: 3, windowId: 1, index: 2, groupId: 10, splitViewId: 7 },
+    { id: 4, windowId: 1, index: 3, groupId: 10, splitViewId: 7 },
+    { id: 5, windowId: 1, index: 4, groupId: 10 },
+    { id: 6, windowId: 1, index: 5 },
+  ])
+
+  assert.deepEqual(await listTargetTabIds(3, 'one', 'group'), [3, 4])
+  assert.deepEqual(await listTargetTabIds(3, 'right', 'group'), [5])
+  assert.deepEqual(await listTargetTabIds(3, 'thisAndLeft', 'group'), [2, 3, 4])
 })
 
 test('固定タブを固定タブ領域へ、通常タブを末尾へ移動する', async () => {
@@ -304,6 +420,59 @@ test('新規ウィンドウへ移動した後にプレースホルダータブ�
 
   assert.deepEqual(getTabIds(10), [1, 2])
   assert.deepEqual(state.removed, [100])
+})
+
+test('グループ全体をウィンドウへ移す場合はグループのまま移動する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, groupId: 10, active: true },
+    { id: 2, windowId: 1, index: 1, groupId: 10 },
+    { id: 20, windowId: 2, index: 0, active: true },
+  ])
+
+  await rawRun([1, 2], 2, false, false)
+
+  assert.deepEqual(state.groupMoved, [{ groupId: 10, windowId: 2, index: 1 }])
+  assert.deepEqual(getTabIds(2), [20, 1, 2])
+  assert.deepEqual(getMemberships().filter((tab) => [1, 2].includes(tab.id)), [
+    { id: 1, windowId: 2, groupId: 10, splitViewId: -1 },
+    { id: 2, windowId: 2, groupId: 10, splitViewId: -1 },
+  ])
+})
+
+test('グループをグループへ移す場合は移動先グループへ統合する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, groupId: 10, active: true },
+    { id: 2, windowId: 1, index: 1, groupId: 10 },
+    { id: 20, windowId: 2, index: 0, groupId: 30, active: true },
+  ])
+
+  await rawRun([1, 2], { type: 'group', groupId: 30 }, false, false)
+
+  assert.deepEqual(state.grouped, [{ ids: [1, 2], groupId: 30 }])
+  assert.deepEqual(getTabIds(2), [20, 1, 2])
+  assert.deepEqual(getMemberships().filter((tab) => [1, 2, 20].includes(tab.id)), [
+    { id: 1, windowId: 2, groupId: 30, splitViewId: -1 },
+    { id: 2, windowId: 2, groupId: 30, splitViewId: -1 },
+    { id: 20, windowId: 2, groupId: 30, splitViewId: -1 },
+  ])
+})
+
+test('固定タブはグループへ移動しない', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, pinned: true, active: true },
+    { id: 20, windowId: 2, index: 0, groupId: 30, active: true },
+  ])
+
+  const errorMock = mock.method(globalThis.console, 'error', () => {})
+  try {
+    await rawRun([1], { type: 'group', groupId: 30 }, false, false)
+  } finally {
+    errorMock.mock.restore()
+  }
+
+  assert.deepEqual(getTabIds(1), [1])
+  assert.deepEqual(getTabIds(2), [20])
+  assert.deepEqual(state.grouped, [])
 })
 
 test('移動対象の active tab から近い残留タブへ事前にフォーカスを移す', async () => {

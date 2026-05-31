@@ -18,6 +18,7 @@
   "permissions": [
     "menus",
     "storage",
+    "tabGroups",
     "tabs"
   ],
   "optional_permissions": [

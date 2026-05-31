@@ -16,13 +16,19 @@ export const KEY_LEFT = 'left'
 export const KEY_THIS_AND_LEFT = 'thisAndLeft'
 export const KEY_SELECT = 'select'
 export const KEY_RAW = 'raw'
+export const KEY_TARGET_GLOBAL = 'global'
+export const KEY_TARGET_GROUP = 'group'
 
 export const KEY_MOVE = 'move'
 export const KEY_MOVE_X = 'moveX'
 export const KEY_MOVE_TO_X = 'moveToX'
 export const KEY_NEW_WINDOW = 'newWindow'
+export const KEY_NEW_GROUP = 'newGroup'
 export const KEY_CANCEL = 'cancel'
 export const KEY_TO_WINDOW_ID = 'toWindowId'
+export const KEY_DESTINATION = 'destination'
+export const KEY_TARGET_SCOPE = 'targetScope'
+export const KEY_GROUP_ID = 'groupId'
 
 export const KEY_CONTEXTS = 'contexts'
 export const KEY_MENU_ITEMS = 'menuItems'
@@ -56,7 +62,33 @@ export const ALL_MENU_ITEMS = [
   KEY_ALL,
   KEY_SELECT,
 ]
-export const DEFAULT_MENU_ITEMS = [KEY_ONE, KEY_RIGHT, KEY_ALL]
+export const GLOBAL_MENU_ITEMS = [
+  KEY_ONE,
+  KEY_RIGHT,
+  KEY_THIS_AND_RIGHT,
+  KEY_LEFT,
+  KEY_THIS_AND_LEFT,
+  KEY_ALL,
+  KEY_SELECT,
+]
+export const GROUP_MENU_ITEMS = [
+  KEY_ONE,
+  KEY_RIGHT,
+  KEY_THIS_AND_RIGHT,
+  KEY_LEFT,
+  KEY_THIS_AND_LEFT,
+  KEY_SELECT,
+]
+export const ALL_MENU_SCOPES = [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP]
+export const MENU_ITEMS_BY_SCOPE = {
+  [KEY_TARGET_GLOBAL]: GLOBAL_MENU_ITEMS,
+  [KEY_TARGET_GROUP]: GROUP_MENU_ITEMS,
+}
+export const DEFAULT_MENU_ITEMS = {
+  [KEY_ONE]: [KEY_TARGET_GLOBAL],
+  [KEY_RIGHT]: [KEY_TARGET_GLOBAL],
+  [KEY_ALL]: [KEY_TARGET_GLOBAL],
+}
 export const DEFAULT_SELECT_SIZE = [640, 480]
 export const DEFAULT_SELECT_SAVE = true
 export const DEFAULT_NOTIFICATION = false
@@ -98,6 +130,17 @@ function cloneKeys (keys) {
   return [...keys]
 }
 
+function cloneMenuItems (menuItems) {
+  const normalized = {}
+  for (const key of ALL_MENU_ITEMS) {
+    const scopes = menuItems[key]
+    if (Array.isArray(scopes) && scopes.length > 0) {
+      normalized[key] = [...scopes]
+    }
+  }
+  return normalized
+}
+
 export function normalizeContexts (contexts) {
   if (contexts === undefined) {
     return cloneKeys(DEFAULT_CONTEXTS)
@@ -112,14 +155,38 @@ export function normalizeContexts (contexts) {
 
 export function normalizeMenuItems (menuItems) {
   if (menuItems === undefined) {
-    return cloneKeys(DEFAULT_MENU_ITEMS)
+    return cloneMenuItems(DEFAULT_MENU_ITEMS)
   }
 
-  if (!Array.isArray(menuItems)) {
-    return []
+  if (Array.isArray(menuItems)) {
+    const normalized = {}
+    for (const key of ALL_MENU_ITEMS) {
+      if (menuItems.includes(key)) {
+        normalized[key] = [KEY_TARGET_GLOBAL]
+      }
+    }
+    return normalized
   }
 
-  return ALL_MENU_ITEMS.filter((key) => menuItems.includes(key))
+  if (!menuItems || typeof menuItems !== 'object') {
+    return {}
+  }
+
+  const normalized = {}
+  for (const key of ALL_MENU_ITEMS) {
+    const scopes = menuItems[key]
+    if (!Array.isArray(scopes)) {
+      continue
+    }
+
+    const normalizedScopes = ALL_MENU_SCOPES.
+      filter((scope) => scopes.includes(scope)).
+      filter((scope) => MENU_ITEMS_BY_SCOPE[scope].includes(key))
+    if (normalizedScopes.length > 0) {
+      normalized[key] = normalizedScopes
+    }
+  }
+  return normalized
 }
 
 function normalizeBoolean (value, defaultValue) {

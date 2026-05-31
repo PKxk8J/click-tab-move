@@ -25,7 +25,7 @@
     "message": "Selected Tabs"
   },
   "menuItems": {
-    "message": "Menu Items"
+    "message": "Move Targets"
   },
   "settings": {
     "message": "Settings"
@@ -62,6 +62,102 @@
   },
   "newWindow": {
     "message": "New Window"
+  },
+  "newGroup": {
+    "message": "New Group"
+  },
+  "global": {
+    "message": "All"
+  },
+  "group": {
+    "message": "Group"
+  },
+  "windowEntry": {
+    "message": "Window $1: $2"
+  },
+  "groupEntry": {
+    "message": "Window $1 / Group $2: $3"
+  },
+  "untitledGroup": {
+    "message": "Untitled Group"
+  },
+  "targetSubjectTab": {
+    "message": "This Tab"
+  },
+  "targetSubjectGroup": {
+    "message": "This Group"
+  },
+  "targetGlobalRight": {
+    "message": "Tabs and groups to the right of $1"
+  },
+  "targetGlobalThisAndRight": {
+    "message": "$1 and tabs/groups to the right"
+  },
+  "targetGlobalLeft": {
+    "message": "Tabs and groups to the left of $1"
+  },
+  "targetGlobalThisAndLeft": {
+    "message": "$1 and tabs/groups to the left"
+  },
+  "targetGlobalAll": {
+    "message": "All Tabs and Groups"
+  },
+  "targetGlobalSelect": {
+    "message": "Selected Tabs and Groups"
+  },
+  "targetGroupRight": {
+    "message": "Tabs to the right of this tab in the group"
+  },
+  "targetGroupThisAndRight": {
+    "message": "This tab and tabs to the right in the group"
+  },
+  "targetGroupLeft": {
+    "message": "Tabs to the left of this tab in the group"
+  },
+  "targetGroupThisAndLeft": {
+    "message": "This tab and tabs to the left in the group"
+  },
+  "targetGroupSelect": {
+    "message": "Selected Tabs in This Group"
+  },
+  "menuItem_global_one": {
+    "message": "Clicked tab/group"
+  },
+  "menuItem_global_right": {
+    "message": "Tabs/groups to the right of the clicked tab/group"
+  },
+  "menuItem_global_thisAndRight": {
+    "message": "Clicked tab/group and tabs/groups to the right"
+  },
+  "menuItem_global_left": {
+    "message": "Tabs/groups to the left of the clicked tab/group"
+  },
+  "menuItem_global_thisAndLeft": {
+    "message": "Clicked tab/group and tabs/groups to the left"
+  },
+  "menuItem_global_all": {
+    "message": "All tabs/groups"
+  },
+  "menuItem_global_select": {
+    "message": "Selected tabs/groups"
+  },
+  "menuItem_group_one": {
+    "message": "Clicked tab"
+  },
+  "menuItem_group_right": {
+    "message": "Tabs to the right of the clicked tab"
+  },
+  "menuItem_group_thisAndRight": {
+    "message": "Clicked tab and tabs to the right"
+  },
+  "menuItem_group_left": {
+    "message": "Tabs to the left of the clicked tab"
+  },
+  "menuItem_group_thisAndLeft": {
+    "message": "Clicked tab and tabs to the left"
+  },
+  "menuItem_group_select": {
+    "message": "Selected tabs"
   },
   "selectSave": {
     "message": "Save last select window size"

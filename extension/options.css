@@ -64,9 +64,14 @@ h1 {
   font-weight: 680;
 }
 
-h2 {
+h2,
+h3 {
   font-size: 1rem;
   font-weight: 680;
+}
+
+h3 {
+  margin: 0;
 }
 
 .save-status {
@@ -97,6 +102,15 @@ h2 {
 .number-list {
   display: grid;
   gap: 10px;
+}
+
+.menu-scope {
+  display: grid;
+  gap: 10px;
+}
+
+.menu-scope + .menu-scope {
+  margin-block-start: 18px;
 }
 
 .toggle-row,
