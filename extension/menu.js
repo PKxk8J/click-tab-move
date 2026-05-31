@@ -86,9 +86,24 @@ function getDestinationMenuId (scope, key, destination) {
   return 'target:' + scope + ':' + key + ':group:' + destination.groupId
 }
 
+function getFlatDestinationMenuId (scope, key, destination) {
+  if (destination.type === 'newWindow') {
+    return 'flatTarget:' + scope + ':' + key + ':newWindow'
+  }
+  if (destination.type === 'window') {
+    return 'flatTarget:' + scope + ':' + key + ':window:' +
+      destination.windowId
+  }
+  if (destination.type === 'newGroup') {
+    return 'flatTarget:' + scope + ':' + key + ':newGroup'
+  }
+  return 'flatTarget:' + scope + ':' + key + ':group:' + destination.groupId
+}
+
 function parseTargetMenuId (id) {
   const parts = id.split(':')
-  if (parts.length < 4 || parts[0] !== 'target') {
+  if (parts.length < 4 ||
+      !['target', 'flatTarget'].includes(parts[0])) {
     return
   }
 
@@ -306,24 +321,19 @@ async function rebuildMenu () {
     return
   }
 
-  const nested = entries.length > 1
-  if (nested) {
-    await createMenuItem({
-      id: KEY_MOVE,
-      title: i18n.getMessage(KEY_MOVE),
-      contexts,
-    })
-  }
+  await createMenuItem({
+    id: KEY_MOVE,
+    title: i18n.getMessage(KEY_MOVE),
+    contexts,
+  })
 
   for (const entry of entries) {
     const entryMenuId = getEntryMenuId(entry.scope, entry.key)
     await createMenuItem({
       id: entryMenuId,
-      title: nested
-        ? getSettingTitle(entry)
-        : i18n.getMessage(KEY_MOVE_X, getSettingTitle(entry)),
+      title: getSettingTitle(entry),
       contexts,
-      parentId: nested ? KEY_MOVE : undefined,
+      parentId: KEY_MOVE,
     })
 
     for (const destination of getAllDestinations()) {
@@ -332,6 +342,13 @@ async function rebuildMenu () {
         title: destination.title,
         contexts,
         parentId: entryMenuId,
+      })
+      await createMenuItem({
+        id: getFlatDestinationMenuId(entry.scope, entry.key, destination),
+        title: destination.title,
+        contexts,
+        parentId: KEY_MOVE,
+        visible: false,
       })
     }
   }
@@ -420,33 +437,57 @@ function isDestinationVisible (entry, destination, summary, selectWindowId) {
 
 async function handleMenuShown (info, tab) {
   const targetTab = tab || await getCurrentTab()
-  if (!targetTab) {
+  if (!targetTab || currentEntries.length <= 0) {
     return
   }
 
-  const nested = currentEntries.length > 1
   const selectWindowId = getSelectWindowId()
   const destinations = getAllDestinations()
-  const updates = []
+  const entryStates = []
   for (const entry of currentEntries) {
-    const entryMenuId = getEntryMenuId(entry.scope, entry.key)
     const summary = await getTargetSummary(entry, targetTab)
-    let visibleDestinationCount = 0
-    for (const destination of destinations) {
-      const visible = isDestinationVisible(entry, destination, summary,
-        selectWindowId)
-      if (visible) {
-        visibleDestinationCount++
-      }
+    const destinationVisibilities = destinations.map((destination) => ({
+      destination,
+      visible: isDestinationVisible(entry, destination, summary,
+        selectWindowId),
+    }))
+    const visibleDestinationCount = destinationVisibilities.
+      filter(({ visible }) => visible).length
+    entryStates.push({
+      entry,
+      summary,
+      destinationVisibilities,
+      visible: summary.valid && visibleDestinationCount > 0,
+    })
+  }
+
+  const visibleEntries = entryStates.filter((state) => state.visible)
+  const nested = visibleEntries.length > 1
+  const updates = []
+  updates.push(updateMenuItem(KEY_MOVE, {
+    visible: visibleEntries.length > 0,
+    title: visibleEntries.length === 1
+      ? getEntryTitle(visibleEntries[0].entry, targetTab, true)
+      : i18n.getMessage(KEY_MOVE),
+  }).catch(onError))
+
+  for (const state of entryStates) {
+    const { entry } = state
+    const entryMenuId = getEntryMenuId(entry.scope, entry.key)
+    for (const { destination, visible } of state.destinationVisibilities) {
       updates.push(updateMenuItem(
         getDestinationMenuId(entry.scope, entry.key, destination),
-        { visible },
+        { visible: nested && state.visible && visible },
+      ).catch(onError))
+      updates.push(updateMenuItem(
+        getFlatDestinationMenuId(entry.scope, entry.key, destination),
+        { visible: !nested && state.visible && visible },
       ).catch(onError))
     }
 
     updates.push(updateMenuItem(entryMenuId, {
-      visible: summary.valid && visibleDestinationCount > 0,
-      title: getEntryTitle(entry, targetTab, !nested),
+      visible: nested && state.visible,
+      title: getEntryTitle(entry, targetTab, false),
     }).catch(onError))
   }
 
