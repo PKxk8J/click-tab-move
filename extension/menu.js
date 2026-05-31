@@ -384,8 +384,13 @@ async function getTargetSummary (entry, targetTab) {
       groupIds: entry.scope === KEY_TARGET_GROUP
         ? new Set([targetTab.groupId])
         : new Set(),
+      blockedGroupIds: entry.scope === KEY_TARGET_GROUP
+        ? new Set([targetTab.groupId])
+        : new Set(),
+      groupTabCounts: new Map(),
       hasPinned: false,
       singleWholeGroup: false,
+      targetTabCount: 0,
     }
   }
 
@@ -397,15 +402,26 @@ async function getTargetSummary (entry, targetTab) {
   const groupIds = new Set(tabInfos.
     filter(isGroupedTab).
     map((tab) => tab.groupId))
+  const groupTabCounts = new Map()
+  for (const tabInfo of tabInfos) {
+    if (!isGroupedTab(tabInfo)) {
+      continue
+    }
+    groupTabCounts.set(tabInfo.groupId,
+      (groupTabCounts.get(tabInfo.groupId) || 0) + 1)
+  }
 
   return {
     valid: true,
     sourceWindowId: targetTab.windowId,
     groupIds,
+    blockedGroupIds: new Set(),
+    groupTabCounts,
     hasPinned: tabInfos.some((tab) => tab.pinned),
     singleWholeGroup: entry.scope === KEY_TARGET_GLOBAL &&
       entry.key === KEY_ONE &&
       isGroupedTab(targetTab),
+    targetTabCount: tabInfos.length,
   }
 }
 
@@ -432,7 +448,14 @@ function isDestinationVisible (entry, destination, summary, selectWindowId) {
     return !summary.singleWholeGroup
   }
 
-  return !summary.groupIds.has(destination.groupId)
+  if (summary.blockedGroupIds.has(destination.groupId)) {
+    return false
+  }
+  if (!summary.groupIds.has(destination.groupId)) {
+    return true
+  }
+  return (summary.groupTabCounts.get(destination.groupId) || 0) <
+    summary.targetTabCount
 }
 
 async function handleMenuShown (info, tab) {

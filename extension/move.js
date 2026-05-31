@@ -505,15 +505,22 @@ function getMovingTabIds (units) {
   return flattenUnits(units).map((tab) => tab.id)
 }
 
+function filterDestinationGroupUnits (units, groupId) {
+  return units.filter((unit) => {
+    return !unit.tabs.every((tab) => tab.groupId === groupId)
+  })
+}
+
 async function runWithGroup (units, groupId, progress, focus) {
+  if (units.length <= 0) {
+    return
+  }
+
   if (hasPinnedUnit(units)) {
     throw new Error('Pinned tabs cannot be moved to a group')
   }
   if (typeof tabs.group !== 'function') {
     throw new Error('tabs.group is unavailable')
-  }
-  if (units.some((unit) => unit.tabs.some((tab) => tab.groupId === groupId))) {
-    throw new Error('Cannot move tabs to their current group')
   }
 
   const groupTabs = await queryGroupTabs(groupId)
@@ -624,7 +631,11 @@ async function getTargetUnits (tabId, keyType, targetScope) {
 }
 
 async function runRawInternal (tabIds, destination, progress, focus) {
-  const units = await buildSelectedUnits(tabIds)
+  const normalizedDestination = normalizeDestination(destination)
+  const selectedUnits = await buildSelectedUnits(tabIds)
+  const units = normalizedDestination.type === 'group'
+    ? filterDestinationGroupUnits(selectedUnits, normalizedDestination.groupId)
+    : selectedUnits
   if (units.length <= 0) {
     return
   }
@@ -635,7 +646,6 @@ async function runRawInternal (tabIds, destination, progress, focus) {
 
   await activateSourceWindows(flattenUnits(units), movingTabIds)
 
-  const normalizedDestination = normalizeDestination(destination)
   switch (normalizedDestination.type) {
     case 'window': {
       await runWithWindow(units, normalizedDestination.windowId, progress, focus)
