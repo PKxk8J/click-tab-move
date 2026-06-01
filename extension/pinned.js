@@ -23,20 +23,20 @@ function setText (id, key, substitutions) {
   document.getElementById(id).textContent = i18n.getMessage(key, substitutions)
 }
 
-async function closeWindow () {
-  const windowInfo = await windows.getCurrent()
-  await windows.remove(windowInfo.id)
-  debug('Pinned confirmation window ' + windowInfo.id + ' was closed')
+async function closeWindow (windowId) {
+  await windows.remove(windowId)
+  debug('Pinned confirmation window ' + windowId + ' was closed')
 }
 
 async function sendDecision (action) {
+  const windowInfo = await windows.getCurrent()
   await runtime.sendMessage({
     type: KEY_PINNED_GROUP_DECISION,
     [KEY_REQUEST_ID]: requestId,
     action,
     remember: document.getElementById('remember').checked,
   })
-  await closeWindow()
+  await closeWindow(windowInfo.id)
 }
 
 function bindAction (id, action) {

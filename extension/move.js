@@ -755,7 +755,12 @@ async function runWithNewGroup (units, progress, focus) {
     ))
   }
 
-  await tabs.group({ tabIds })
+  await tabs.group({
+    tabIds,
+    createProperties: {
+      windowId: toWindowId,
+    },
+  })
   progress.done += tabIds.length
   debug('Tabs ' + tabIds.join(',') + ' moved to a new group')
   await focusMovedUnit(toWindowId, units, focus)
