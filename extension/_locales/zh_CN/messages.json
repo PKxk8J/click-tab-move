@@ -1,0 +1,222 @@
+{
+  "move": {
+    "message": "移动"
+  },
+  "moveX": {
+    "message": "移动 $1"
+  },
+  "one": {
+    "message": "此标签页"
+  },
+  "all": {
+    "message": "所有标签页"
+  },
+  "select": {
+    "message": "选定标签页"
+  },
+  "menuItems": {
+    "message": "移动目标"
+  },
+  "save": {
+    "message": "保存"
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "moveToX": {
+    "message": "移动到 $1"
+  },
+  "moveSource": {
+    "message": "来源"
+  },
+  "moveDestination": {
+    "message": "目标"
+  },
+  "moveTargets": {
+    "message": "移动目标"
+  },
+  "selectGlobalTitle": {
+    "message": "请选择要移动的标签页和标签页组"
+  },
+  "selectGroupTitle": {
+    "message": "请选择组内要移动的标签页"
+  },
+  "selectSize": {
+    "message": "选择窗口大小"
+  },
+  "width": {
+    "message": "宽度"
+  },
+  "height": {
+    "message": "高度"
+  },
+  "newWindow": {
+    "message": "新窗口"
+  },
+  "newGroup": {
+    "message": "新建标签页组"
+  },
+  "global": {
+    "message": "全部"
+  },
+  "group": {
+    "message": "标签页组"
+  },
+  "windowEntry": {
+    "message": "[窗口 $1] $2"
+  },
+  "groupEntry": {
+    "message": "[窗口 $1/组:$2] $3"
+  },
+  "untitledGroup": {
+    "message": "未命名标签页组"
+  },
+  "targetSubjectTab": {
+    "message": "此标签页"
+  },
+  "targetSubjectGroup": {
+    "message": "此标签页组"
+  },
+  "targetGlobalRight": {
+    "message": "$1 右侧的标签页和标签页组"
+  },
+  "targetGlobalThisAndRight": {
+    "message": "$1 和右侧的标签页/标签页组"
+  },
+  "targetGlobalLeft": {
+    "message": "$1 左侧的标签页和标签页组"
+  },
+  "targetGlobalThisAndLeft": {
+    "message": "$1 和左侧的标签页/标签页组"
+  },
+  "targetGlobalAll": {
+    "message": "所有标签页和标签页组"
+  },
+  "targetGlobalSelect": {
+    "message": "选定的标签页和标签页组"
+  },
+  "targetGroupRight": {
+    "message": "组内此标签页右侧的标签页"
+  },
+  "targetGroupThisAndRight": {
+    "message": "组内此标签页和右侧标签页"
+  },
+  "targetGroupLeft": {
+    "message": "组内此标签页左侧的标签页"
+  },
+  "targetGroupThisAndLeft": {
+    "message": "组内此标签页和左侧标签页"
+  },
+  "targetGroupAll": {
+    "message": "组内所有标签页"
+  },
+  "targetGroupSelect": {
+    "message": "组内选定的标签页"
+  },
+  "menuItem_global_one": {
+    "message": "点击的标签页/标签页组"
+  },
+  "menuItem_global_right": {
+    "message": "点击的标签页/标签页组右侧的标签页/标签页组"
+  },
+  "menuItem_global_thisAndRight": {
+    "message": "点击的标签页/标签页组和右侧的标签页/标签页组"
+  },
+  "menuItem_global_left": {
+    "message": "点击的标签页/标签页组左侧的标签页/标签页组"
+  },
+  "menuItem_global_thisAndLeft": {
+    "message": "点击的标签页/标签页组和左侧的标签页/标签页组"
+  },
+  "menuItem_global_all": {
+    "message": "所有标签页/标签页组"
+  },
+  "menuItem_global_select": {
+    "message": "选定的标签页/标签页组"
+  },
+  "menuItem_group_one": {
+    "message": "点击的标签页"
+  },
+  "menuItem_group_right": {
+    "message": "点击的标签页右侧"
+  },
+  "menuItem_group_thisAndRight": {
+    "message": "点击的标签页和右侧"
+  },
+  "menuItem_group_left": {
+    "message": "点击的标签页左侧"
+  },
+  "menuItem_group_thisAndLeft": {
+    "message": "点击的标签页和左侧"
+  },
+  "menuItem_group_all": {
+    "message": "所有标签页"
+  },
+  "menuItem_group_select": {
+    "message": "选定的标签页"
+  },
+  "selectSave": {
+    "message": "保存最后窗口大小"
+  },
+  "right": {
+    "message": "右侧标签页"
+  },
+  "left": {
+    "message": "左侧标签页"
+  },
+  "notification": {
+    "message": "通知"
+  },
+  "focus": {
+    "message": "聚焦到移动的标签页"
+  },
+  "pinnedGroupAction": {
+    "message": "正在尝试将固定标签页移动到组"
+  },
+  "pinnedGroupAction_ask": {
+    "message": "每次询问"
+  },
+  "pinnedGroupAction_skipPinned": {
+    "message": "仅移动未固定标签页"
+  },
+  "pinnedGroupAction_unpinPinned": {
+    "message": "取消固定并移动"
+  },
+  "pinnedGroupDialogTitle": {
+    "message": "请选择如何处理固定标签页"
+  },
+  "pinnedGroupDialogMessage": {
+    "message": "$COUNT$ 个固定标签页需要先取消固定，才能移动到标签页组。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "pinnedGroupRemember": {
+    "message": "下次也使用此选择"
+  },
+  "pinnedGroupDialogSkip": {
+    "message": "仅移动未固定"
+  },
+  "pinnedGroupDialogUnpin": {
+    "message": "取消固定并移动"
+  },
+  "moving": {
+    "message": "移动标签页..."
+  },
+  "successMessage": {
+    "message": "移动标签页用了 $TIME$ 秒。\n$MOVED$ 个标签页已移动。",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "moved": {
+        "content": "$2"
+      }
+    }
+  },
+  "failureMessage": {
+    "message": "移动失败。\n$1"
+  }
+}

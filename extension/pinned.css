@@ -1,0 +1,133 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light dark;
+  --page-bg: Canvas;
+  --surface: Field;
+  --surface-hover: color-mix(in srgb, AccentColor 8%, Field);
+  --text: CanvasText;
+  --muted: color-mix(in srgb, CanvasText 62%, transparent);
+  --border: color-mix(in srgb, CanvasText 18%, transparent);
+  --accent: AccentColor;
+  --accent-text: AccentColorText;
+  --focus: color-mix(in srgb, AccentColor 72%, CanvasText);
+  font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  min-block-size: 100%;
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+.dialog-page {
+  display: grid;
+  min-block-size: 100vh;
+  padding: 18px;
+}
+
+.dialog-shell {
+  display: grid;
+  align-self: center;
+  gap: 18px;
+}
+
+.dialog-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.eyebrow,
+h1,
+p {
+  margin: 0;
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: 1.18rem;
+  font-weight: 720;
+}
+
+p {
+  color: var(--muted);
+}
+
+.remember-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.remember-row:hover {
+  background: var(--surface-hover);
+}
+
+.remember-row input {
+  inline-size: 18px;
+  block-size: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px;
+}
+
+button {
+  min-inline-size: 8rem;
+  min-block-size: 36px;
+  padding: 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+}
+
+button:hover {
+  background: var(--surface-hover);
+}
+
+button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+button:focus-visible,
+.remember-row input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 420px) {
+  .actions {
+    display: grid;
+  }
+
+  button {
+    inline-size: 100%;
+  }
+}

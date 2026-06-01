@@ -1,0 +1,273 @@
+{
+  "debug": {
+    "message": "release",
+    "description": "Set 'debug' to display debug log"
+  },
+  "name": {
+    "message": "ClickTabMove"
+  },
+  "description": {
+    "message": "右クリックメニューからタブを別のウィンドウへ移動します。"
+  },
+  "move": {
+    "message": "移す"
+  },
+  "moveX": {
+    "message": "$1を移す"
+  },
+  "one": {
+    "message": "このタブ"
+  },
+  "all": {
+    "message": "すべてのタブ"
+  },
+  "select": {
+    "message": "選択したタブ"
+  },
+  "menuItems": {
+    "message": "移動対象"
+  },
+  "settings": {
+    "message": "設定"
+  },
+  "feedback": {
+    "message": "フィードバック"
+  },
+  "behavior": {
+    "message": "動作"
+  },
+  "saveStatusSaving": {
+    "message": "保存中..."
+  },
+  "saveStatusSaved": {
+    "message": "保存しました"
+  },
+  "saveStatusFailed": {
+    "message": "保存できませんでした"
+  },
+  "cancel": {
+    "message": "やめる"
+  },
+  "moveToX": {
+    "message": "$1へ移す"
+  },
+  "moveSource": {
+    "message": "移動元"
+  },
+  "moveDestination": {
+    "message": "移動先"
+  },
+  "moveTargets": {
+    "message": "移動対象"
+  },
+  "selectGlobalTitle": {
+    "message": "移動させるタブ・グループを選択してください"
+  },
+  "selectGroupTitle": {
+    "message": "グループ内の移動させるタブを選択してください"
+  },
+  "selectSize": {
+    "message": "選択ウィンドウサイズ"
+  },
+  "width": {
+    "message": "幅"
+  },
+  "height": {
+    "message": "高さ"
+  },
+  "newWindow": {
+    "message": "新しいウィンドウ"
+  },
+  "newGroup": {
+    "message": "新しいグループ"
+  },
+  "global": {
+    "message": "全体"
+  },
+  "group": {
+    "message": "グループ"
+  },
+  "windowEntry": {
+    "message": "[ウィンドウ$1] $2"
+  },
+  "groupEntry": {
+    "message": "[ウィンドウ$1/グループ:$2] $3"
+  },
+  "untitledGroup": {
+    "message": "名前なしのグループ"
+  },
+  "targetSubjectTab": {
+    "message": "このタブ"
+  },
+  "targetSubjectGroup": {
+    "message": "このグループ"
+  },
+  "targetGlobalRight": {
+    "message": "$1より右側のタブ・グループ"
+  },
+  "targetGlobalThisAndRight": {
+    "message": "$1と右側のタブ・グループ"
+  },
+  "targetGlobalLeft": {
+    "message": "$1より左側のタブ・グループ"
+  },
+  "targetGlobalThisAndLeft": {
+    "message": "$1と左側のタブ・グループ"
+  },
+  "targetGlobalAll": {
+    "message": "全てのタブ・グループ"
+  },
+  "targetGlobalSelect": {
+    "message": "選択したタブ・グループ"
+  },
+  "targetGroupRight": {
+    "message": "グループ内のこのタブより右側のタブ"
+  },
+  "targetGroupThisAndRight": {
+    "message": "グループ内のこのタブと右側のタブ"
+  },
+  "targetGroupLeft": {
+    "message": "グループ内のこのタブより左側のタブ"
+  },
+  "targetGroupThisAndLeft": {
+    "message": "グループ内のこのタブと左側のタブ"
+  },
+  "targetGroupAll": {
+    "message": "グループ内の全てのタブ"
+  },
+  "targetGroupSelect": {
+    "message": "グループ内の選択したタブ"
+  },
+  "menuItem_global_one": {
+    "message": "クリックしたタブ・グループ"
+  },
+  "menuItem_global_right": {
+    "message": "クリックしたタブ・グループより右側のタブ・グループ"
+  },
+  "menuItem_global_thisAndRight": {
+    "message": "クリックしたタブ・グループと右側のタブ・グループ"
+  },
+  "menuItem_global_left": {
+    "message": "クリックしたタブ・グループより左側のタブ・グループ"
+  },
+  "menuItem_global_thisAndLeft": {
+    "message": "クリックしたタブ・グループと左側のタブ・グループ"
+  },
+  "menuItem_global_all": {
+    "message": "全てのタブ・グループ"
+  },
+  "menuItem_global_select": {
+    "message": "選択したタブ・グループ"
+  },
+  "menuItem_group_one": {
+    "message": "クリックしたタブ"
+  },
+  "menuItem_group_right": {
+    "message": "クリックしたタブより右側"
+  },
+  "menuItem_group_thisAndRight": {
+    "message": "クリックしたタブと右側"
+  },
+  "menuItem_group_left": {
+    "message": "クリックしたタブより左側"
+  },
+  "menuItem_group_thisAndLeft": {
+    "message": "クリックしたタブと左側"
+  },
+  "menuItem_group_all": {
+    "message": "全てのタブ"
+  },
+  "menuItem_group_select": {
+    "message": "選択したタブ"
+  },
+  "selectSave": {
+    "message": "閉じたときの選択ウィンドウサイズを記憶する"
+  },
+  "right": {
+    "message": "右側のタブ"
+  },
+  "thisAndRight": {
+    "message": "ここから右のタブ"
+  },
+  "left": {
+    "message": "左側のタブ"
+  },
+  "thisAndLeft": {
+    "message": "ここから左のタブ"
+  },
+  "notification": {
+    "message": "通知"
+  },
+  "focus": {
+    "message": "移動させたタブにフォーカスする"
+  },
+  "pinnedGroupAction": {
+    "message": "ピン留めされたタブをグループへ移そうとしています"
+  },
+  "pinnedGroupAction_ask": {
+    "message": "確認する"
+  },
+  "pinnedGroupAction_skipPinned": {
+    "message": "ピン留めされたタブ以外を移動する"
+  },
+  "pinnedGroupAction_unpinPinned": {
+    "message": "ピン留めを外して移動する"
+  },
+  "pinnedGroupDialogTitle": {
+    "message": "ピン留めされたタブの扱いを決めてください"
+  },
+  "pinnedGroupDialogMessage": {
+    "message": "$COUNT$ 個のピン留めされたタブは、グループへ移動するにはピン留めを外す必要があります。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "pinnedGroupRemember": {
+    "message": "次回からも同じようにする"
+  },
+  "pinnedGroupDialogSkip": {
+    "message": "ピン留めされたタブ以外を移動"
+  },
+  "pinnedGroupDialogUnpin": {
+    "message": "ピン留めを外して移動"
+  },
+  "moving": {
+    "message": "タブ移動中..."
+  },
+  "progress": {
+    "message": "タブ移動中... $PROGRESS$%完了: $TIME$秒",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "progress": {
+        "content": "$2"
+      }
+    }
+  },
+  "successMessage": {
+    "message": "タブ移動完了: $TIME$秒\n$MOVED$個のタブを移動",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "moved": {
+        "content": "$2"
+      }
+    }
+  },
+  "failureMessage": {
+    "message": "タブ移動失敗\n$1"
+  },
+  "contexts": {
+    "message": "クリックメニュー"
+  },
+  "contextTab": {
+    "message": "タブ"
+  },
+  "contextAll": {
+    "message": "ページ"
+  }
+}

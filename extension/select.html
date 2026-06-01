@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="color-scheme" content="light dark">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            color-scheme: light dark;
+            --page-bg: Canvas;
+            --surface: Field;
+            --text: CanvasText;
+            --muted-border: color-mix(in srgb, CanvasText 18%, transparent);
+            --accent: AccentColor;
+            font: 14px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        html,
+        body {
+            min-block-size: 100%;
+            margin: 0;
+            background: var(--page-bg);
+            color: var(--text);
+        }
+
+        body {
+            display: grid;
+        }
+
+        .select-page {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 12px;
+            min-block-size: 100vh;
+            padding: 14px;
+        }
+
+        h1 {
+            margin: 0;
+            overflow-wrap: anywhere;
+            font-size: 1rem;
+            font-weight: 680;
+        }
+
+        .select-header {
+            display: grid;
+            gap: 10px;
+        }
+
+        .fields {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: minmax(5rem, max-content) minmax(0, 1fr);
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field-label,
+        .section-label {
+            color: color-mix(in srgb, CanvasText 68%, transparent);
+            font-size: 0.86rem;
+            font-weight: 650;
+        }
+
+        .field-value {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .target-section {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 6px;
+            min-block-size: 0;
+        }
+
+        .tab-list {
+            overflow: auto;
+            min-block-size: 220px;
+            border: 1px solid var(--muted-border);
+            border-radius: 8px;
+            background: var(--surface);
+        }
+
+        .tab-option {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: center;
+            gap: 8px;
+            min-block-size: 34px;
+            padding: 6px 8px;
+            border-block-end: 1px solid color-mix(in srgb, CanvasText 10%, transparent);
+        }
+
+        .tab-option:last-child {
+            border-block-end: 0;
+        }
+
+        .tab-option:hover {
+            background: color-mix(in srgb, AccentColor 12%, transparent);
+        }
+
+        .tab-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        input[type="checkbox"]:focus-visible,
+        button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button {
+            min-inline-size: 7rem;
+            padding: 7px 12px;
+            border: 1px solid var(--muted-border);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text);
+            font: inherit;
+            font-weight: 620;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+        }
+    </style>
+</head>
+
+<body>
+
+<main class="select-page">
+    <header class="select-header">
+        <h1 id="selectionTitle"></h1>
+        <div class="fields">
+            <div class="field-row">
+                <span class="field-label" id="label_moveSource"></span>
+                <output class="field-value" id="source"></output>
+            </div>
+            <div class="field-row">
+                <span class="field-label" id="label_moveDestination"></span>
+                <output class="field-value" id="destinationDisplay"></output>
+            </div>
+        </div>
+    </header>
+    <section class="target-section" aria-labelledby="label_moveTargets">
+        <div class="section-label" id="label_moveTargets"></div>
+        <div id="select" class="tab-list" role="listbox" aria-multiselectable="true"></div>
+    </section>
+    <div class="actions">
+        <button id="move" type="button"><span id="label_move"></span></button>
+        <button id="cancel" type="button"><span id="label_cancel"></span></button>
+    </div>
+</main>
+
+<script type="module" src="select.js"></script>
+
+</body>
+
+</html>

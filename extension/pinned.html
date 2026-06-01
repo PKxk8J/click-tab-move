@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <link rel="stylesheet" href="pinned.css">
+</head>
+
+<body>
+
+<main class="dialog-page">
+    <section class="dialog-shell" aria-labelledby="dialogTitle">
+        <div class="dialog-copy">
+            <p class="eyebrow" id="label_pinnedGroupAction"></p>
+            <h1 id="dialogTitle"></h1>
+            <p id="dialogMessage"></p>
+        </div>
+
+        <label class="remember-row">
+            <input id="remember" type="checkbox">
+            <span id="label_pinnedGroupRemember"></span>
+        </label>
+
+        <div class="actions">
+            <button id="cancel" type="button" class="secondary"></button>
+            <button id="skipPinned" type="button" class="secondary"></button>
+            <button id="unpinPinned" type="button" class="primary"></button>
+        </div>
+    </section>
+</main>
+
+<script type="module" src="pinned.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,273 @@
+{
+  "debug": {
+    "message": "release",
+    "description": "Set 'debug' to display debug log"
+  },
+  "name": {
+    "message": "ClickTabMove"
+  },
+  "description": {
+    "message": "Move tabs to another window from the right click menu."
+  },
+  "move": {
+    "message": "Move"
+  },
+  "moveX": {
+    "message": "Move $1"
+  },
+  "one": {
+    "message": "This Tab"
+  },
+  "all": {
+    "message": "All Tabs"
+  },
+  "select": {
+    "message": "Selected Tabs"
+  },
+  "menuItems": {
+    "message": "Move Targets"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "feedback": {
+    "message": "Feedback"
+  },
+  "behavior": {
+    "message": "Behavior"
+  },
+  "saveStatusSaving": {
+    "message": "Saving..."
+  },
+  "saveStatusSaved": {
+    "message": "Saved"
+  },
+  "saveStatusFailed": {
+    "message": "Save failed"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "moveToX": {
+    "message": "Move to $1"
+  },
+  "moveSource": {
+    "message": "Source"
+  },
+  "moveDestination": {
+    "message": "Destination"
+  },
+  "moveTargets": {
+    "message": "Move Targets"
+  },
+  "selectGlobalTitle": {
+    "message": "Select the tabs and groups to move"
+  },
+  "selectGroupTitle": {
+    "message": "Select the tabs in the group to move"
+  },
+  "selectSize": {
+    "message": "Select Window Size"
+  },
+  "width": {
+    "message": "Width"
+  },
+  "height": {
+    "message": "Height"
+  },
+  "newWindow": {
+    "message": "New Window"
+  },
+  "newGroup": {
+    "message": "New Group"
+  },
+  "global": {
+    "message": "All"
+  },
+  "group": {
+    "message": "Group"
+  },
+  "windowEntry": {
+    "message": "[Window $1] $2"
+  },
+  "groupEntry": {
+    "message": "[Window $1/Group:$2] $3"
+  },
+  "untitledGroup": {
+    "message": "Untitled Group"
+  },
+  "targetSubjectTab": {
+    "message": "This Tab"
+  },
+  "targetSubjectGroup": {
+    "message": "This Group"
+  },
+  "targetGlobalRight": {
+    "message": "Tabs and groups to the right of $1"
+  },
+  "targetGlobalThisAndRight": {
+    "message": "$1 and tabs/groups to the right"
+  },
+  "targetGlobalLeft": {
+    "message": "Tabs and groups to the left of $1"
+  },
+  "targetGlobalThisAndLeft": {
+    "message": "$1 and tabs/groups to the left"
+  },
+  "targetGlobalAll": {
+    "message": "All Tabs and Groups"
+  },
+  "targetGlobalSelect": {
+    "message": "Selected Tabs and Groups"
+  },
+  "targetGroupRight": {
+    "message": "Tabs to the right of this tab in the group"
+  },
+  "targetGroupThisAndRight": {
+    "message": "This tab and tabs to the right in the group"
+  },
+  "targetGroupLeft": {
+    "message": "Tabs to the left of this tab in the group"
+  },
+  "targetGroupThisAndLeft": {
+    "message": "This tab and tabs to the left in the group"
+  },
+  "targetGroupAll": {
+    "message": "All Tabs in This Group"
+  },
+  "targetGroupSelect": {
+    "message": "Selected Tabs in This Group"
+  },
+  "menuItem_global_one": {
+    "message": "Clicked tab/group"
+  },
+  "menuItem_global_right": {
+    "message": "Tabs/groups to the right of the clicked tab/group"
+  },
+  "menuItem_global_thisAndRight": {
+    "message": "Clicked tab/group and tabs/groups to the right"
+  },
+  "menuItem_global_left": {
+    "message": "Tabs/groups to the left of the clicked tab/group"
+  },
+  "menuItem_global_thisAndLeft": {
+    "message": "Clicked tab/group and tabs/groups to the left"
+  },
+  "menuItem_global_all": {
+    "message": "All tabs/groups"
+  },
+  "menuItem_global_select": {
+    "message": "Selected tabs/groups"
+  },
+  "menuItem_group_one": {
+    "message": "Clicked tab"
+  },
+  "menuItem_group_right": {
+    "message": "Tabs to the right of the clicked tab"
+  },
+  "menuItem_group_thisAndRight": {
+    "message": "Clicked tab and tabs to the right"
+  },
+  "menuItem_group_left": {
+    "message": "Tabs to the left of the clicked tab"
+  },
+  "menuItem_group_thisAndLeft": {
+    "message": "Clicked tab and tabs to the left"
+  },
+  "menuItem_group_all": {
+    "message": "All tabs"
+  },
+  "menuItem_group_select": {
+    "message": "Selected tabs"
+  },
+  "selectSave": {
+    "message": "Save last select window size"
+  },
+  "right": {
+    "message": "Right Tabs"
+  },
+  "thisAndRight": {
+    "message": "This and Right Tabs"
+  },
+  "left": {
+    "message": "Left Tabs"
+  },
+  "thisAndLeft": {
+    "message": "This and Left Tabs"
+  },
+  "notification": {
+    "message": "Notification"
+  },
+  "focus": {
+    "message": "Focus on the moved tab"
+  },
+  "pinnedGroupAction": {
+    "message": "You are moving pinned tabs to a group"
+  },
+  "pinnedGroupAction_ask": {
+    "message": "Ask each time"
+  },
+  "pinnedGroupAction_skipPinned": {
+    "message": "Move only unpinned tabs"
+  },
+  "pinnedGroupAction_unpinPinned": {
+    "message": "Unpin and move"
+  },
+  "pinnedGroupDialogTitle": {
+    "message": "Choose how to handle pinned tabs"
+  },
+  "pinnedGroupDialogMessage": {
+    "message": "$COUNT$ pinned tabs must be unpinned before they can be moved to a group.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "pinnedGroupRemember": {
+    "message": "Use this choice next time"
+  },
+  "pinnedGroupDialogSkip": {
+    "message": "Move unpinned only"
+  },
+  "pinnedGroupDialogUnpin": {
+    "message": "Unpin and move"
+  },
+  "moving": {
+    "message": "Moving tabs..."
+  },
+  "progress": {
+    "message": "Moving tabs... $PROGRESS$% completed in $TIME$ seconds.",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "progress": {
+        "content": "$2"
+      }
+    }
+  },
+  "successMessage": {
+    "message": "Moving tabs completed in $TIME$ seconds.\n$MOVED$ tabs were moved.",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "moved": {
+        "content": "$2"
+      }
+    }
+  },
+  "failureMessage": {
+    "message": "Moving tabs failed.\n$1"
+  },
+  "contexts": {
+    "message": "Click Menu"
+  },
+  "contextTab": {
+    "message": "On Tabs"
+  },
+  "contextAll": {
+    "message": "On Pages"
+  }
+}

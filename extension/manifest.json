@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_name__",
+  "version": "4.0.0",
+  "description": "__MSG_description__",
+  "homepage_url": "https://github.com/PKxk8J/click-tab-move",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{2bd73814-983c-42f3-a6d5-e68c4668a4cf}",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  },
+  "permissions": [
+    "menus",
+    "storage",
+    "tabGroups",
+    "tabs"
+  ],
+  "optional_permissions": [
+    "notifications"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "type": "module"
+  },
+  "default_locale": "en",
+  "options_ui": {
+    "page": "options.html"
+  }
+}
