@@ -21,11 +21,9 @@ export const KEY_TARGET_GROUP = 'group'
 
 export const KEY_MOVE = 'move'
 export const KEY_MOVE_X = 'moveX'
-export const KEY_MOVE_TO_X = 'moveToX'
 export const KEY_NEW_WINDOW = 'newWindow'
 export const KEY_NEW_GROUP = 'newGroup'
 export const KEY_CANCEL = 'cancel'
-export const KEY_TO_WINDOW_ID = 'toWindowId'
 export const KEY_DESTINATION = 'destination'
 export const KEY_TARGET_SCOPE = 'targetScope'
 export const KEY_GROUP_ID = 'groupId'
@@ -115,7 +113,6 @@ export const NOTIFICATION_PERMISSION = {
 export const NOTIFICATION_ID = i18n.getMessage(KEY_NAME)
 export const NOTIFICATION_INTERVAL = 10 * 1000
 export const POLLING_INTERVAL = 300
-export const BULK_SIZE = 5
 export const DEBUG = (i18n.getMessage(KEY_DEBUG) === 'debug')
 
 export const storageArea = storage.sync
@@ -139,6 +136,54 @@ export async function getValue (key, defaultValue) {
     [key]: value = defaultValue,
   } = await storageArea.get(key)
   return value
+}
+
+export function normalizeInteger (value) {
+  if (value === undefined || value === null || value === '') {
+    return undefined
+  }
+  const normalized = Number(value)
+  return Number.isInteger(normalized) ? normalized : undefined
+}
+
+export function normalizeRequiredInteger (value, name) {
+  const normalized = normalizeInteger(value)
+  if (normalized === undefined) {
+    throw new Error('Invalid ' + name + ': ' + value)
+  }
+  return normalized
+}
+
+export function normalizeTargetScope (targetScope) {
+  return targetScope === KEY_TARGET_GROUP
+    ? KEY_TARGET_GROUP
+    : KEY_TARGET_GLOBAL
+}
+
+export function normalizeDestination (destination) {
+  if (destination === undefined) {
+    return { type: 'newWindow' }
+  }
+
+  if (!destination || typeof destination !== 'object') {
+    throw new Error('Unsupported destination: ' + destination)
+  }
+
+  if (destination.type === 'newWindow') {
+    return { type: 'newWindow' }
+  }
+  if (destination.type === 'window') {
+    return { type: 'window', windowId: normalizeRequiredInteger(
+      destination.windowId, 'destination.windowId') }
+  }
+  if (destination.type === 'newGroup') {
+    return { type: 'newGroup' }
+  }
+  if (destination.type === 'group') {
+    return { type: 'group', groupId: normalizeRequiredInteger(
+      destination.groupId, 'destination.groupId') }
+  }
+  throw new Error('Unsupported destination: ' + JSON.stringify(destination))
 }
 
 function cloneKeys (keys) {

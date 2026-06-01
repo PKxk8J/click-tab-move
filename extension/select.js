@@ -16,8 +16,12 @@ import {
   KEY_TARGET_GROUP,
   KEY_TARGET_SCOPE,
   debug,
+  normalizeDestination,
   normalizeFocus,
+  normalizeInteger,
   normalizeNotification,
+  normalizeRequiredInteger,
+  normalizeTargetScope,
   onError,
 } from './common.js'
 import {
@@ -48,47 +52,6 @@ async function closeWindow () {
 
   await windows.remove(windowInfo.id)
   debug('Select window ' + windowInfo.id + ' was closed')
-}
-
-function normalizeDestination (destination) {
-  if (!destination || typeof destination !== 'object' ||
-      destination.type === 'newWindow') {
-    return { type: 'newWindow' }
-  }
-  if (destination.type === 'window') {
-    return { type: 'window', windowId: normalizeRequiredInteger(
-      destination.windowId, 'destination.windowId') }
-  }
-  if (destination.type === 'newGroup') {
-    return { type: 'newGroup' }
-  }
-  if (destination.type === 'group') {
-    return { type: 'group', groupId: normalizeRequiredInteger(
-      destination.groupId, 'destination.groupId') }
-  }
-  return { type: 'newWindow' }
-}
-
-function normalizeInteger (value) {
-  if (value === undefined || value === null || value === '') {
-    return undefined
-  }
-  const numberValue = Number(value)
-  return Number.isInteger(numberValue) ? numberValue : undefined
-}
-
-function normalizeRequiredInteger (value, name) {
-  const normalized = normalizeInteger(value)
-  if (normalized === undefined) {
-    throw new Error('Invalid ' + name + ': ' + value)
-  }
-  return normalized
-}
-
-function normalizeTargetScope (targetScope) {
-  return targetScope === KEY_TARGET_GROUP
-    ? KEY_TARGET_GROUP
-    : KEY_TARGET_GLOBAL
 }
 
 function normalizeResetMessage (message) {

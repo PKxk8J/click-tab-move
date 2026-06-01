@@ -99,8 +99,7 @@ h3 {
 }
 
 .toggle-list,
-.number-list,
-.choice-list {
+.number-list {
   display: grid;
   gap: 10px;
 }
@@ -114,16 +113,9 @@ h3 {
   margin-block-start: 18px;
 }
 
-.behavior-choice {
-  display: grid;
-  gap: 10px;
-  margin-block-start: 18px;
-}
-
 .toggle-row,
 .number-field,
-.select-field,
-.choice-row {
+.select-field {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
@@ -139,15 +131,9 @@ h3 {
   cursor: pointer;
 }
 
-.choice-row {
-  grid-template-columns: auto minmax(0, 1fr);
-  cursor: pointer;
-}
-
 .toggle-row:hover,
 .number-field:hover,
-.select-field:hover,
-.choice-row:hover {
+.select-field:hover {
   background: var(--surface-hover);
 }
 
@@ -175,18 +161,6 @@ h3 {
 
 .number-field input:focus-visible,
 .select-field select:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.choice-input {
-  inline-size: 18px;
-  block-size: 18px;
-  margin: 0;
-  accent-color: var(--accent);
-}
-
-.choice-input:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }

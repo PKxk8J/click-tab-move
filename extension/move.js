@@ -37,11 +37,15 @@ import {
   asleep,
   debug,
   getValue,
+  normalizeDestination,
   normalizeFocus,
+  normalizeInteger,
   normalizeNotification,
   normalizePinnedGroupAction,
+  normalizeRequiredInteger,
   normalizeSelectSave,
   normalizeSelectSize,
+  normalizeTargetScope,
   onError,
   storageArea,
 } from './common.js'
@@ -79,28 +83,19 @@ async function waitSelectWindowReady (tabId) {
   }
 }
 
-function normalizeSelectRequest (request, toWindowId) {
-  if (request && typeof request === 'object') {
-    return {
-      fromWindowId: request.fromWindowId,
-      groupId: request.groupId,
-      targetScope: request.targetScope || KEY_TARGET_GLOBAL,
-      destination: request.destination,
-    }
-  }
-
+function normalizeSelectRequest (request) {
   return {
-    fromWindowId: request,
-    targetScope: KEY_TARGET_GLOBAL,
-    destination: toWindowId === undefined
-      ? { type: 'newWindow' }
-      : { type: 'window', windowId: toWindowId },
+    fromWindowId: normalizeRequiredInteger(request.fromWindowId,
+      'fromWindowId'),
+    groupId: normalizeInteger(request.groupId),
+    targetScope: normalizeTargetScope(request.targetScope),
+    destination: normalizeDestination(request.destination),
   }
 }
 
 export async function select (
-  request, toWindowId, notification, focus, onCreate) {
-  const selectRequest = normalizeSelectRequest(request, toWindowId)
+  request, notification, focus, onCreate) {
+  const selectRequest = normalizeSelectRequest(request)
 
   function resetWindow () {
     runtime.sendMessage({
@@ -221,48 +216,6 @@ function splitUnitsByPinned (units) {
   return { pinnedUnits, unpinnedUnits }
 }
 
-function normalizeDestination (destination) {
-  if (destination && typeof destination === 'object') {
-    if (destination.type === 'newWindow') {
-      return { type: 'newWindow' }
-    }
-    if (destination.type === 'window') {
-      const windowId = Number(destination.windowId)
-      if (Number.isInteger(windowId)) {
-        return { type: 'window', windowId }
-      }
-    }
-    if (destination.type === 'newGroup') {
-      return { type: 'newGroup' }
-    }
-    if (destination.type === 'group') {
-      const groupId = Number(destination.groupId)
-      if (Number.isInteger(groupId)) {
-        return { type: 'group', groupId }
-      }
-    }
-    throw new Error('Unsupported destination: ' + JSON.stringify(destination))
-  }
-
-  if (destination === undefined) {
-    return { type: 'newWindow' }
-  }
-
-  const windowId = Number(destination)
-  if (Number.isInteger(windowId)) {
-    return { type: 'window', windowId }
-  }
-  throw new Error('Unsupported destination: ' + destination)
-}
-
-function normalizeInteger (value) {
-  if (value === undefined || value === null || value === '') {
-    return undefined
-  }
-  const normalized = Number(value)
-  return Number.isInteger(normalized) ? normalized : undefined
-}
-
 function normalizeRunContext (context) {
   if (!context || typeof context !== 'object') {
     return {
@@ -270,11 +223,8 @@ function normalizeRunContext (context) {
     }
   }
 
-  const targetScope = context[KEY_TARGET_SCOPE] === KEY_TARGET_GROUP
-    ? KEY_TARGET_GROUP
-    : KEY_TARGET_GLOBAL
   return {
-    targetScope,
+    targetScope: normalizeTargetScope(context[KEY_TARGET_SCOPE]),
     groupId: normalizeInteger(context[KEY_GROUP_ID]),
     sourceWindowId: normalizeInteger(context[KEY_SOURCE_WINDOW_ID]),
   }
@@ -959,7 +909,7 @@ async function handleInternalMessage (message) {
         break
       }
       await rawRun(message.tabIds,
-        message[KEY_DESTINATION] ?? message.toWindowId,
+        message[KEY_DESTINATION],
         normalizeNotification(message.notification),
         normalizeFocus(message.focus), {
           [KEY_TARGET_SCOPE]: message[KEY_TARGET_SCOPE],

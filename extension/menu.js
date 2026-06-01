@@ -409,7 +409,6 @@ async function getTargetSummary (entry, targetTab) {
         ? new Set([targetTab.groupId])
         : new Set(),
       groupTabCounts: new Map(),
-      hasPinned: false,
       singleWholeGroup: false,
       targetTabCount: 0,
     }
@@ -444,7 +443,6 @@ async function getTargetSummary (entry, targetTab) {
       ? new Set([targetTab.groupId])
       : new Set(),
     groupTabCounts,
-    hasPinned: tabInfos.some((tab) => tab.pinned),
     singleWholeGroup: entry.scope === KEY_TARGET_GLOBAL &&
       entry.key === KEY_ONE &&
       isGroupedTab(targetTab),
@@ -570,7 +568,7 @@ async function handleMenuClick (info, tab) {
       groupId: target.scope === KEY_TARGET_GROUP ? targetTab.groupId : undefined,
       targetScope: target.scope,
       destination: target.destination,
-    }, undefined, notification, focus, () => queueRebuildMenu().catch(onError))
+    }, notification, focus, () => queueRebuildMenu().catch(onError))
     return
   }
 
