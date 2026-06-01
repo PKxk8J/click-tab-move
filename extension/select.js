@@ -33,6 +33,7 @@ const {
 } = browser
 
 let currentMoveRequest
+let tabIdsByCheckboxId = new Map()
 
 async function closeWindow () {
   const windowInfo = await windows.getCurrent()
@@ -113,7 +114,7 @@ function getTabCheckboxes () {
 function getSelectedTabIds () {
   return getTabCheckboxes().
     filter((checkbox) => checkbox.checked).
-    flatMap((checkbox) => checkbox.dataset.tabIds.split(',').map(Number))
+    flatMap((checkbox) => tabIdsByCheckboxId.get(checkbox.id) || [])
 }
 
 function updateMoveButtonState () {
@@ -226,8 +227,7 @@ function getTargetTitle (targetScope) {
     : 'selectGlobalTitle')
 }
 
-function createTabOption (unit, groupInfos, index) {
-  const checkboxId = 'tab-option-' + index
+function createTabOption (unit, groupInfos, checkboxId) {
   const label = document.createElement('label')
   label.className = 'tab-option'
   label.htmlFor = checkboxId
@@ -237,7 +237,6 @@ function createTabOption (unit, groupInfos, index) {
   const checkbox = document.createElement('input')
   checkbox.id = checkboxId
   checkbox.type = 'checkbox'
-  checkbox.dataset.tabIds = unit.tabs.map((tab) => tab.id).join(',')
 
   const title = document.createElement('span')
   title.className = 'tab-title'
@@ -245,6 +244,18 @@ function createTabOption (unit, groupInfos, index) {
 
   label.append(checkbox, title)
   return label
+}
+
+function replaceTabOptions (units, groupInfos) {
+  const nextTabIdsByCheckboxId = new Map()
+  const options = units.map((unit, index) => {
+    const checkboxId = 'tab-option-' + index
+    nextTabIdsByCheckboxId.set(checkboxId, unit.tabs.map((tab) => tab.id))
+    return createTabOption(unit, groupInfos, checkboxId)
+  })
+
+  tabIdsByCheckboxId = nextTabIdsByCheckboxId
+  document.getElementById(KEY_SELECT).replaceChildren(...options)
 }
 
 function handleTabListKeyDown (event) {
@@ -282,6 +293,7 @@ function handleTabListChange (event) {
 async function reset (
   { fromWindowId, groupId, targetScope, destination, notification, focus }) {
   currentMoveRequest = undefined
+  tabIdsByCheckboxId = new Map()
   updateMoveButtonState()
 
   const title = getTargetTitle(targetScope)
@@ -301,11 +313,7 @@ async function reset (
     : buildTabUnits(tabList)
   const groupInfos = await getGroupInfoMap()
 
-  const select = document.getElementById(KEY_SELECT)
-  select.replaceChildren()
-  units.forEach((unit, index) => {
-    select.appendChild(createTabOption(unit, groupInfos, index))
-  })
+  replaceTabOptions(units, groupInfos)
 
   currentMoveRequest = {
     fromWindowId,
