@@ -439,8 +439,7 @@ function isDestinationVisible (entry, destination, summary, selectWindowId) {
       destination.windowId !== selectWindowId
   }
 
-  if (entry.key === KEY_ALL || summary.hasPinned ||
-      typeof tabs.group !== 'function') {
+  if (summary.hasPinned || typeof tabs.group !== 'function') {
     return false
   }
 
