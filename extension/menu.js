@@ -34,6 +34,9 @@ import {
   run,
   select,
 } from './move.js'
+import {
+  isGroupedTab,
+} from './tab-units.js'
 
 const {
   i18n,
@@ -59,14 +62,6 @@ function cut (text, length) {
     return text
   }
   return text.substring(0, length) + '...'
-}
-
-function getNoGroupId () {
-  return browser.tabGroups?.TAB_GROUP_ID_NONE ?? -1
-}
-
-function isGroupedTab (tab) {
-  return tab.groupId !== undefined && tab.groupId !== getNoGroupId()
 }
 
 function sortTabsByWindowAndIndex (tabList) {

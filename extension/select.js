@@ -20,6 +20,10 @@ import {
   normalizeNotification,
   onError,
 } from './common.js'
+import {
+  buildTabUnits,
+  buildTopLevelUnits,
+} from './tab-units.js'
 
 const {
   i18n,
@@ -43,119 +47,6 @@ async function closeWindow () {
 
   await windows.remove(windowInfo.id)
   debug('Select window ' + windowInfo.id + ' was closed')
-}
-
-function getNoGroupId () {
-  return browser.tabGroups?.TAB_GROUP_ID_NONE ?? -1
-}
-
-function getNoSplitViewId () {
-  return tabs.SPLIT_VIEW_ID_NONE ?? -1
-}
-
-function isGroupedTab (tab) {
-  return tab.groupId !== undefined && tab.groupId !== getNoGroupId()
-}
-
-function isSplitViewTab (tab) {
-  return tab.splitViewId !== undefined &&
-    tab.splitViewId !== getNoSplitViewId()
-}
-
-function sortTabsByIndex (tabList) {
-  return [...tabList].sort((tab1, tab2) => tab1.index - tab2.index)
-}
-
-function makeTabUnit (tab) {
-  return {
-    type: 'tab',
-    tabs: [tab],
-  }
-}
-
-function makeSplitViewUnit (tabList, startIndex) {
-  const splitViewId = tabList[startIndex].splitViewId
-  const unitTabs = []
-  let index = startIndex
-  for (; index < tabList.length; index++) {
-    if (tabList[index].splitViewId !== splitViewId) {
-      break
-    }
-    unitTabs.push(tabList[index])
-  }
-
-  return {
-    nextIndex: index,
-    unit: {
-      type: 'splitView',
-      splitViewId,
-      tabs: unitTabs,
-    },
-  }
-}
-
-function buildTabUnits (tabList) {
-  const units = []
-  const sortedTabs = sortTabsByIndex(tabList)
-  for (let i = 0; i < sortedTabs.length;) {
-    const tab = sortedTabs[i]
-    if (isSplitViewTab(tab)) {
-      const { unit, nextIndex } = makeSplitViewUnit(sortedTabs, i)
-      units.push(unit)
-      i = nextIndex
-      continue
-    }
-
-    units.push(makeTabUnit(tab))
-    i++
-  }
-  return units
-}
-
-function makeGroupUnit (tabList, startIndex) {
-  const groupId = tabList[startIndex].groupId
-  const groupTabs = []
-  let index = startIndex
-  for (; index < tabList.length; index++) {
-    if (tabList[index].groupId !== groupId) {
-      break
-    }
-    groupTabs.push(tabList[index])
-  }
-
-  return {
-    nextIndex: index,
-    unit: {
-      type: 'group',
-      groupId,
-      tabs: groupTabs,
-    },
-  }
-}
-
-function buildTopLevelUnits (tabList) {
-  const units = []
-  const sortedTabs = sortTabsByIndex(tabList)
-  for (let i = 0; i < sortedTabs.length;) {
-    const tab = sortedTabs[i]
-    if (isGroupedTab(tab)) {
-      const { unit, nextIndex } = makeGroupUnit(sortedTabs, i)
-      units.push(unit)
-      i = nextIndex
-      continue
-    }
-
-    if (isSplitViewTab(tab)) {
-      const { unit, nextIndex } = makeSplitViewUnit(sortedTabs, i)
-      units.push(unit)
-      i = nextIndex
-      continue
-    }
-
-    units.push(makeTabUnit(tab))
-    i++
-  }
-  return units
 }
 
 function normalizeDestination (destination) {
