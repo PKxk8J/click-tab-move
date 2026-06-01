@@ -37,6 +37,7 @@ https://addons.mozilla.org/addon/clicktabmove/
 npm install
 npm run lint
 npm run test
+npm run test:e2e
 npm run build
 ```
 
@@ -45,6 +46,12 @@ npm run build
 
 `npm run run` は、この拡張機能を一時的に読み込んだ Firefox を起動します。
 拡張機能のソースは `extension/` にあります。
+
+`npm run test` は Node.js 上の単体テストを実行します。
+`npm run test:e2e` は Selenium と Geckodriver で Firefox をヘッドレス起動し、
+一時的に拡張機能を読み込んで実ブラウザ上の動作を確認します。
+Firefox が PATH にない場合は `FIREFOX_BINARY=/path/to/firefox npm run test:e2e`
+で実行できます。
 
 ## プライバシー
 
