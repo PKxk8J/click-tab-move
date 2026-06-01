@@ -26,6 +26,15 @@
   "moveToX": {
     "message": "移动到 $1"
   },
+  "moveSource": {
+    "message": "来源"
+  },
+  "moveDestination": {
+    "message": "目标"
+  },
+  "moveTargets": {
+    "message": "移动目标"
+  },
   "selectSize": {
     "message": "选择窗口大小"
   },

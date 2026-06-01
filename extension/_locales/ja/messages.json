@@ -51,6 +51,15 @@
   "moveToX": {
     "message": "$1へ移す"
   },
+  "moveSource": {
+    "message": "移動元"
+  },
+  "moveDestination": {
+    "message": "移動先"
+  },
+  "moveTargets": {
+    "message": "移動対象"
+  },
   "selectSize": {
     "message": "選択ウィンドウサイズ"
   },

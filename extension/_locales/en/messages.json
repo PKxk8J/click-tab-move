@@ -51,6 +51,15 @@
   "moveToX": {
     "message": "Move to $1"
   },
+  "moveSource": {
+    "message": "Source"
+  },
+  "moveDestination": {
+    "message": "Destination"
+  },
+  "moveTargets": {
+    "message": "Move Targets"
+  },
   "selectSize": {
     "message": "Select Window Size"
   },

@@ -141,6 +141,20 @@ function parseTargetMenuId (id) {
   }
 }
 
+function parseSelectEntryMenuId (id) {
+  const parts = id.split(':')
+  if (parts.length !== 3 || parts[0] !== 'entry') {
+    return
+  }
+
+  const [, scope, key] = parts
+  if (!ALL_MENU_SCOPES.includes(scope) || key !== KEY_SELECT ||
+      !MENU_ITEMS_BY_SCOPE[scope].includes(key)) {
+    return
+  }
+  return { scope, key }
+}
+
 function getMenuEntries (menuItems) {
   const entries = []
   for (const scope of ALL_MENU_SCOPES) {
@@ -362,6 +376,10 @@ async function rebuildMenu () {
       parentId: KEY_MOVE,
     })
 
+    if (entry.key === KEY_SELECT) {
+      continue
+    }
+
     for (const destination of getAllDestinations()) {
       await createMenuItem({
         id: getDestinationMenuId(entry.scope, entry.key, destination),
@@ -521,11 +539,13 @@ async function handleMenuShown (info, tab) {
   }
 
   const visibleEntries = entryStates.filter((state) => state.visible)
-  const nested = visibleEntries.length > 1
+  const nested = visibleEntries.length > 1 ||
+    visibleEntries.some((state) => state.entry.key === KEY_SELECT)
   const updates = []
   updates.push(updateMenuItem(KEY_MOVE, {
     visible: visibleEntries.length > 0,
-    title: visibleEntries.length === 1
+    title: visibleEntries.length === 1 &&
+      visibleEntries[0].entry.key !== KEY_SELECT
       ? getEntryTitle(visibleEntries[0].entry, targetTab, true)
       : i18n.getMessage(KEY_MOVE),
   }).catch(onError))
@@ -533,6 +553,14 @@ async function handleMenuShown (info, tab) {
   for (const state of entryStates) {
     const { entry } = state
     const entryMenuId = getEntryMenuId(entry.scope, entry.key)
+    if (entry.key === KEY_SELECT) {
+      updates.push(updateMenuItem(entryMenuId, {
+        visible: state.visible,
+        title: getEntryTitle(entry, targetTab, false),
+      }).catch(onError))
+      continue
+    }
+
     for (const { destination, visible } of state.destinationVisibilities) {
       updates.push(updateMenuItem(
         getDestinationMenuId(entry.scope, entry.key, destination),
@@ -555,7 +583,8 @@ async function handleMenuShown (info, tab) {
 }
 
 async function handleMenuClick (info, tab) {
-  const target = parseTargetMenuId(info.menuItemId)
+  const target = parseTargetMenuId(info.menuItemId) ||
+    parseSelectEntryMenuId(info.menuItemId)
   if (!target) {
     return
   }
@@ -574,7 +603,7 @@ async function handleMenuClick (info, tab) {
       fromWindowId: targetTab.windowId,
       groupId: target.scope === KEY_TARGET_GROUP ? targetTab.groupId : undefined,
       targetScope: target.scope,
-      destination: target.destination,
+      destination: target.destination || { type: 'newWindow' },
     }, undefined, notification, focus, () => queueRebuildMenu().catch(onError))
     return
   }

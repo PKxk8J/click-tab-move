@@ -46,17 +46,87 @@
             font-weight: 680;
         }
 
-        select {
+        .select-header {
+            display: grid;
+            gap: 10px;
+        }
+
+        .fields {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: minmax(5rem, max-content) minmax(0, 1fr);
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field-label,
+        .section-label {
+            color: color-mix(in srgb, CanvasText 68%, transparent);
+            font-size: 0.86rem;
+            font-weight: 650;
+        }
+
+        .field-value {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #destination {
             inline-size: 100%;
-            min-block-size: 220px;
+            min-block-size: 2.25rem;
             border: 1px solid var(--muted-border);
-            border-radius: 8px;
+            border-radius: 6px;
             background: var(--surface);
             color: var(--text);
             font: inherit;
         }
 
-        select:focus-visible,
+        .target-section {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 6px;
+            min-block-size: 0;
+        }
+
+        .tab-list {
+            overflow: auto;
+            min-block-size: 220px;
+            border: 1px solid var(--muted-border);
+            border-radius: 8px;
+            background: var(--surface);
+        }
+
+        .tab-option {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: center;
+            gap: 8px;
+            min-block-size: 34px;
+            padding: 6px 8px;
+            border-block-end: 1px solid color-mix(in srgb, CanvasText 10%, transparent);
+        }
+
+        .tab-option:last-child {
+            border-block-end: 0;
+        }
+
+        .tab-option:hover {
+            background: color-mix(in srgb, AccentColor 12%, transparent);
+        }
+
+        .tab-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #destination:focus-visible,
+        input[type="checkbox"]:focus-visible,
         button:focus-visible {
             outline: 2px solid var(--accent);
             outline-offset: 2px;
@@ -78,15 +148,33 @@
             font: inherit;
             font-weight: 620;
         }
+
+        button:disabled {
+            opacity: 0.55;
+        }
     </style>
 </head>
 
 <body>
 
 <main class="select-page">
-    <h1 id="moveToX"></h1>
-    <select id="select" multiple size="12"></select>
-    <input id="destination" type="hidden">
+    <header class="select-header">
+        <h1 id="selectionTitle"></h1>
+        <div class="fields">
+            <div class="field-row">
+                <span class="field-label" id="label_moveSource"></span>
+                <output class="field-value" id="source"></output>
+            </div>
+            <label class="field-row" for="destination">
+                <span class="field-label" id="label_moveDestination"></span>
+                <select id="destination"></select>
+            </label>
+        </div>
+    </header>
+    <section class="target-section" aria-labelledby="label_moveTargets">
+        <div class="section-label" id="label_moveTargets"></div>
+        <div id="select" class="tab-list" role="listbox" aria-multiselectable="true"></div>
+    </section>
     <input id="targetScope" type="hidden">
     <input id="groupId" type="hidden">
     <input id="sourceWindowId" type="hidden">
