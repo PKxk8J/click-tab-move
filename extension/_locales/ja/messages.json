@@ -60,6 +60,12 @@
   "moveTargets": {
     "message": "移動対象"
   },
+  "selectGlobalTitle": {
+    "message": "移動させるタブ・グループを選択してください"
+  },
+  "selectGroupTitle": {
+    "message": "グループ内の移動させるタブを選択してください"
+  },
   "selectSize": {
     "message": "選択ウィンドウサイズ"
   },
@@ -196,7 +202,7 @@
     "message": "移動させたタブにフォーカスする"
   },
   "pinnedGroupAction": {
-    "message": "ピン留めされたタブをグループへ移すとき"
+    "message": "ピン留めされたタブをグループへ移そうとしています"
   },
   "pinnedGroupAction_ask": {
     "message": "確認する"
@@ -208,7 +214,7 @@
     "message": "ピン留めを外して移動する"
   },
   "pinnedGroupDialogTitle": {
-    "message": "ピン留めされたタブが含まれています"
+    "message": "ピン留めされたタブの扱いを決めてください"
   },
   "pinnedGroupDialogMessage": {
     "message": "$COUNT$ 個のピン留めされたタブは、グループへ移動するにはピン留めを外す必要があります。",

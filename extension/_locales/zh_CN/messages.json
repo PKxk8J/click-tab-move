@@ -35,6 +35,12 @@
   "moveTargets": {
     "message": "移动目标"
   },
+  "selectGlobalTitle": {
+    "message": "请选择要移动的标签页和标签页组"
+  },
+  "selectGroupTitle": {
+    "message": "请选择组内要移动的标签页"
+  },
   "selectSize": {
     "message": "选择窗口大小"
   },
@@ -165,7 +171,7 @@
     "message": "聚焦到移动的标签页"
   },
   "pinnedGroupAction": {
-    "message": "将固定标签页移动到组时"
+    "message": "正在尝试将固定标签页移动到组"
   },
   "pinnedGroupAction_ask": {
     "message": "每次询问"
@@ -177,7 +183,7 @@
     "message": "取消固定并移动"
   },
   "pinnedGroupDialogTitle": {
-    "message": "包含固定标签页"
+    "message": "请选择如何处理固定标签页"
   },
   "pinnedGroupDialogMessage": {
     "message": "$COUNT$ 个固定标签页需要先取消固定，才能移动到标签页组。",

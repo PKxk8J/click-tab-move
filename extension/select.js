@@ -28,8 +28,6 @@ const {
   windows,
 } = browser
 
-const ITEM_LENGTH = 96
-
 async function closeWindow () {
   const windowInfo = await windows.getCurrent()
   runtime.sendMessage({
@@ -39,13 +37,6 @@ async function closeWindow () {
 
   await windows.remove(windowInfo.id)
   debug('Select window ' + windowInfo.id + ' was closed')
-}
-
-function cut (text, length) {
-  if (text.length <= length) {
-    return text
-  }
-  return text.substring(0, length) + '...'
 }
 
 function getNoGroupId () {
@@ -67,15 +58,6 @@ function isSplitViewTab (tab) {
 
 function sortTabsByIndex (tabList) {
   return [...tabList].sort((tab1, tab2) => tab1.index - tab2.index)
-}
-
-function sortTabsByWindowAndIndex (tabList) {
-  return [...tabList].sort((tab1, tab2) => {
-    if (tab1.windowId !== tab2.windowId) {
-      return tab1.windowId - tab2.windowId
-    }
-    return tab1.index - tab2.index
-  })
 }
 
 function makeTabUnit (tab) {
@@ -197,10 +179,6 @@ function parseDestination (value) {
   return normalizeDestination(JSON.parse(value))
 }
 
-function sameDestination (destination1, destination2) {
-  return serializeDestination(destination1) === serializeDestination(destination2)
-}
-
 function getTabCheckboxes () {
   return [
     ...document.getElementById(KEY_SELECT).
@@ -288,146 +266,6 @@ function getUnitTitle (unit, groupInfos) {
   return unit.tabs[0].title
 }
 
-function getWindowEntryTitle (tab) {
-  return cut(i18n.getMessage('windowEntry', [tab.windowId, tab.title]),
-    ITEM_LENGTH)
-}
-
-function getGroupEntryTitle (group) {
-  const groupTitle = group.title || ''
-  return cut(i18n.getMessage('groupEntry',
-    [group.windowId, groupTitle, group.firstTabTitle]), ITEM_LENGTH)
-}
-
-async function getGroupEntries (selectWindowId) {
-  const tabList = await tabs.query({})
-  const firstTabByGroupId = new Map()
-  for (const tab of sortTabsByWindowAndIndex(tabList)) {
-    if (!isGroupedTab(tab) || firstTabByGroupId.has(tab.groupId)) {
-      continue
-    }
-    firstTabByGroupId.set(tab.groupId, tab)
-  }
-
-  let groups = []
-  if (typeof browser.tabGroups?.query === 'function') {
-    groups = await browser.tabGroups.query({})
-  } else {
-    const knownGroupIds = new Set()
-    for (const tab of tabList) {
-      if (!isGroupedTab(tab) || knownGroupIds.has(tab.groupId)) {
-        continue
-      }
-      knownGroupIds.add(tab.groupId)
-      groups.push({
-        id: tab.groupId,
-        windowId: tab.windowId,
-        title: '',
-      })
-    }
-  }
-
-  return groups.
-    filter((group) => group.windowId !== selectWindowId).
-    sort((group1, group2) => {
-      if (group1.windowId !== group2.windowId) {
-        return group1.windowId - group2.windowId
-      }
-      return group1.id - group2.id
-    }).
-    map((group) => {
-      const entry = {
-        type: 'group',
-        groupId: group.id,
-        windowId: group.windowId,
-        title: group.title,
-        firstTabTitle: firstTabByGroupId.get(group.id)?.title || '',
-      }
-      return {
-        ...entry,
-        title: getGroupEntryTitle(entry),
-      }
-    })
-}
-
-async function getDestinationEntries (selectWindowId) {
-  const activeTabs = await tabs.query({ active: true })
-  const windowEntries = activeTabs.
-    filter((tab) => tab.windowId !== selectWindowId).
-    sort((tab1, tab2) => tab1.windowId - tab2.windowId).
-    map((tab) => ({
-      type: 'window',
-      windowId: tab.windowId,
-      title: getWindowEntryTitle(tab),
-    }))
-  return {
-    windows: windowEntries,
-    groups: await getGroupEntries(selectWindowId),
-  }
-}
-
-function getAllDestinations (entries) {
-  return [
-    { type: 'newWindow', title: i18n.getMessage(KEY_NEW_WINDOW) },
-    ...entries.windows,
-    { type: 'newGroup', title: i18n.getMessage(KEY_NEW_GROUP) },
-    ...entries.groups,
-  ]
-}
-
-function isDestinationVisible (destination, context, selectWindowId) {
-  if (destination.type === 'newWindow') {
-    return true
-  }
-
-  if (destination.type === 'window') {
-    if (destination.windowId === selectWindowId) {
-      return false
-    }
-    if (destination.windowId === context.fromWindowId) {
-      return context.targetScope === KEY_TARGET_GROUP
-    }
-    return true
-  }
-
-  if (typeof tabs.group !== 'function') {
-    return false
-  }
-
-  if (destination.type === 'newGroup') {
-    return true
-  }
-
-  return !(context.targetScope === KEY_TARGET_GROUP &&
-    destination.groupId === context.groupId)
-}
-
-async function setDestinationOptions (context, destination) {
-  const windowInfo = await windows.getCurrent()
-  const entries = await getDestinationEntries(windowInfo.id)
-  const destinations = getAllDestinations(entries).
-    filter((entry) => isDestinationVisible(entry, context, windowInfo.id))
-  const destinationSelect = document.getElementById(KEY_DESTINATION)
-  destinationSelect.replaceChildren()
-
-  for (const entry of destinations) {
-    const option = document.createElement('option')
-    option.value = serializeDestination(entry)
-    option.textContent = entry.title
-    destinationSelect.appendChild(option)
-  }
-
-  const requestedDestination = destinations.
-    find((entry) => sameDestination(entry, destination))
-  if (requestedDestination) {
-    destinationSelect.value = serializeDestination(requestedDestination)
-  } else if (destinations[0]) {
-    destinationSelect.value = serializeDestination(destinations[0])
-  }
-
-  updateMoveButtonState()
-}
-
 async function getWindowTitle (windowId) {
   const [tab] = await tabs.query({
     windowId,
@@ -452,6 +290,20 @@ async function getGroupTitle (groupId) {
     groupTab.title])
 }
 
+async function getDestinationTitle (destination) {
+  const normalizedDestination = normalizeDestination(destination)
+  if (normalizedDestination.type === 'newWindow') {
+    return i18n.getMessage(KEY_NEW_WINDOW)
+  }
+  if (normalizedDestination.type === 'newGroup') {
+    return i18n.getMessage(KEY_NEW_GROUP)
+  }
+  if (normalizedDestination.type === 'group') {
+    return getGroupTitle(normalizedDestination.groupId)
+  }
+  return getWindowTitle(normalizedDestination.windowId)
+}
+
 async function getSourceTitle (fromWindowId, groupId, targetScope) {
   if (targetScope === KEY_TARGET_GROUP && groupId !== undefined) {
     return getGroupTitle(groupId)
@@ -461,8 +313,8 @@ async function getSourceTitle (fromWindowId, groupId, targetScope) {
 
 function getTargetTitle (targetScope) {
   return i18n.getMessage(targetScope === KEY_TARGET_GROUP
-    ? 'targetGroupSelect'
-    : 'targetGlobalSelect')
+    ? 'selectGroupTitle'
+    : 'selectGlobalTitle')
 }
 
 function createTabOption (unit, groupInfos, index) {
@@ -526,6 +378,10 @@ async function reset (
   document.getElementById('selectionTitle').textContent = title
   document.getElementById('source').textContent = await getSourceTitle(
     fromWindowId, groupId, normalizedTargetScope)
+  document.getElementById(KEY_DESTINATION).value =
+    serializeDestination(destination)
+  document.getElementById('destinationDisplay').textContent =
+    await getDestinationTitle(destination)
   document.getElementById(KEY_SOURCE_WINDOW_ID).value = String(fromWindowId)
   document.getElementById(KEY_GROUP_ID).value = groupId === undefined
     ? ''
@@ -534,12 +390,6 @@ async function reset (
 
   document.getElementById(KEY_NOTIFICATION).value = String(notification)
   document.getElementById(KEY_FOCUS).value = String(focus)
-
-  await setDestinationOptions({
-    fromWindowId,
-    groupId,
-    targetScope: normalizedTargetScope,
-  }, destination)
 
   let tabList = await tabs.query({ windowId: fromWindowId })
   if (normalizedTargetScope === KEY_TARGET_GROUP) {
@@ -561,7 +411,7 @@ async function reset (
   if (firstCheckbox) {
     firstCheckbox.focus()
   } else {
-    document.getElementById(KEY_DESTINATION).focus()
+    document.getElementById(KEY_CANCEL).focus()
   }
   await windows.update(windows.WINDOW_ID_CURRENT, { focused: true })
 }
@@ -608,9 +458,6 @@ async function init () {
   })
   document.getElementById(KEY_CANCEL).addEventListener('click', () => {
     closeWindow().catch(onError)
-  })
-  document.getElementById(KEY_DESTINATION).addEventListener('change', () => {
-    updateMoveButtonState()
   })
   document.getElementById(KEY_SELECT).
     addEventListener('keydown', handleTabListKeyDown)

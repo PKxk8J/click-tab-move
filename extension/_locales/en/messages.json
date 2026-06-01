@@ -60,6 +60,12 @@
   "moveTargets": {
     "message": "Move Targets"
   },
+  "selectGlobalTitle": {
+    "message": "Select the tabs and groups to move"
+  },
+  "selectGroupTitle": {
+    "message": "Select the tabs in the group to move"
+  },
   "selectSize": {
     "message": "Select Window Size"
   },
@@ -196,7 +202,7 @@
     "message": "Focus on the moved tab"
   },
   "pinnedGroupAction": {
-    "message": "When moving pinned tabs to a group"
+    "message": "You are moving pinned tabs to a group"
   },
   "pinnedGroupAction_ask": {
     "message": "Ask each time"
@@ -208,7 +214,7 @@
     "message": "Unpin and move"
   },
   "pinnedGroupDialogTitle": {
-    "message": "Pinned tabs are included"
+    "message": "Choose how to handle pinned tabs"
   },
   "pinnedGroupDialogMessage": {
     "message": "$COUNT$ pinned tabs must be unpinned before they can be moved to a group.",
