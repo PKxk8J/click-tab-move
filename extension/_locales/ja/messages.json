@@ -180,6 +180,38 @@
   "focus": {
     "message": "移動させたタブにフォーカスする"
   },
+  "pinnedGroupAction": {
+    "message": "ピン留めされたタブをグループへ移すとき"
+  },
+  "pinnedGroupAction_ask": {
+    "message": "確認する"
+  },
+  "pinnedGroupAction_skipPinned": {
+    "message": "ピン留めされたタブ以外を移動する"
+  },
+  "pinnedGroupAction_unpinPinned": {
+    "message": "ピン留めを外して移動する"
+  },
+  "pinnedGroupDialogTitle": {
+    "message": "ピン留めされたタブが含まれています"
+  },
+  "pinnedGroupDialogMessage": {
+    "message": "$COUNT$ 個のピン留めされたタブは、グループへ移動するにはピン留めを外す必要があります。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "pinnedGroupRemember": {
+    "message": "次回からも同じようにする"
+  },
+  "pinnedGroupDialogSkip": {
+    "message": "ピン留めされたタブ以外を移動"
+  },
+  "pinnedGroupDialogUnpin": {
+    "message": "ピン留めを外して移動"
+  },
   "moving": {
     "message": "タブ移動中..."
   },

@@ -247,6 +247,9 @@ globalThis.browser = {
     },
     update: async (id, properties) => {
       const target = state.tabs.find((tab) => tab.id === id)
+      if (properties.pinned !== undefined && target) {
+        target.pinned = properties.pinned
+      }
       if (properties.active && target) {
         state.tabs.forEach((tab) => {
           if (tab.windowId === target.windowId) {
@@ -313,6 +316,7 @@ const {
   normalizeFocus,
   normalizeMenuItems,
   normalizeNotification,
+  normalizePinnedGroupAction,
   normalizeSelectSave,
   normalizeSelectSize,
 } = await import('../extension/common.js')
@@ -341,6 +345,9 @@ test('設定値を正規化する', () => {
   assert.equal(normalizeNotification('true'), false)
   assert.equal(normalizeFocus(undefined), false)
   assert.equal(normalizeFocus(true), true)
+  assert.equal(normalizePinnedGroupAction(undefined), 'ask')
+  assert.equal(normalizePinnedGroupAction('skipPinned'), 'skipPinned')
+  assert.equal(normalizePinnedGroupAction('bad'), 'ask')
   assert.equal(normalizeSelectSave(undefined), true)
   assert.deepEqual(normalizeSelectSize([320.4, 240.6]), [320, 241])
   assert.deepEqual(normalizeSelectSize(['bad', 240]), [640, 480])
@@ -503,22 +510,35 @@ test('全てのタブ・グループを移動先グループへまとめ直す',
   ])
 })
 
-test('固定タブはグループへ移動しない', async () => {
+test('設定により固定タブ以外をグループへ移動する', async () => {
   resetTabs([
     { id: 1, windowId: 1, index: 0, pinned: true, active: true },
+    { id: 2, windowId: 1, index: 1 },
     { id: 20, windowId: 2, index: 0, groupId: 30, active: true },
   ])
+  state.storageData.pinnedGroupAction = 'skipPinned'
 
-  const errorMock = mock.method(globalThis.console, 'error', () => {})
-  try {
-    await rawRun([1], { type: 'group', groupId: 30 }, false, false)
-  } finally {
-    errorMock.mock.restore()
-  }
+  await rawRun([1, 2], { type: 'group', groupId: 30 }, false, false)
 
   assert.deepEqual(getTabIds(1), [1])
-  assert.deepEqual(getTabIds(2), [20])
-  assert.deepEqual(state.grouped, [])
+  assert.deepEqual(getTabIds(2), [20, 2])
+  assert.deepEqual(state.grouped, [{ ids: [2], groupId: 30 }])
+  assert.equal(state.tabs.find((tab) => tab.id === 1).pinned, true)
+})
+
+test('設定により固定を解除してグループへ移動する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, pinned: true, active: true },
+    { id: 2, windowId: 1, index: 1 },
+    { id: 20, windowId: 2, index: 0, groupId: 30, active: true },
+  ])
+  state.storageData.pinnedGroupAction = 'unpinPinned'
+
+  await rawRun([1, 2], { type: 'group', groupId: 30 }, false, false)
+
+  assert.deepEqual(getTabIds(2), [20, 1, 2])
+  assert.deepEqual(state.grouped, [{ ids: [1, 2], groupId: 30 }])
+  assert.equal(state.tabs.find((tab) => tab.id === 1).pinned, false)
 })
 
 test('移動対象の active tab から近い残留タブへ事前にフォーカスを移す', async () => {

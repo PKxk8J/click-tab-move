@@ -29,6 +29,7 @@ export const KEY_TO_WINDOW_ID = 'toWindowId'
 export const KEY_DESTINATION = 'destination'
 export const KEY_TARGET_SCOPE = 'targetScope'
 export const KEY_GROUP_ID = 'groupId'
+export const KEY_REQUEST_ID = 'requestId'
 
 export const KEY_CONTEXTS = 'contexts'
 export const KEY_MENU_ITEMS = 'menuItems'
@@ -38,6 +39,7 @@ export const KEY_HEIGHT = 'height'
 export const KEY_SELECT_SAVE = 'selectSave'
 export const KEY_NOTIFICATION = 'notification'
 export const KEY_FOCUS = 'focus'
+export const KEY_PINNED_GROUP_ACTION = 'pinnedGroupAction'
 export const KEY_SETTINGS = 'settings'
 export const KEY_FEEDBACK = 'feedback'
 export const KEY_BEHAVIOR = 'behavior'
@@ -50,6 +52,11 @@ export const KEY_PROGRESS = 'progress'
 export const KEY_SUCCESS_MESSAGE = 'successMessage'
 export const KEY_FAILURE_MESSAGE = 'failureMessage'
 export const KEY_RESET = 'reset'
+export const KEY_PINNED_GROUP_DECISION = 'pinnedGroupDecision'
+export const KEY_PINNED_GROUP_ASK = 'ask'
+export const KEY_PINNED_GROUP_SKIP = 'skipPinned'
+export const KEY_PINNED_GROUP_UNPIN = 'unpinPinned'
+export const KEY_PINNED_GROUP_CANCEL = 'cancelPinned'
 
 export const ALL_CONTEXTS = [KEY_TAB, KEY_ALL]
 export const DEFAULT_CONTEXTS = [KEY_TAB]
@@ -93,6 +100,12 @@ export const DEFAULT_SELECT_SIZE = [640, 480]
 export const DEFAULT_SELECT_SAVE = true
 export const DEFAULT_NOTIFICATION = false
 export const DEFAULT_FOCUS = false
+export const DEFAULT_PINNED_GROUP_ACTION = KEY_PINNED_GROUP_ASK
+export const ALL_PINNED_GROUP_ACTIONS = [
+  KEY_PINNED_GROUP_ASK,
+  KEY_PINNED_GROUP_SKIP,
+  KEY_PINNED_GROUP_UNPIN,
+]
 
 export const NOTIFICATION_PERMISSION = {
   permissions: ['notifications'],
@@ -206,6 +219,13 @@ export function normalizeNotification (notification) {
 
 export function normalizeFocus (focus) {
   return normalizeBoolean(focus, DEFAULT_FOCUS)
+}
+
+export function normalizePinnedGroupAction (action) {
+  if (ALL_PINNED_GROUP_ACTIONS.includes(action)) {
+    return action
+  }
+  return DEFAULT_PINNED_GROUP_ACTION
 }
 
 export function normalizeSelectSize (selectSize) {

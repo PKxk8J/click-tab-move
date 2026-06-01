@@ -2,8 +2,10 @@ import {
   ALL_CONTEXTS,
   ALL_MENU_ITEMS,
   ALL_MENU_SCOPES,
+  ALL_PINNED_GROUP_ACTIONS,
   DEFAULT_FOCUS,
   DEFAULT_NOTIFICATION,
+  DEFAULT_PINNED_GROUP_ACTION,
   DEFAULT_SELECT_SAVE,
   DEFAULT_SELECT_SIZE,
   KEY_BEHAVIOR,
@@ -14,6 +16,7 @@ import {
   KEY_MENU_ITEMS,
   KEY_NAME,
   KEY_NOTIFICATION,
+  KEY_PINNED_GROUP_ACTION,
   KEY_SAVE_STATUS_FAILED,
   KEY_SAVE_STATUS_SAVED,
   KEY_SAVE_STATUS_SAVING,
@@ -28,6 +31,7 @@ import {
   normalizeFocus,
   normalizeMenuItems,
   normalizeNotification,
+  normalizePinnedGroupAction,
   normalizeSelectSave,
   normalizeSelectSize,
   onError,
@@ -52,6 +56,10 @@ function getContextInputId (key) {
 
 function getMenuScopeInputId (scope, key) {
   return KEY_MENU_ITEMS + '_' + scope + '_' + key
+}
+
+function getPinnedGroupActionInputId (action) {
+  return KEY_PINNED_GROUP_ACTION + '_' + action
 }
 
 function setLabelText (id, key) {
@@ -91,6 +99,9 @@ async function restore () {
   const notificationAllowed = notification &&
     await permissions.contains(NOTIFICATION_PERMISSION)
   const focus = normalizeFocus(data[KEY_FOCUS] ?? DEFAULT_FOCUS)
+  const pinnedGroupAction = normalizePinnedGroupAction(
+    data[KEY_PINNED_GROUP_ACTION] ?? DEFAULT_PINNED_GROUP_ACTION,
+  )
 
   const contextSet = new Set(contexts)
   ALL_CONTEXTS.forEach((key) => {
@@ -111,6 +122,8 @@ async function restore () {
   document.getElementById(KEY_SELECT_SAVE).checked = selectSave
   document.getElementById(KEY_NOTIFICATION).checked = notificationAllowed
   document.getElementById(KEY_FOCUS).checked = focus
+  document.getElementById(getPinnedGroupActionInputId(pinnedGroupAction)).
+    checked = true
 }
 
 async function applyNotificationPermission (notification) {
@@ -168,6 +181,9 @@ async function save () {
     [KEY_SELECT_SAVE]: document.getElementById(KEY_SELECT_SAVE).checked,
     [KEY_NOTIFICATION]: notification,
     [KEY_FOCUS]: document.getElementById(KEY_FOCUS).checked,
+    [KEY_PINNED_GROUP_ACTION]: document.querySelector(
+      'input[name="' + KEY_PINNED_GROUP_ACTION + '"]:checked',
+    )?.value ?? DEFAULT_PINNED_GROUP_ACTION,
   }
   await storageArea.set(data)
   debug('Saved ' + JSON.stringify(data))
@@ -237,6 +253,46 @@ function createToggleLabel (labelKey, inputId, className = 'toggle-row') {
 
 function addCheckboxEntry (labelKey, container, inputId) {
   container.appendChild(createToggleLabel(labelKey, inputId))
+}
+
+function createChoiceLabel (labelKey, name, value) {
+  const input = document.createElement('input')
+  input.type = 'radio'
+  input.name = name
+  input.value = value
+  input.id = getPinnedGroupActionInputId(value)
+  input.className = 'choice-input'
+
+  const title = document.createElement('span')
+  title.className = 'setting-title'
+  title.textContent = i18n.getMessage(labelKey)
+
+  const label = document.createElement('label')
+  label.className = 'choice-row'
+  label.appendChild(input)
+  label.appendChild(title)
+  return label
+}
+
+function addPinnedGroupActionEntry (container) {
+  const title = document.createElement('h3')
+  title.textContent = i18n.getMessage(KEY_PINNED_GROUP_ACTION)
+
+  const list = document.createElement('div')
+  list.className = 'choice-list'
+  ALL_PINNED_GROUP_ACTIONS.forEach((action) => {
+    list.appendChild(createChoiceLabel(
+      KEY_PINNED_GROUP_ACTION + '_' + action,
+      KEY_PINNED_GROUP_ACTION,
+      action,
+    ))
+  })
+
+  const section = document.createElement('section')
+  section.className = 'behavior-choice'
+  section.appendChild(title)
+  section.appendChild(list)
+  container.appendChild(section)
 }
 
 function addMenuItemEntry (scope, key, container) {
@@ -320,6 +376,7 @@ async function init () {
   const behaviorContainer = document.getElementById(KEY_BEHAVIOR)
   addCheckboxEntry(KEY_SELECT_SAVE, behaviorContainer, KEY_SELECT_SAVE)
   addCheckboxEntry(KEY_FOCUS, behaviorContainer, KEY_FOCUS)
+  addPinnedGroupActionEntry(behaviorContainer)
 
   const notificationContainer = document.getElementById('notificationSetting')
   addCheckboxEntry(KEY_NOTIFICATION, notificationContainer, KEY_NOTIFICATION)

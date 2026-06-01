@@ -1,6 +1,7 @@
 import {
   DEFAULT_SELECT_SAVE,
   DEFAULT_SELECT_SIZE,
+  DEFAULT_PINNED_GROUP_ACTION,
   KEY_ALL,
   KEY_DESTINATION,
   KEY_FAILURE_MESSAGE,
@@ -9,9 +10,16 @@ import {
   KEY_MOVE,
   KEY_MOVING,
   KEY_ONE,
+  KEY_PINNED_GROUP_ACTION,
+  KEY_PINNED_GROUP_ASK,
+  KEY_PINNED_GROUP_CANCEL,
+  KEY_PINNED_GROUP_DECISION,
+  KEY_PINNED_GROUP_SKIP,
+  KEY_PINNED_GROUP_UNPIN,
   KEY_PROGRESS,
   KEY_RAW,
   KEY_RESET,
+  KEY_REQUEST_ID,
   KEY_RIGHT,
   KEY_SELECT_SAVE,
   KEY_SELECT_SIZE,
@@ -30,6 +38,7 @@ import {
   getValue,
   normalizeFocus,
   normalizeNotification,
+  normalizePinnedGroupAction,
   normalizeSelectSave,
   normalizeSelectSize,
   onError,
@@ -45,6 +54,8 @@ const {
 } = browser
 
 let selectWindowId
+let nextPinnedRequestId = 1
+const pinnedConfirmations = new Map()
 
 export function getSelectWindowId () {
   return selectWindowId
@@ -307,10 +318,6 @@ function flattenUnits (units) {
   return units.flatMap((unit) => unit.tabs)
 }
 
-function hasPinnedUnit (units) {
-  return units.some((unit) => unit.tabs.some((tab) => tab.pinned))
-}
-
 function splitUnitsByPinned (units) {
   const pinnedUnits = []
   const unpinnedUnits = []
@@ -511,14 +518,111 @@ function filterDestinationGroupUnits (units, groupId) {
   })
 }
 
+function getPinnedTabs (units) {
+  return flattenUnits(units).filter((tab) => tab.pinned)
+}
+
+function filterPinnedTabsFromUnits (units) {
+  const filtered = []
+  for (const unit of units) {
+    const unitTabs = unit.tabs.filter((tab) => !tab.pinned)
+    if (unitTabs.length <= 0) {
+      continue
+    }
+    filtered.push({
+      ...unit,
+      tabs: unitTabs,
+    })
+  }
+  return filtered
+}
+
+async function unpinTabsInUnits (units) {
+  for (const tab of getPinnedTabs(units)) {
+    await tabs.update(tab.id, { pinned: false })
+    tab.pinned = false
+  }
+}
+
+function resolvePinnedConfirmation (requestId, decision) {
+  const confirmation = pinnedConfirmations.get(requestId)
+  if (!confirmation) {
+    return
+  }
+
+  pinnedConfirmations.delete(requestId)
+  confirmation.resolve(decision)
+}
+
+async function confirmPinnedGroupAction (pinnedCount) {
+  const requestId = String(nextPinnedRequestId++)
+  const params = new globalThis.URLSearchParams({
+    [KEY_REQUEST_ID]: requestId,
+    count: String(pinnedCount),
+  })
+  const url = runtime.getURL('pinned.html') + '?' + params.toString()
+
+  const windowInfo = await windows.create({
+    type: 'detached_panel',
+    url,
+    width: 520,
+    height: 320,
+  })
+
+  return new Promise((resolve) => {
+    pinnedConfirmations.set(requestId, {
+      resolve,
+      windowId: windowInfo.id,
+    })
+  })
+}
+
+async function getPinnedGroupAction (pinnedCount) {
+  const storedAction = normalizePinnedGroupAction(
+    await getValue(KEY_PINNED_GROUP_ACTION, DEFAULT_PINNED_GROUP_ACTION),
+  )
+  if (storedAction !== KEY_PINNED_GROUP_ASK) {
+    return storedAction
+  }
+
+  const decision = await confirmPinnedGroupAction(pinnedCount)
+  if (decision?.remember &&
+      [KEY_PINNED_GROUP_SKIP, KEY_PINNED_GROUP_UNPIN].includes(
+        decision.action,
+      )) {
+    await storageArea.set({
+      [KEY_PINNED_GROUP_ACTION]: decision.action,
+    })
+  }
+  return decision?.action || KEY_PINNED_GROUP_CANCEL
+}
+
+async function prepareUnitsForGroupMove (units) {
+  const pinnedTabs = getPinnedTabs(units)
+  if (pinnedTabs.length <= 0) {
+    return units
+  }
+
+  const action = await getPinnedGroupAction(pinnedTabs.length)
+  if (action === KEY_PINNED_GROUP_CANCEL) {
+    return []
+  }
+  if (action === KEY_PINNED_GROUP_SKIP) {
+    return filterPinnedTabsFromUnits(units)
+  }
+  if (action === KEY_PINNED_GROUP_UNPIN) {
+    await unpinTabsInUnits(units)
+    return units
+  }
+
+  return []
+}
+
 async function runWithGroup (units, groupId, progress, focus) {
   if (units.length <= 0) {
     return
   }
 
-  if (hasPinnedUnit(units)) {
-    throw new Error('Pinned tabs cannot be moved to a group')
-  }
   if (typeof tabs.group !== 'function') {
     throw new Error('tabs.group is unavailable')
   }
@@ -539,9 +643,6 @@ async function runWithGroup (units, groupId, progress, focus) {
 }
 
 async function runWithNewGroup (units, progress, focus) {
-  if (hasPinnedUnit(units)) {
-    throw new Error('Pinned tabs cannot be moved to a group')
-  }
   if (typeof tabs.group !== 'function') {
     throw new Error('tabs.group is unavailable')
   }
@@ -633,10 +734,15 @@ async function getTargetUnits (tabId, keyType, targetScope) {
 async function runRawInternal (tabIds, destination, progress, focus) {
   const normalizedDestination = normalizeDestination(destination)
   const selectedUnits = await buildSelectedUnits(tabIds)
-  const units = normalizedDestination.type === 'group'
+  const destinationFilteredUnits = normalizedDestination.type === 'group'
     ? filterDestinationGroupUnits(selectedUnits, normalizedDestination.groupId)
     : selectedUnits
+  const units = ['group', 'newGroup'].includes(normalizedDestination.type)
+    ? await prepareUnitsForGroupMove(destinationFilteredUnits)
+    : destinationFilteredUnits
   if (units.length <= 0) {
+    progress.all = 0
+    progress.target = 0
     return
   }
 
@@ -828,9 +934,27 @@ async function handleInternalMessage (message) {
         normalizeFocus(message.focus))
       break
     }
+    case KEY_PINNED_GROUP_DECISION: {
+      resolvePinnedConfirmation(message[KEY_REQUEST_ID], {
+        action: message.action,
+        remember: message.remember === true,
+      })
+      break
+    }
   }
 }
 
 runtime.onMessage.addListener((message) => {
   return handleInternalMessage(message).catch(onError)
+})
+
+windows.onRemoved?.addListener((windowId) => {
+  for (const [requestId, confirmation] of pinnedConfirmations) {
+    if (confirmation.windowId === windowId) {
+      resolvePinnedConfirmation(requestId, {
+        action: KEY_PINNED_GROUP_CANCEL,
+        remember: false,
+      })
+    }
+  }
 })

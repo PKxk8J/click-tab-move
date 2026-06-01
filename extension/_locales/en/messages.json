@@ -180,6 +180,38 @@
   "focus": {
     "message": "Focus on the moved tab"
   },
+  "pinnedGroupAction": {
+    "message": "When moving pinned tabs to a group"
+  },
+  "pinnedGroupAction_ask": {
+    "message": "Ask each time"
+  },
+  "pinnedGroupAction_skipPinned": {
+    "message": "Move only unpinned tabs"
+  },
+  "pinnedGroupAction_unpinPinned": {
+    "message": "Unpin and move"
+  },
+  "pinnedGroupDialogTitle": {
+    "message": "Pinned tabs are included"
+  },
+  "pinnedGroupDialogMessage": {
+    "message": "$COUNT$ pinned tabs must be unpinned before they can be moved to a group.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "pinnedGroupRemember": {
+    "message": "Use this choice next time"
+  },
+  "pinnedGroupDialogSkip": {
+    "message": "Move unpinned only"
+  },
+  "pinnedGroupDialogUnpin": {
+    "message": "Unpin and move"
+  },
   "moving": {
     "message": "Moving tabs..."
   },

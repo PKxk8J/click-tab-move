@@ -146,6 +146,41 @@
   "notification": {
     "message": "通知"
   },
+  "focus": {
+    "message": "聚焦到移动的标签页"
+  },
+  "pinnedGroupAction": {
+    "message": "将固定标签页移动到组时"
+  },
+  "pinnedGroupAction_ask": {
+    "message": "每次询问"
+  },
+  "pinnedGroupAction_skipPinned": {
+    "message": "仅移动未固定标签页"
+  },
+  "pinnedGroupAction_unpinPinned": {
+    "message": "取消固定并移动"
+  },
+  "pinnedGroupDialogTitle": {
+    "message": "包含固定标签页"
+  },
+  "pinnedGroupDialogMessage": {
+    "message": "$COUNT$ 个固定标签页需要先取消固定，才能移动到标签页组。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "pinnedGroupRemember": {
+    "message": "下次也使用此选择"
+  },
+  "pinnedGroupDialogSkip": {
+    "message": "仅移动未固定"
+  },
+  "pinnedGroupDialogUnpin": {
+    "message": "取消固定并移动"
+  },
   "moving": {
     "message": "移动标签页..."
   },

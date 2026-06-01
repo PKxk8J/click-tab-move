@@ -463,7 +463,7 @@ function isDestinationVisible (entry, destination, summary, selectWindowId) {
       destination.windowId !== selectWindowId
   }
 
-  if (summary.hasPinned || typeof tabs.group !== 'function') {
+  if (typeof tabs.group !== 'function') {
     return false
   }
 
