@@ -419,6 +419,10 @@ async function getTargetSummary (entry, targetTab) {
   }
 
   const tabIds = await listTargetTabIds(targetTab.id, entry.key, entry.scope)
+  if (tabIds.length <= 0) {
+    return { valid: false }
+  }
+
   const tabInfos = []
   for (const tabId of tabIds) {
     tabInfos.push(await tabs.get(tabId))
@@ -439,7 +443,9 @@ async function getTargetSummary (entry, targetTab) {
     valid: true,
     sourceWindowId: targetTab.windowId,
     groupIds,
-    blockedGroupIds: new Set(),
+    blockedGroupIds: entry.scope === KEY_TARGET_GROUP
+      ? new Set([targetTab.groupId])
+      : new Set(),
     groupTabCounts,
     hasPinned: tabInfos.some((tab) => tab.pinned),
     singleWholeGroup: entry.scope === KEY_TARGET_GLOBAL &&
