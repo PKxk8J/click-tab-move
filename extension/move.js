@@ -23,6 +23,7 @@ import {
   KEY_RIGHT,
   KEY_SELECT_SAVE,
   KEY_SELECT_SIZE,
+  KEY_SOURCE_WINDOW_ID,
   KEY_SUCCESS_MESSAGE,
   KEY_TARGET_GLOBAL,
   KEY_TARGET_GROUP,
@@ -365,6 +366,31 @@ function normalizeDestination (destination) {
   throw new Error('Unsupported destination: ' + destination)
 }
 
+function normalizeInteger (value) {
+  if (value === undefined || value === null || value === '') {
+    return undefined
+  }
+  const normalized = Number(value)
+  return Number.isInteger(normalized) ? normalized : undefined
+}
+
+function normalizeRunContext (context) {
+  if (!context || typeof context !== 'object') {
+    return {
+      targetScope: KEY_TARGET_GLOBAL,
+    }
+  }
+
+  const targetScope = context[KEY_TARGET_SCOPE] === KEY_TARGET_GROUP
+    ? KEY_TARGET_GROUP
+    : KEY_TARGET_GLOBAL
+  return {
+    targetScope,
+    groupId: normalizeInteger(context[KEY_GROUP_ID]),
+    sourceWindowId: normalizeInteger(context[KEY_SOURCE_WINDOW_ID]),
+  }
+}
+
 async function activateBest (windowId, excludedTabIds) {
   const moveTabIdSet = new Set(excludedTabIds)
   const tabList = await tabs.query({ windowId })
@@ -506,6 +532,80 @@ async function runWithNewWindow (units, progress, focus) {
 async function queryGroupTabs (groupId) {
   const tabList = await tabs.query({})
   return sortTabsByIndex(tabList.filter((tab) => tab.groupId === groupId))
+}
+
+async function ungroupTabIds (tabIds) {
+  if (tabIds.length <= 0) {
+    return
+  }
+  if (typeof tabs.ungroup !== 'function') {
+    throw new Error('tabs.ungroup is unavailable')
+  }
+
+  await tabs.ungroup(tabIds.length === 1 ? tabIds[0] : tabIds)
+  debug('Tabs ' + tabIds.join(',') + ' ungrouped')
+}
+
+async function getIndexAroundTabAfterRemoving (
+  windowId, tabId, movingTabIdSet, position) {
+  const tabList = await querySortedTabs(windowId)
+  const referenceTab = tabList.find((tab) => tab.id === tabId)
+  if (!referenceTab) {
+    return -1
+  }
+
+  return tabList.filter((tab) => {
+    if (movingTabIdSet.has(tab.id)) {
+      return false
+    }
+    return position === 'before'
+      ? tab.index < referenceTab.index
+      : tab.index <= referenceTab.index
+  }).length
+}
+
+async function runGroupUnitsWithSourceWindow (
+  units, groupId, windowId, progress, focus) {
+  const movingTabIds = getMovingTabIds(units)
+  const movingTabIdSet = new Set(movingTabIds)
+  const groupTabs = (await queryGroupTabs(groupId)).
+    filter((tab) => tab.windowId === windowId)
+  const selectedGroupTabIds = movingTabIds.
+    filter((tabId) => groupTabs.some((tab) => tab.id === tabId))
+
+  if (selectedGroupTabIds.length <= 0) {
+    progress.done += movingTabIds.length
+    return
+  }
+
+  const selectedGroupTabIdSet = new Set(selectedGroupTabIds)
+  const allGroupTabsSelected = selectedGroupTabIds.length === groupTabs.length
+  const selectedPositions = groupTabs.
+    map((tab, index) => selectedGroupTabIdSet.has(tab.id) ? index : -1).
+    filter((index) => index >= 0)
+  const selectedPrefix = selectedPositions.
+    every((position, index) => position === index)
+
+  await ungroupTabIds(selectedGroupTabIds)
+
+  if (!allGroupTabsSelected) {
+    const remainingGroupTabs = (await queryGroupTabs(groupId)).
+      filter((tab) => tab.windowId === windowId)
+    const referenceTab = selectedPrefix
+      ? remainingGroupTabs[0]
+      : remainingGroupTabs[remainingGroupTabs.length - 1]
+    const position = selectedPrefix ? 'before' : 'after'
+    const index = referenceTab
+      ? await getIndexAroundTabAfterRemoving(windowId, referenceTab.id,
+        movingTabIdSet, position)
+      : -1
+
+    await moveTabIdsToWindow(selectedGroupTabIds, windowId, index)
+    await ungroupTabIds(selectedGroupTabIds)
+  }
+
+  progress.done += selectedGroupTabIds.length
+  await focusMovedUnit(windowId, units, focus)
 }
 
 function getMovingTabIds (units) {
@@ -661,7 +761,7 @@ async function runWithNewGroup (units, progress, focus) {
   await focusMovedUnit(toWindowId, units, focus)
 }
 
-async function buildSelectedUnits (tabIds) {
+async function buildSelectedUnits (tabIds, { preserveFullGroups = true } = {}) {
   const tabInfos = []
   const windowIds = []
   const knownWindowIds = new Set()
@@ -684,7 +784,8 @@ async function buildSelectedUnits (tabIds) {
       map((tab) => tab.id))
     const topLevelUnits = buildTopLevelUnits(await querySortedTabs(windowId))
     for (const unit of topLevelUnits) {
-      if (unit.tabs.every((tab) => requestedIds.has(tab.id))) {
+      if (preserveFullGroups &&
+          unit.tabs.every((tab) => requestedIds.has(tab.id))) {
         units.push(unit)
         continue
       }
@@ -731,9 +832,13 @@ async function getTargetUnits (tabId, keyType, targetScope) {
   return unitIndex < 0 ? [] : selectUnitsByKey(units, unitIndex, keyType)
 }
 
-async function runRawInternal (tabIds, destination, progress, focus) {
+async function runRawInternal (
+  tabIds, destination, progress, focus, context = {}) {
   const normalizedDestination = normalizeDestination(destination)
-  const selectedUnits = await buildSelectedUnits(tabIds)
+  const normalizedContext = normalizeRunContext(context)
+  const selectedUnits = await buildSelectedUnits(tabIds, {
+    preserveFullGroups: normalizedContext.targetScope !== KEY_TARGET_GROUP,
+  })
   const destinationFilteredUnits = normalizedDestination.type === 'group'
     ? filterDestinationGroupUnits(selectedUnits, normalizedDestination.groupId)
     : selectedUnits
@@ -750,15 +855,38 @@ async function runRawInternal (tabIds, destination, progress, focus) {
   progress.all = movingTabIds.length
   progress.target = movingTabIds.length
 
-  await activateSourceWindows(flattenUnits(units), movingTabIds)
+  const groupScopeWindowMove = normalizedContext.targetScope ===
+    KEY_TARGET_GROUP && ['window', 'newWindow'].includes(
+    normalizedDestination.type,
+  )
+  const sourceWindowExtraction = groupScopeWindowMove &&
+    normalizedDestination.type === 'window' &&
+    normalizedDestination.windowId === normalizedContext.sourceWindowId &&
+    normalizedContext.groupId !== undefined
+
+  if (!sourceWindowExtraction) {
+    await activateSourceWindows(flattenUnits(units), movingTabIds)
+  }
 
   switch (normalizedDestination.type) {
     case 'window': {
-      await runWithWindow(units, normalizedDestination.windowId, progress, focus)
+      if (sourceWindowExtraction) {
+        await runGroupUnitsWithSourceWindow(units, normalizedContext.groupId,
+          normalizedDestination.windowId, progress, focus)
+      } else {
+        await runWithWindow(units, normalizedDestination.windowId, progress,
+          focus)
+        if (groupScopeWindowMove) {
+          await ungroupTabIds(movingTabIds)
+        }
+      }
       break
     }
     case 'newWindow': {
       await runWithNewWindow(units, progress, focus)
+      if (groupScopeWindowMove) {
+        await ungroupTabIds(movingTabIds)
+      }
       break
     }
     case 'group': {
@@ -856,7 +984,8 @@ async function tryNotify (progress) {
   }
 }
 
-export async function rawRun (tabIds, destination, notification, focus) {
+export async function rawRun (
+  tabIds, destination, notification, focus, context = {}) {
   const targetTabIds = normalizeTabIds(tabIds)
   const progress = {
     all: targetTabIds.length,
@@ -876,7 +1005,7 @@ export async function rawRun (tabIds, destination, notification, focus) {
     }
 
     await runRawInternal(targetTabIds, destination, progress,
-      normalizeFocus(focus))
+      normalizeFocus(focus), context)
     debug('Finished')
 
     if (notifyEnabled) {
@@ -902,8 +1031,15 @@ export async function run (
   tabId, keyType, destination, notification, focus,
   targetScope = KEY_TARGET_GLOBAL) {
   try {
+    const targetTab = await tabs.get(tabId)
     const tabIds = await listTargetTabIds(tabId, keyType, targetScope)
-    await rawRun(tabIds, destination, notification, focus)
+    await rawRun(tabIds, destination, notification, focus, {
+      [KEY_TARGET_SCOPE]: targetScope,
+      [KEY_GROUP_ID]: targetScope === KEY_TARGET_GROUP
+        ? targetTab?.groupId
+        : undefined,
+      [KEY_SOURCE_WINDOW_ID]: targetTab?.windowId,
+    })
   } catch (error) {
     onError(error)
   }
@@ -931,7 +1067,11 @@ async function handleInternalMessage (message) {
       await rawRun(message.tabIds,
         message[KEY_DESTINATION] ?? message.toWindowId,
         normalizeNotification(message.notification),
-        normalizeFocus(message.focus))
+        normalizeFocus(message.focus), {
+          [KEY_TARGET_SCOPE]: message[KEY_TARGET_SCOPE],
+          [KEY_GROUP_ID]: message[KEY_GROUP_ID],
+          [KEY_SOURCE_WINDOW_ID]: message[KEY_SOURCE_WINDOW_ID],
+        })
       break
     }
     case KEY_PINNED_GROUP_DECISION: {

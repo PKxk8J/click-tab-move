@@ -117,6 +117,9 @@
   "targetGroupThisAndLeft": {
     "message": "This tab and tabs to the left in the group"
   },
+  "targetGroupAll": {
+    "message": "All Tabs in This Group"
+  },
   "targetGroupSelect": {
     "message": "Selected Tabs in This Group"
   },
@@ -155,6 +158,9 @@
   },
   "menuItem_group_thisAndLeft": {
     "message": "Clicked tab and tabs to the left"
+  },
+  "menuItem_group_all": {
+    "message": "All tabs"
   },
   "menuItem_group_select": {
     "message": "Selected tabs"

@@ -92,6 +92,9 @@
   "targetGroupThisAndLeft": {
     "message": "组内此标签页和左侧标签页"
   },
+  "targetGroupAll": {
+    "message": "组内所有标签页"
+  },
   "targetGroupSelect": {
     "message": "组内选定的标签页"
   },
@@ -130,6 +133,9 @@
   },
   "menuItem_group_thisAndLeft": {
     "message": "点击的标签页和左侧"
+  },
+  "menuItem_group_all": {
+    "message": "所有标签页"
   },
   "menuItem_group_select": {
     "message": "选定的标签页"

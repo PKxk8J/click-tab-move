@@ -192,6 +192,8 @@ function getGroupTitle (key) {
       return i18n.getMessage('targetGroupLeft')
     case KEY_THIS_AND_LEFT:
       return i18n.getMessage('targetGroupThisAndLeft')
+    case KEY_ALL:
+      return i18n.getMessage('targetGroupAll')
     case KEY_SELECT:
       return i18n.getMessage('targetGroupSelect')
   }
@@ -461,12 +463,17 @@ function isDestinationVisible (entry, destination, summary, selectWindowId) {
   }
 
   if (destination.type === 'newWindow') {
-    return entry.key !== KEY_ALL
+    return !(entry.scope === KEY_TARGET_GLOBAL && entry.key === KEY_ALL)
   }
 
   if (destination.type === 'window') {
-    return destination.windowId !== summary.sourceWindowId &&
-      destination.windowId !== selectWindowId
+    if (destination.windowId === selectWindowId) {
+      return false
+    }
+    if (destination.windowId === summary.sourceWindowId) {
+      return entry.scope === KEY_TARGET_GROUP
+    }
+    return true
   }
 
   if (typeof tabs.group !== 'function') {

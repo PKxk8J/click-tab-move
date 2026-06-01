@@ -14,6 +14,7 @@ import {
   KEY_RESET,
   KEY_SELECT,
   KEY_SELECT_SIZE,
+  KEY_SOURCE_WINDOW_ID,
   KEY_TARGET_GLOBAL,
   KEY_TARGET_GROUP,
   KEY_TARGET_SCOPE,
@@ -170,12 +171,25 @@ function getDestination () {
   return parseDestination(document.getElementById(KEY_DESTINATION).value)
 }
 
+function getIntegerValue (key) {
+  const value = document.getElementById(key).value
+  if (value === '') {
+    return undefined
+  }
+  const numberValue = Number(value)
+  return Number.isInteger(numberValue) ? numberValue : undefined
+}
+
 function sendResult () {
   runtime.sendMessage({
     type: KEY_MOVE,
     keyType: KEY_RAW,
     tabIds: getSelectedTabIds(),
     [KEY_DESTINATION]: getDestination(),
+    [KEY_TARGET_SCOPE]: document.getElementById(KEY_TARGET_SCOPE).value ||
+      KEY_TARGET_GLOBAL,
+    [KEY_GROUP_ID]: getIntegerValue(KEY_GROUP_ID),
+    [KEY_SOURCE_WINDOW_ID]: getIntegerValue(KEY_SOURCE_WINDOW_ID),
     notification: document.getElementById(KEY_NOTIFICATION).value === 'true',
     focus: document.getElementById(KEY_FOCUS).value === 'true',
   })
@@ -250,6 +264,11 @@ async function reset (
   document.title = title
   document.getElementById(KEY_MOVE_TO_X).textContent = title
   document.getElementById(KEY_DESTINATION).value = JSON.stringify(destination)
+  document.getElementById(KEY_SOURCE_WINDOW_ID).value = String(fromWindowId)
+  document.getElementById(KEY_GROUP_ID).value = groupId === undefined
+    ? ''
+    : String(groupId)
+  document.getElementById(KEY_TARGET_SCOPE).value = targetScope
 
   document.getElementById(KEY_NOTIFICATION).value = String(notification)
   document.getElementById(KEY_FOCUS).value = String(focus)

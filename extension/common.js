@@ -29,6 +29,7 @@ export const KEY_TO_WINDOW_ID = 'toWindowId'
 export const KEY_DESTINATION = 'destination'
 export const KEY_TARGET_SCOPE = 'targetScope'
 export const KEY_GROUP_ID = 'groupId'
+export const KEY_SOURCE_WINDOW_ID = 'sourceWindowId'
 export const KEY_REQUEST_ID = 'requestId'
 
 export const KEY_CONTEXTS = 'contexts'
@@ -84,6 +85,7 @@ export const GROUP_MENU_ITEMS = [
   KEY_THIS_AND_RIGHT,
   KEY_LEFT,
   KEY_THIS_AND_LEFT,
+  KEY_ALL,
   KEY_SELECT,
 ]
 export const ALL_MENU_SCOPES = [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP]

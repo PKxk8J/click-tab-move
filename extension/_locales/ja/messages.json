@@ -117,6 +117,9 @@
   "targetGroupThisAndLeft": {
     "message": "グループ内のこのタブと左側のタブ"
   },
+  "targetGroupAll": {
+    "message": "グループ内の全てのタブ"
+  },
   "targetGroupSelect": {
     "message": "グループ内の選択したタブ"
   },
@@ -155,6 +158,9 @@
   },
   "menuItem_group_thisAndLeft": {
     "message": "クリックしたタブと左側"
+  },
+  "menuItem_group_all": {
+    "message": "全てのタブ"
   },
   "menuItem_group_select": {
     "message": "選択したタブ"
