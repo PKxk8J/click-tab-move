@@ -458,7 +458,8 @@ function isDestinationVisible (entry, destination, summary, selectWindowId) {
   }
 
   if (destination.type === 'newGroup') {
-    return !summary.singleWholeGroup
+    return !summary.singleWholeGroup &&
+      !(entry.scope === KEY_TARGET_GROUP && entry.key === KEY_ALL)
   }
 
   if (summary.blockedGroupIds.has(destination.groupId)) {
