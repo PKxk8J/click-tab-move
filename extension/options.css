@@ -122,6 +122,7 @@ h3 {
 
 .toggle-row,
 .number-field,
+.select-field,
 .choice-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -145,6 +146,7 @@ h3 {
 
 .toggle-row:hover,
 .number-field:hover,
+.select-field:hover,
 .choice-row:hover {
   background: var(--surface-hover);
 }
@@ -155,7 +157,8 @@ h3 {
   font-weight: 560;
 }
 
-.number-field input {
+.number-field input,
+.select-field select {
   inline-size: 8rem;
   min-inline-size: 0;
   padding: 6px 8px;
@@ -166,7 +169,12 @@ h3 {
   font: inherit;
 }
 
-.number-field input:focus-visible {
+.select-field select {
+  inline-size: min(100%, 18rem);
+}
+
+.number-field input:focus-visible,
+.select-field select:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -262,11 +270,13 @@ h3 {
     padding-block-start: 0;
   }
 
-  .number-field {
+  .number-field,
+  .select-field {
     grid-template-columns: 1fr;
   }
 
-  .number-field input {
+  .number-field input,
+  .select-field select {
     inline-size: 100%;
   }
 }

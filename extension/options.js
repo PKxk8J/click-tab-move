@@ -58,10 +58,6 @@ function getMenuScopeInputId (scope, key) {
   return KEY_MENU_ITEMS + '_' + scope + '_' + key
 }
 
-function getPinnedGroupActionInputId (action) {
-  return KEY_PINNED_GROUP_ACTION + '_' + action
-}
-
 function setLabelText (id, key) {
   document.getElementById(id).textContent = i18n.getMessage(key)
 }
@@ -122,8 +118,7 @@ async function restore () {
   document.getElementById(KEY_SELECT_SAVE).checked = selectSave
   document.getElementById(KEY_NOTIFICATION).checked = notificationAllowed
   document.getElementById(KEY_FOCUS).checked = focus
-  document.getElementById(getPinnedGroupActionInputId(pinnedGroupAction)).
-    checked = true
+  document.getElementById(KEY_PINNED_GROUP_ACTION).value = pinnedGroupAction
 }
 
 async function applyNotificationPermission (notification) {
@@ -181,9 +176,9 @@ async function save () {
     [KEY_SELECT_SAVE]: document.getElementById(KEY_SELECT_SAVE).checked,
     [KEY_NOTIFICATION]: notification,
     [KEY_FOCUS]: document.getElementById(KEY_FOCUS).checked,
-    [KEY_PINNED_GROUP_ACTION]: document.querySelector(
-      'input[name="' + KEY_PINNED_GROUP_ACTION + '"]:checked',
-    )?.value ?? DEFAULT_PINNED_GROUP_ACTION,
+    [KEY_PINNED_GROUP_ACTION]: normalizePinnedGroupAction(
+      document.getElementById(KEY_PINNED_GROUP_ACTION).value,
+    ),
   }
   await storageArea.set(data)
   debug('Saved ' + JSON.stringify(data))
@@ -255,44 +250,39 @@ function addCheckboxEntry (labelKey, container, inputId) {
   container.appendChild(createToggleLabel(labelKey, inputId))
 }
 
-function createChoiceLabel (labelKey, name, value) {
-  const input = document.createElement('input')
-  input.type = 'radio'
-  input.name = name
-  input.value = value
-  input.id = getPinnedGroupActionInputId(value)
-  input.className = 'choice-input'
+function createSelectField (labelKey, selectId, options) {
+  const label = document.createElement('label')
+  label.className = 'select-field'
 
   const title = document.createElement('span')
   title.className = 'setting-title'
   title.textContent = i18n.getMessage(labelKey)
 
-  const label = document.createElement('label')
-  label.className = 'choice-row'
-  label.appendChild(input)
+  const select = document.createElement('select')
+  select.id = selectId
+
+  options.forEach((option) => {
+    const selectOption = document.createElement('option')
+    selectOption.value = option.value
+    selectOption.textContent = i18n.getMessage(option.labelKey)
+    select.appendChild(selectOption)
+  })
+
   label.appendChild(title)
+  label.appendChild(select)
   return label
 }
 
 function addPinnedGroupActionEntry (container) {
-  const title = document.createElement('h3')
-  title.textContent = i18n.getMessage(KEY_PINNED_GROUP_ACTION)
-
-  const list = document.createElement('div')
-  list.className = 'choice-list'
-  ALL_PINNED_GROUP_ACTIONS.forEach((action) => {
-    list.appendChild(createChoiceLabel(
-      KEY_PINNED_GROUP_ACTION + '_' + action,
-      KEY_PINNED_GROUP_ACTION,
-      action,
-    ))
-  })
-
-  const section = document.createElement('section')
-  section.className = 'behavior-choice'
-  section.appendChild(title)
-  section.appendChild(list)
-  container.appendChild(section)
+  const options = ALL_PINNED_GROUP_ACTIONS.map((action) => ({
+    value: action,
+    labelKey: KEY_PINNED_GROUP_ACTION + '_' + action,
+  }))
+  container.appendChild(createSelectField(
+    KEY_PINNED_GROUP_ACTION,
+    KEY_PINNED_GROUP_ACTION,
+    options,
+  ))
 }
 
 function addMenuItemEntry (scope, key, container) {
@@ -337,7 +327,7 @@ function createNumberField (labelKey, inputId) {
 }
 
 function bindAutoSave () {
-  document.querySelectorAll('input').forEach((input) => {
+  document.querySelectorAll('input, select').forEach((input) => {
     input.addEventListener('change', () => {
       handleInputChange(input).catch((error) => {
         if (input.id === KEY_NOTIFICATION) {
@@ -372,11 +362,11 @@ async function init () {
   const selectSizeContainer = document.getElementById(KEY_SELECT_SIZE)
   selectSizeContainer.appendChild(createNumberField(KEY_WIDTH, KEY_WIDTH))
   selectSizeContainer.appendChild(createNumberField(KEY_HEIGHT, KEY_HEIGHT))
+  addCheckboxEntry(KEY_SELECT_SAVE, selectSizeContainer, KEY_SELECT_SAVE)
 
   const behaviorContainer = document.getElementById(KEY_BEHAVIOR)
-  addCheckboxEntry(KEY_SELECT_SAVE, behaviorContainer, KEY_SELECT_SAVE)
-  addCheckboxEntry(KEY_FOCUS, behaviorContainer, KEY_FOCUS)
   addPinnedGroupActionEntry(behaviorContainer)
+  addCheckboxEntry(KEY_FOCUS, behaviorContainer, KEY_FOCUS)
 
   const notificationContainer = document.getElementById('notificationSetting')
   addCheckboxEntry(KEY_NOTIFICATION, notificationContainer, KEY_NOTIFICATION)
