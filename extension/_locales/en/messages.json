@@ -73,10 +73,10 @@
     "message": "Group"
   },
   "windowEntry": {
-    "message": "Window $1: $2"
+    "message": "[Window $1] $2"
   },
   "groupEntry": {
-    "message": "Window $1 / Group $2: $3"
+    "message": "[Window $1/Group:$2] $3"
   },
   "untitledGroup": {
     "message": "Untitled Group"

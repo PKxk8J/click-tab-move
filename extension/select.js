@@ -181,25 +181,27 @@ function sendResult () {
   })
 }
 
-async function getGroupTitleMap () {
-  const titles = new Map()
+async function getGroupInfoMap () {
+  const infos = new Map()
   if (typeof browser.tabGroups?.query !== 'function') {
-    return titles
+    return infos
   }
 
   const groups = await browser.tabGroups.query({})
   for (const group of groups) {
-    titles.set(group.id, group.title || i18n.getMessage('untitledGroup'))
+    infos.set(group.id, {
+      title: group.title || '',
+    })
   }
-  return titles
+  return infos
 }
 
-function getUnitTitle (unit, groupTitles) {
+function getUnitTitle (unit, groupInfos) {
   if (unit.type === 'group') {
-    const title = groupTitles.get(unit.groupId) ||
-      i18n.getMessage('untitledGroup')
+    const groupInfo = groupInfos.get(unit.groupId)
+    const groupTitle = groupInfo?.title || ''
     return i18n.getMessage('groupEntry',
-      [unit.tabs[0].windowId, unit.groupId, title])
+      [unit.tabs[0].windowId, groupTitle, unit.tabs[0].title])
   }
   if (unit.type === 'splitView') {
     return unit.tabs.map((tab) => tab.title).join(' / ')
@@ -214,12 +216,13 @@ async function getGroupDestinationTitle (groupId) {
     return String(groupId)
   }
 
-  let title = i18n.getMessage('untitledGroup')
+  let title = ''
   if (typeof browser.tabGroups?.query === 'function') {
     const groups = await browser.tabGroups.query({})
     title = groups.find((group) => group.id === groupId)?.title || title
   }
-  return i18n.getMessage('groupEntry', [groupTab.windowId, groupId, title])
+  return i18n.getMessage('groupEntry', [groupTab.windowId, title,
+    groupTab.title])
 }
 
 async function getDestinationTitle (destination) {
@@ -258,7 +261,7 @@ async function reset (
   const units = targetScope === KEY_TARGET_GLOBAL
     ? buildTopLevelUnits(tabList)
     : buildTabUnits(tabList)
-  const groupTitles = await getGroupTitleMap()
+  const groupInfos = await getGroupInfoMap()
 
   const select = document.getElementById(KEY_SELECT)
   select.replaceChildren()
@@ -266,7 +269,7 @@ async function reset (
     const option = document.createElement('option')
     option.value = unit.tabs.map((tab) => tab.id).join(',')
     option.dataset.tabIds = option.value
-    option.textContent = getUnitTitle(unit, groupTitles)
+    option.textContent = getUnitTitle(unit, groupInfos)
     select.appendChild(option)
   }
 

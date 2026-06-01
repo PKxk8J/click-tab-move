@@ -48,10 +48,10 @@
     "message": "标签页组"
   },
   "windowEntry": {
-    "message": "窗口 $1: $2"
+    "message": "[窗口 $1] $2"
   },
   "groupEntry": {
-    "message": "窗口 $1 / 组 $2: $3"
+    "message": "[窗口 $1/组:$2] $3"
   },
   "untitledGroup": {
     "message": "未命名标签页组"

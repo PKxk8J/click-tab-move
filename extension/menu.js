@@ -69,6 +69,15 @@ function isGroupedTab (tab) {
   return tab.groupId !== undefined && tab.groupId !== getNoGroupId()
 }
 
+function sortTabsByWindowAndIndex (tabList) {
+  return [...tabList].sort((tab1, tab2) => {
+    if (tab1.windowId !== tab2.windowId) {
+      return tab1.windowId - tab2.windowId
+    }
+    return tab1.index - tab2.index
+  })
+}
+
 function getEntryMenuId (scope, key) {
   return 'entry:' + scope + ':' + key
 }
@@ -234,17 +243,25 @@ function getWindowEntryTitle (tab) {
 }
 
 function getGroupEntryTitle (group) {
-  const title = group.title || i18n.getMessage('untitledGroup')
+  const groupTitle = group.title || ''
   return cut(i18n.getMessage('groupEntry',
-    [group.windowId, group.id, title]), ITEM_LENGTH)
+    [group.windowId, groupTitle, group.firstTabTitle]), ITEM_LENGTH)
 }
 
 async function getGroupEntries (selectWindowId) {
+  const tabList = await tabs.query({})
+  const firstTabByGroupId = new Map()
+  for (const tab of sortTabsByWindowAndIndex(tabList)) {
+    if (!isGroupedTab(tab) || firstTabByGroupId.has(tab.groupId)) {
+      continue
+    }
+    firstTabByGroupId.set(tab.groupId, tab)
+  }
+
   let groups = []
   if (typeof browser.tabGroups?.query === 'function') {
     groups = await browser.tabGroups.query({})
   } else {
-    const tabList = await tabs.query({})
     const knownGroupIds = new Set()
     for (const tab of tabList) {
       if (!isGroupedTab(tab) || knownGroupIds.has(tab.groupId)) {
@@ -267,12 +284,19 @@ async function getGroupEntries (selectWindowId) {
       }
       return group1.id - group2.id
     }).
-    map((group) => ({
-      type: 'group',
-      groupId: group.id,
-      windowId: group.windowId,
-      title: getGroupEntryTitle(group),
-    }))
+    map((group) => {
+      const entry = {
+        type: 'group',
+        groupId: group.id,
+        windowId: group.windowId,
+        title: group.title,
+        firstTabTitle: firstTabByGroupId.get(group.id)?.title || '',
+      }
+      return {
+        ...entry,
+        title: getGroupEntryTitle(entry),
+      }
+    })
 }
 
 async function getDestinationEntries () {
