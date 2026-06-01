@@ -3,12 +3,10 @@ import {
   DEFAULT_NOTIFICATION,
   KEY_CANCEL,
   KEY_DESTINATION,
-  KEY_FOCUS,
   KEY_GROUP_ID,
   KEY_MOVE,
   KEY_NEW_GROUP,
   KEY_NEW_WINDOW,
-  KEY_NOTIFICATION,
   KEY_RAW,
   KEY_RESET,
   KEY_SELECT,
@@ -18,6 +16,8 @@ import {
   KEY_TARGET_GROUP,
   KEY_TARGET_SCOPE,
   debug,
+  normalizeFocus,
+  normalizeNotification,
   onError,
 } from './common.js'
 
@@ -28,12 +28,18 @@ const {
   windows,
 } = browser
 
+let currentMoveRequest
+
 async function closeWindow () {
   const windowInfo = await windows.getCurrent()
-  runtime.sendMessage({
-    type: KEY_SELECT_SIZE,
-    selectSize: [windowInfo.width, windowInfo.height],
-  })
+  try {
+    await runtime.sendMessage({
+      type: KEY_SELECT_SIZE,
+      selectSize: [windowInfo.width, windowInfo.height],
+    })
+  } catch (error) {
+    onError(error)
+  }
 
   await windows.remove(windowInfo.id)
   debug('Select window ' + windowInfo.id + ' was closed')
@@ -153,30 +159,57 @@ function buildTopLevelUnits (tabList) {
 }
 
 function normalizeDestination (destination) {
-  if (!destination || destination.type === 'newWindow') {
+  if (!destination || typeof destination !== 'object' ||
+      destination.type === 'newWindow') {
     return { type: 'newWindow' }
   }
   if (destination.type === 'window') {
-    return { type: 'window', windowId: destination.windowId }
+    return { type: 'window', windowId: normalizeRequiredInteger(
+      destination.windowId, 'destination.windowId') }
   }
   if (destination.type === 'newGroup') {
     return { type: 'newGroup' }
   }
   if (destination.type === 'group') {
-    return { type: 'group', groupId: destination.groupId }
+    return { type: 'group', groupId: normalizeRequiredInteger(
+      destination.groupId, 'destination.groupId') }
   }
   return { type: 'newWindow' }
 }
 
-function serializeDestination (destination) {
-  return JSON.stringify(normalizeDestination(destination))
+function normalizeInteger (value) {
+  if (value === undefined || value === null || value === '') {
+    return undefined
+  }
+  const numberValue = Number(value)
+  return Number.isInteger(numberValue) ? numberValue : undefined
 }
 
-function parseDestination (value) {
-  if (!value) {
-    return { type: 'newWindow' }
+function normalizeRequiredInteger (value, name) {
+  const normalized = normalizeInteger(value)
+  if (normalized === undefined) {
+    throw new Error('Invalid ' + name + ': ' + value)
   }
-  return normalizeDestination(JSON.parse(value))
+  return normalized
+}
+
+function normalizeTargetScope (targetScope) {
+  return targetScope === KEY_TARGET_GROUP
+    ? KEY_TARGET_GROUP
+    : KEY_TARGET_GLOBAL
+}
+
+function normalizeResetMessage (message) {
+  return {
+    fromWindowId: normalizeRequiredInteger(message.fromWindowId,
+      'fromWindowId'),
+    groupId: normalizeInteger(message[KEY_GROUP_ID]),
+    targetScope: normalizeTargetScope(message[KEY_TARGET_SCOPE]),
+    destination: normalizeDestination(message[KEY_DESTINATION]),
+    notification: normalizeNotification(
+      message.notification ?? DEFAULT_NOTIFICATION),
+    focus: normalizeFocus(message.focus ?? DEFAULT_FOCUS),
+  }
 }
 
 function getTabCheckboxes () {
@@ -192,28 +225,14 @@ function getSelectedTabIds () {
     flatMap((checkbox) => checkbox.dataset.tabIds.split(',').map(Number))
 }
 
-function getDestination () {
-  return parseDestination(document.getElementById(KEY_DESTINATION).value)
-}
-
-function getIntegerValue (key) {
-  const value = document.getElementById(key).value
-  if (value === '') {
-    return undefined
-  }
-  const numberValue = Number(value)
-  return Number.isInteger(numberValue) ? numberValue : undefined
-}
-
 function updateMoveButtonState () {
   const moveButton = document.getElementById(KEY_MOVE)
-  moveButton.disabled = getSelectedTabIds().length <= 0 ||
-    document.getElementById(KEY_DESTINATION).value === ''
+  moveButton.disabled = !currentMoveRequest || getSelectedTabIds().length <= 0
 }
 
 function sendResult () {
   const tabIds = getSelectedTabIds()
-  if (tabIds.length <= 0) {
+  if (!currentMoveRequest || tabIds.length <= 0) {
     return false
   }
 
@@ -221,14 +240,13 @@ function sendResult () {
     type: KEY_MOVE,
     keyType: KEY_RAW,
     tabIds,
-    [KEY_DESTINATION]: getDestination(),
-    [KEY_TARGET_SCOPE]: document.getElementById(KEY_TARGET_SCOPE).value ||
-      KEY_TARGET_GLOBAL,
-    [KEY_GROUP_ID]: getIntegerValue(KEY_GROUP_ID),
-    [KEY_SOURCE_WINDOW_ID]: getIntegerValue(KEY_SOURCE_WINDOW_ID),
-    notification: document.getElementById(KEY_NOTIFICATION).value === 'true',
-    focus: document.getElementById(KEY_FOCUS).value === 'true',
-  })
+    [KEY_DESTINATION]: currentMoveRequest.destination,
+    [KEY_TARGET_SCOPE]: currentMoveRequest.targetScope,
+    [KEY_GROUP_ID]: currentMoveRequest.groupId,
+    [KEY_SOURCE_WINDOW_ID]: currentMoveRequest.fromWindowId,
+    notification: currentMoveRequest.notification,
+    focus: currentMoveRequest.focus,
+  }).catch(onError)
   return true
 }
 
@@ -371,31 +389,23 @@ function handleTabListChange (event) {
 }
 
 async function reset (
-  fromWindowId, groupId, targetScope, destination, notification, focus) {
-  const normalizedTargetScope = targetScope || KEY_TARGET_GLOBAL
-  const title = getTargetTitle(normalizedTargetScope)
+  { fromWindowId, groupId, targetScope, destination, notification, focus }) {
+  currentMoveRequest = undefined
+  updateMoveButtonState()
+
+  const title = getTargetTitle(targetScope)
   document.title = title
   document.getElementById('selectionTitle').textContent = title
   document.getElementById('source').textContent = await getSourceTitle(
-    fromWindowId, groupId, normalizedTargetScope)
-  document.getElementById(KEY_DESTINATION).value =
-    serializeDestination(destination)
+    fromWindowId, groupId, targetScope)
   document.getElementById('destinationDisplay').textContent =
     await getDestinationTitle(destination)
-  document.getElementById(KEY_SOURCE_WINDOW_ID).value = String(fromWindowId)
-  document.getElementById(KEY_GROUP_ID).value = groupId === undefined
-    ? ''
-    : String(groupId)
-  document.getElementById(KEY_TARGET_SCOPE).value = normalizedTargetScope
-
-  document.getElementById(KEY_NOTIFICATION).value = String(notification)
-  document.getElementById(KEY_FOCUS).value = String(focus)
 
   let tabList = await tabs.query({ windowId: fromWindowId })
-  if (normalizedTargetScope === KEY_TARGET_GROUP) {
+  if (targetScope === KEY_TARGET_GROUP) {
     tabList = tabList.filter((tab) => tab.groupId === groupId)
   }
-  const units = normalizedTargetScope === KEY_TARGET_GLOBAL
+  const units = targetScope === KEY_TARGET_GLOBAL
     ? buildTopLevelUnits(tabList)
     : buildTabUnits(tabList)
   const groupInfos = await getGroupInfoMap()
@@ -406,6 +416,14 @@ async function reset (
     select.appendChild(createTabOption(unit, groupInfos, index))
   })
 
+  currentMoveRequest = {
+    fromWindowId,
+    groupId,
+    targetScope,
+    destination,
+    notification,
+    focus,
+  }
   updateMoveButtonState()
   const firstCheckbox = getTabCheckboxes()[0]
   if (firstCheckbox) {
@@ -416,30 +434,13 @@ async function reset (
   await windows.update(windows.WINDOW_ID_CURRENT, { focused: true })
 }
 
-function normalizeDestinationMessage (message) {
-  if (message[KEY_DESTINATION]) {
-    return message[KEY_DESTINATION]
-  }
-  if (message.toWindowId === undefined) {
-    return { type: 'newWindow' }
-  }
-  return { type: 'window', windowId: message.toWindowId }
-}
-
 async function handleMessage (message) {
   debug('Message ' + JSON.stringify(message) + ' was received')
   if (message.type !== KEY_RESET) {
     return
   }
 
-  await reset(
-    message.fromWindowId,
-    message[KEY_GROUP_ID],
-    message[KEY_TARGET_SCOPE] || KEY_TARGET_GLOBAL,
-    normalizeDestinationMessage(message),
-    message.notification ?? DEFAULT_NOTIFICATION,
-    message.focus ?? DEFAULT_FOCUS,
-  )
+  await reset(normalizeResetMessage(message))
 }
 
 function setLabelText (id, key) {
@@ -463,6 +464,7 @@ async function init () {
     addEventListener('keydown', handleTabListKeyDown)
   document.getElementById(KEY_SELECT).
     addEventListener('change', handleTabListChange)
+  updateMoveButtonState()
 
   runtime.onMessage.addListener((message) => {
     return handleMessage(message).catch(onError)
