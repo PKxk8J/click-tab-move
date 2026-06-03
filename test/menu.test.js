@@ -293,7 +293,7 @@ test('single visible entry renders destinations directly under root', async () =
   await rebuildMenu()
   await showMenu(1)
 
-  assert.equal(state.menuItems.get('move').title, 'moveX:targetSubjectTab')
+  assert.equal(state.menuItems.get('move').title, 'move: targetSubjectTab')
   assert.equal(state.menuItems.get('entry:global:one').visible, false)
   assert.deepEqual(getChildIds('move'), [
     'flatTarget:global:one:newWindow',

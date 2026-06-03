@@ -8,7 +8,6 @@ import {
   KEY_LEFT,
   KEY_MENU_ITEMS,
   KEY_MOVE,
-  KEY_MOVE_X,
   KEY_NEW_GROUP,
   KEY_NEW_WINDOW,
   KEY_NOTIFICATION,
@@ -187,14 +186,15 @@ function getGroupTitle (key) {
   }
 }
 
-function getEntryTitle (entry, targetTab, flat) {
+function getEntryTitle (entry, targetTab) {
   const title = entry.scope === KEY_TARGET_GROUP
     ? getGroupTitle(entry.key)
     : getGlobalTitle(entry.key, targetTab)
-  if (flat) {
-    return i18n.getMessage(KEY_MOVE_X, title)
-  }
   return title
+}
+
+function getSingleEntryMenuTitle (entry, targetTab) {
+  return i18n.getMessage(KEY_MOVE) + ': ' + getEntryTitle(entry, targetTab)
 }
 
 function createMenuItem (properties) {
@@ -518,7 +518,7 @@ async function renderCurrentMenuItems (targetTab, visibleEntries) {
     const entryMenuId = getEntryMenuId(entry.scope, entry.key)
     await updateMenuItem(entryMenuId, {
       visible: true,
-      title: getEntryTitle(entry, targetTab, false),
+      title: getEntryTitle(entry, targetTab),
     })
     await updateDestinationMenuItems(entry, destinations, getDestinationMenuId)
   }
@@ -549,7 +549,7 @@ async function handleMenuShown (info, tab) {
   await updateMenuItem(KEY_MOVE, {
     visible: visibleEntries.length > 0,
     title: visibleEntries.length === 1
-      ? getEntryTitle(visibleEntries[0].entry, targetTab, true)
+      ? getSingleEntryMenuTitle(visibleEntries[0].entry, targetTab)
       : i18n.getMessage(KEY_MOVE),
   })
   await renderCurrentMenuItems(targetTab, visibleEntries)
