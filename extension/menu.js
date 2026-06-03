@@ -57,7 +57,7 @@ let destinationEntries = {
   windows: [],
   groups: [],
 }
-let renderedMenuItemIds = []
+let currentMenuItemIds = []
 
 function cut (text, length) {
   if (text.length <= length) {
@@ -80,21 +80,31 @@ function getEntryMenuId (scope, key) {
 }
 
 function getDestinationMenuId (scope, key, destination) {
+  return getTargetMenuId('target', scope, key, destination)
+}
+
+function getFlatDestinationMenuId (scope, key, destination) {
+  return getTargetMenuId('flatTarget', scope, key, destination)
+}
+
+function getTargetMenuId (prefix, scope, key, destination) {
   if (destination.type === 'newWindow') {
-    return 'target:' + scope + ':' + key + ':newWindow'
+    return prefix + ':' + scope + ':' + key + ':newWindow'
   }
   if (destination.type === 'window') {
-    return 'target:' + scope + ':' + key + ':window:' + destination.windowId
+    return prefix + ':' + scope + ':' + key + ':window:' +
+      destination.windowId
   }
   if (destination.type === 'newGroup') {
-    return 'target:' + scope + ':' + key + ':newGroup'
+    return prefix + ':' + scope + ':' + key + ':newGroup'
   }
-  return 'target:' + scope + ':' + key + ':group:' + destination.groupId
+  return prefix + ':' + scope + ':' + key + ':group:' + destination.groupId
 }
 
 function parseTargetMenuId (id) {
   const parts = id.split(':')
-  if (parts.length < 4 || parts[0] !== 'target') {
+  if (parts.length < 4 ||
+      (parts[0] !== 'target' && parts[0] !== 'flatTarget')) {
     return
   }
 
@@ -200,9 +210,9 @@ function createMenuItem (properties) {
   })
 }
 
-async function createRenderedMenuItem (properties) {
+async function createManagedMenuItem (properties) {
   await createMenuItem(properties)
-  renderedMenuItemIds.push(properties.id)
+  currentMenuItemIds.push(properties.id)
 }
 
 function updateMenuItem (id, properties) {
@@ -215,26 +225,6 @@ function updateMenuItem (id, properties) {
       }
     })
   })
-}
-
-function removeMenuItem (id) {
-  return new Promise((resolve, reject) => {
-    menus.remove(id, () => {
-      if (runtime.lastError) {
-        reject(runtime.lastError)
-      } else {
-        resolve()
-      }
-    })
-  })
-}
-
-async function clearRenderedMenuItems () {
-  const ids = [...renderedMenuItemIds].reverse()
-  renderedMenuItemIds = []
-  for (const id of ids) {
-    await removeMenuItem(id).catch(onError)
-  }
 }
 
 async function getCurrentTab () {
@@ -330,6 +320,36 @@ function getAllDestinations () {
   ]
 }
 
+async function createDestinationMenuItems (entry, destinations, parentId,
+  getMenuId) {
+  for (const destination of destinations) {
+    await createManagedMenuItem({
+      id: getMenuId(entry.scope, entry.key, destination),
+      title: destination.title,
+      contexts: currentContexts,
+      parentId,
+      visible: false,
+    })
+  }
+}
+
+async function createStaticMenuItems (entries, destinations, contexts) {
+  for (const entry of entries) {
+    const entryMenuId = getEntryMenuId(entry.scope, entry.key)
+    await createManagedMenuItem({
+      id: entryMenuId,
+      title: i18n.getMessage(entry.key),
+      contexts,
+      parentId: KEY_MOVE,
+      visible: false,
+    })
+    await createDestinationMenuItems(entry, destinations, KEY_MOVE,
+      getFlatDestinationMenuId)
+    await createDestinationMenuItems(entry, destinations, entryMenuId,
+      getDestinationMenuId)
+  }
+}
+
 async function rebuildMenu () {
   const [storedContexts, storedMenuItems] = await Promise.all([
     getValue(KEY_CONTEXTS),
@@ -343,7 +363,7 @@ async function rebuildMenu () {
   currentContexts = contexts
   currentEntries = entries
   destinationEntries = destinations
-  renderedMenuItemIds = []
+  currentMenuItemIds = []
 
   await menus.removeAll()
   debug('Clear menu items')
@@ -357,6 +377,7 @@ async function rebuildMenu () {
     title: i18n.getMessage(KEY_MOVE),
     contexts,
   })
+  await createStaticMenuItems(entries, getAllDestinations(), contexts)
 }
 
 function queueRebuildMenu () {
@@ -472,35 +493,34 @@ function isDestinationVisible (entry, destination, summary, selectWindowId) {
     summary.targetTabCount
 }
 
-async function createDestinationMenuItems (entry, destinations, parentId) {
+async function updateDestinationMenuItems (entry, destinations, getMenuId) {
   for (const destination of destinations) {
-    await createRenderedMenuItem({
-      id: getDestinationMenuId(entry.scope, entry.key, destination),
+    await updateMenuItem(getMenuId(entry.scope, entry.key, destination), {
+      visible: true,
       title: destination.title,
-      contexts: currentContexts,
-      parentId,
     })
   }
 }
 
 async function renderCurrentMenuItems (targetTab, visibleEntries) {
-  await clearRenderedMenuItems()
+  for (const id of currentMenuItemIds) {
+    await updateMenuItem(id, { visible: false }).catch(onError)
+  }
 
   if (visibleEntries.length === 1) {
     const { entry, destinations } = visibleEntries[0]
-    await createDestinationMenuItems(entry, destinations, KEY_MOVE)
+    await updateDestinationMenuItems(entry, destinations,
+      getFlatDestinationMenuId)
     return
   }
 
   for (const { entry, destinations } of visibleEntries) {
     const entryMenuId = getEntryMenuId(entry.scope, entry.key)
-    await createRenderedMenuItem({
-      id: entryMenuId,
+    await updateMenuItem(entryMenuId, {
+      visible: true,
       title: getEntryTitle(entry, targetTab, false),
-      contexts: currentContexts,
-      parentId: KEY_MOVE,
     })
-    await createDestinationMenuItems(entry, destinations, entryMenuId)
+    await updateDestinationMenuItems(entry, destinations, getDestinationMenuId)
   }
 }
 

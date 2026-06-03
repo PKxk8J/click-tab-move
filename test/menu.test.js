@@ -241,12 +241,46 @@ async function showMenu (tabId) {
 function getChildIds (parentId) {
   return [...state.menuItems.entries()].
     filter(([, item]) => item.parentId === parentId).
+    filter(([, item]) => item.visible !== false).
     map(([id]) => id)
 }
 
-function hasMenuIdPrefix (prefix) {
-  return [...state.menuItems.keys()].some((id) => id.startsWith(prefix))
+function getAllChildIds (parentId) {
+  return [...state.menuItems.entries()].
+    filter(([, item]) => item.parentId === parentId).
+    map(([id]) => id)
 }
+
+function hasVisibleMenuIdPrefix (prefix) {
+  return [...state.menuItems.entries()].
+    some(([id, item]) => id.startsWith(prefix) && item.visible !== false)
+}
+
+test('rebuild precreates both flat and nested destination layouts', async () => {
+  resetState({
+    menuItems: { one: ['global'] },
+    tabs: [
+      { id: 1, windowId: 1, index: 0, active: true },
+      { id: 2, windowId: 2, index: 0, active: true },
+    ],
+  })
+  await rebuildMenu()
+
+  assert.deepEqual(getAllChildIds('move'), [
+    'entry:global:one',
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:1',
+    'flatTarget:global:one:window:2',
+    'flatTarget:global:one:newGroup',
+  ])
+  assert.deepEqual(getAllChildIds('entry:global:one'), [
+    'target:global:one:newWindow',
+    'target:global:one:window:1',
+    'target:global:one:window:2',
+    'target:global:one:newGroup',
+  ])
+  assert.deepEqual(getChildIds('move'), [])
+})
 
 test('single visible entry renders destinations directly under root', async () => {
   resetState({
@@ -260,13 +294,13 @@ test('single visible entry renders destinations directly under root', async () =
   await showMenu(1)
 
   assert.equal(state.menuItems.get('move').title, 'moveX:targetSubjectTab')
-  assert.equal(state.menuItems.has('entry:global:one'), false)
+  assert.equal(state.menuItems.get('entry:global:one').visible, false)
   assert.deepEqual(getChildIds('move'), [
-    'target:global:one:newWindow',
-    'target:global:one:window:2',
-    'target:global:one:newGroup',
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:2',
+    'flatTarget:global:one:newGroup',
   ])
-  assert.equal(hasMenuIdPrefix('flatTarget:'), false)
+  assert.equal(hasVisibleMenuIdPrefix('target:global:one:'), false)
   assert.equal(state.refreshCount, 1)
 })
 
@@ -298,7 +332,7 @@ test('multiple visible entries render destinations under entry submenus', async 
     state.menuItems.get('target:global:right:newWindow').parentId,
     'entry:global:right',
   )
-  assert.equal(hasMenuIdPrefix('flatTarget:'), false)
+  assert.equal(hasVisibleMenuIdPrefix('flatTarget:'), false)
 })
 
 test('menu shown rebuild clears the previous dynamic layout', async () => {
@@ -317,14 +351,17 @@ test('menu shown rebuild clears the previous dynamic layout', async () => {
   await showMenu(1)
   await showMenu(3)
 
-  assert.equal(state.menuItems.has('entry:global:one'), false)
-  assert.equal(state.menuItems.has('entry:global:right'), false)
+  assert.equal(state.menuItems.get('entry:global:one').visible, false)
+  assert.equal(state.menuItems.get('entry:global:right').visible, false)
   assert.deepEqual(getChildIds('move'), [
-    'target:global:one:newWindow',
-    'target:global:one:window:2',
-    'target:global:one:newGroup',
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:2',
+    'flatTarget:global:one:newGroup',
   ])
-  assert.equal(state.menuItems.has('target:global:right:newWindow'), false)
-  assert.equal(hasMenuIdPrefix('flatTarget:'), false)
+  assert.equal(
+    state.menuItems.get('target:global:right:newWindow').visible,
+    false,
+  )
+  assert.equal(hasVisibleMenuIdPrefix('target:global:'), false)
   assert.equal(state.refreshCount, 2)
 })
