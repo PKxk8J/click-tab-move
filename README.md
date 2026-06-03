@@ -37,9 +37,14 @@ https://addons.mozilla.org/addon/clicktabmove/
 npm install
 npm run lint
 npm run test
+npm run test:perf
 npm run test:e2e
 npm run build
 ```
+
+`npm run test:perf` は Firefox 上に実タブを 500 件作成し、別ウィンドウへの移動を測定します。
+件数と時間予算は `PERF_TAB_COUNT=1000 PERF_MAX_MS=60000 npm run test:perf` のように
+変更できます。
 
 アドオンのバージョンは `extension/manifest.json` で管理します。
 `npm run build` は `web-ext-artifacts/clicktabmove-<version>.zip` を作成します。

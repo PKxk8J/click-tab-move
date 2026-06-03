@@ -9,6 +9,7 @@
     "lint:js": "eslint .",
     "test": "npm run test:unit",
     "test:unit": "node --test test/*.test.js",
+    "test:perf": "node --test --test-timeout=300000 test/perf/*.test.js",
     "test:e2e": "node --test --test-timeout=120000 test/e2e/*.test.js",
     "build": "web-ext --config web-ext-config.mjs build --overwrite-dest",
     "run": "web-ext --config web-ext-config.mjs run"
