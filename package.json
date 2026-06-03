@@ -2,6 +2,7 @@
   "name": "click-tab-move",
   "type": "module",
   "private": true,
+  "license": "Apache-2.0",
   "description": "Firefox の右クリックメニューからタブを別のウィンドウへ移動します。",
   "scripts": {
     "lint": "npm run lint:web-ext && npm run lint:js",
