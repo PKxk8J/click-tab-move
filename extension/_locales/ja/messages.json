@@ -204,6 +204,9 @@
   "pinnedGroupAction": {
     "message": "ピン留めされたタブをグループへ移そうとしています"
   },
+  "pinnedGroupActionSetting": {
+    "message": "ピン留めされたタブをグループへ移す場合"
+  },
   "pinnedGroupAction_ask": {
     "message": "確認する"
   },

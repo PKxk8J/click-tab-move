@@ -279,7 +279,7 @@ function addPinnedGroupActionEntry (container) {
     labelKey: KEY_PINNED_GROUP_ACTION + '_' + action,
   }))
   container.appendChild(createSelectField(
-    KEY_PINNED_GROUP_ACTION,
+    KEY_PINNED_GROUP_ACTION + 'Setting',
     KEY_PINNED_GROUP_ACTION,
     options,
   ))
