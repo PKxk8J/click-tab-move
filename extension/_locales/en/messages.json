@@ -204,6 +204,9 @@
   "pinnedGroupAction": {
     "message": "You are moving pinned tabs to a group"
   },
+  "pinnedGroupActionSetting": {
+    "message": "When moving pinned tabs to a group"
+  },
   "pinnedGroupAction_ask": {
     "message": "Ask each time"
   },

@@ -173,6 +173,9 @@
   "pinnedGroupAction": {
     "message": "正在尝试将固定标签页移动到组"
   },
+  "pinnedGroupActionSetting": {
+    "message": "将固定标签页移动到组时"
+  },
   "pinnedGroupAction_ask": {
     "message": "每次询问"
   },
