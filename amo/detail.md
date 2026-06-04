@@ -1,3 +1,9 @@
+## Summary
+
+Move tabs to another window from the right-click menu.
+
+## Description
+
 ClickTabMove moves tabs and tab groups from Firefox's right-click menu.
 
 Choose a destination directly from the menu:
