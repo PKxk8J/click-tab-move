@@ -398,6 +398,12 @@ function queueRebuildMenu () {
   return rebuildMenuPromise
 }
 
+async function waitForMenuRebuild () {
+  if (rebuildMenuPromise) {
+    await rebuildMenuPromise
+  }
+}
+
 async function getTargetSummary (entry, targetTab) {
   if (entry.scope === KEY_TARGET_GROUP && !isGroupedTab(targetTab)) {
     return { valid: false }
@@ -525,6 +531,7 @@ async function renderCurrentMenuItems (targetTab, visibleEntries) {
 }
 
 async function handleMenuShown (info, tab) {
+  await waitForMenuRebuild()
   const targetTab = tab || await getCurrentTab()
   if (!targetTab || currentContexts.length <= 0 || currentEntries.length <= 0) {
     return
@@ -557,6 +564,7 @@ async function handleMenuShown (info, tab) {
 }
 
 async function handleMenuClick (info, tab) {
+  await waitForMenuRebuild()
   const target = parseTargetMenuId(info.menuItemId)
   if (!target) {
     return
