@@ -342,9 +342,10 @@ test('設定値を正規化する', () => {
   assert.deepEqual(normalizeContexts(['all', 'unknown', 'tab']), ['tab', 'all'])
   assert.deepEqual(normalizeContexts('tab'), [])
   assert.deepEqual(normalizeMenuItems(undefined), {
-    one: ['global'],
-    right: ['global'],
-    all: ['global'],
+    one: ['global', 'group'],
+    right: ['global', 'group'],
+    all: ['global', 'group'],
+    select: ['global', 'group'],
   })
   assert.deepEqual(normalizeMenuItems(['select', 'unknown', 'left']), {
     left: ['global'],
