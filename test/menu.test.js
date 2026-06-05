@@ -6,6 +6,7 @@ const state = {
   storageData: {},
   menuItems: new Map(),
   refreshCount: 0,
+  storageGetWait: undefined,
 }
 
 function createEvent () {
@@ -73,6 +74,7 @@ function resetState ({ menuItems, tabs }) {
   }
   state.menuItems.clear()
   state.refreshCount = 0
+  state.storageGetWait = undefined
 }
 
 globalThis.browser = {
@@ -142,6 +144,7 @@ globalThis.browser = {
   storage: {
     sync: {
       get: async (key) => {
+        await state.storageGetWait?.()
         if (typeof key === 'string') {
           return { [key]: state.storageData[key] }
         }
@@ -228,6 +231,7 @@ resetState({
   ],
 })
 await import('../extension/menu.js?menu-test')
+await new Promise((resolve) => globalThis.setTimeout(resolve, 0))
 
 async function rebuildMenu () {
   await events.runtimeStartup.listeners[0]()
@@ -255,6 +259,50 @@ function hasVisibleMenuIdPrefix (prefix) {
   return [...state.menuItems.entries()].
     some(([id, item]) => id.startsWith(prefix) && item.visible !== false)
 }
+
+test('load rebuilds menu', async () => {
+  assert.ok(state.menuItems.has('move'))
+  assert.notEqual(state.menuItems.get('move').visible, false)
+  assert.deepEqual(getAllChildIds('move'), [
+    'entry:global:one',
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:1',
+    'flatTarget:global:one:window:2',
+    'flatTarget:global:one:newGroup',
+  ])
+})
+
+test('menu shown waits for an in-progress menu rebuild', async () => {
+  let releaseStorage = () => {}
+  const storageReady = new Promise((resolve) => {
+    releaseStorage = resolve
+  })
+  resetState({
+    menuItems: { one: ['global'] },
+    tabs: [
+      { id: 1, windowId: 1, index: 0, active: true },
+      { id: 2, windowId: 2, index: 0, active: true },
+    ],
+  })
+  state.storageGetWait = async () => storageReady
+
+  const rebuildPromise = rebuildMenu()
+  const showPromise = showMenu(1)
+  await new Promise((resolve) => globalThis.setTimeout(resolve, 0))
+
+  assert.equal(state.refreshCount, 0)
+
+  releaseStorage()
+  await Promise.all([rebuildPromise, showPromise])
+
+  assert.equal(state.menuItems.get('move').title, 'move: targetSubjectTab')
+  assert.deepEqual(getChildIds('move'), [
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:2',
+    'flatTarget:global:one:newGroup',
+  ])
+  assert.equal(state.refreshCount, 1)
+})
 
 test('rebuild precreates both flat and nested destination layouts', async () => {
   resetState({
