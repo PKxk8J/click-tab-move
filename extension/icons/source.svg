@@ -20,10 +20,10 @@
   <g transform="translate(-8 -13)">
     <path d="M23 72V38c0-8 5-13 13-13h18c6 0 9 2 13 7l4 5h27c8 0 13 5 13 13v22c0 8-5 13-13 13H36c-8 0-13-5-13-13Z" fill="#f97316"/>
     <path d="M23 54h88v18c0 8-5 13-13 13H36c-8 0-13-5-13-13V54Z" fill="#fdba74"/>
-    <path d="M34 91V55c0-8 5-13 13-13h19c6 0 9 2 13 7l4 5h24c8 0 13 5 13 13v24c0 8-5 13-13 13H47c-8 0-13-5-13-13Z" fill="#c2410c"/>
-    <path d="M34 69h86v22c0 8-5 13-13 13H47c-8 0-13-5-13-13V69Z" fill="#f97316"/>
+    <path d="M35 91V55c0-8 5-13 13-13h19c6 0 9 2 13 7l4 5h24c8 0 13 5 13 13v24c0 8-5 13-13 13H48c-8 0-13-5-13-13Z" fill="#c2410c"/>
+    <path d="M35 69h86v22c0 8-5 13-13 13H48c-8 0-13-5-13-13V69Z" fill="#f97316"/>
   </g>
-  <circle cx="36" cy="92" r="23" fill="#c2410c" stroke="#fff7ed" stroke-width="3"/>
-  <path d="M22.8 92h22.8" stroke="#fff7ed" stroke-width="6.65" stroke-linecap="round"/>
-  <path d="M38.9 80.6 51.2 92l-12.3 11.4" fill="none" stroke="#fff7ed" stroke-width="6.65" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="44" cy="84" r="34.75" fill="#c2410c" stroke="#fff7ed" stroke-width="4"/>
+  <path d="M24.2 84h34.2" stroke="#fff7ed" stroke-width="9.975" stroke-linecap="round"/>
+  <path d="M48.35 66.9 66.8 84l-18.45 17.1" fill="none" stroke="#fff7ed" stroke-width="9.975" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
