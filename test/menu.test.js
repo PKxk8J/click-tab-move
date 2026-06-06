@@ -63,9 +63,11 @@ function resetState ({ menuItems, tabs }) {
   state.tabs = tabs.map((tab) => ({
     active: false,
     groupId: -1,
+    incognito: false,
     pinned: false,
     splitViewId: -1,
     title: 'Tab ' + tab.id,
+    windowType: 'normal',
     ...tab,
   }))
   state.storageData = {
@@ -215,7 +217,10 @@ globalThis.browser = {
   },
   windows: {
     create: async () => ({ id: 10, tabs: [{ id: 10 }] }),
-    get: async (id) => ({ id }),
+    get: async (id) => ({
+      id,
+      type: state.tabs.find((tab) => tab.windowId === id)?.windowType,
+    }),
     update: async (id, properties) => ({ id, ...properties }),
     onCreated: events.windowsCreated,
     onFocusChanged: events.windowsFocusChanged,
@@ -350,6 +355,87 @@ test('single visible entry renders destinations directly under root', async () =
   ])
   assert.equal(hasVisibleMenuIdPrefix('target:global:one:'), false)
   assert.equal(state.refreshCount, 1)
+})
+
+test('destinations only include the source incognito context', async () => {
+  resetState({
+    menuItems: { one: ['global'] },
+    tabs: [
+      { id: 1, windowId: 1, index: 0, active: true },
+      { id: 2, windowId: 2, index: 0, active: true, incognito: true },
+      { id: 3, windowId: 3, index: 0, active: true, groupId: 30 },
+      {
+        id: 4,
+        windowId: 4,
+        index: 0,
+        active: true,
+        groupId: 40,
+        incognito: true,
+      },
+    ],
+  })
+  await rebuildMenu()
+
+  await showMenu(1)
+  assert.deepEqual(getChildIds('move'), [
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:3',
+    'flatTarget:global:one:newGroup',
+    'flatTarget:global:one:group:30',
+  ])
+
+  await showMenu(2)
+  assert.deepEqual(getChildIds('move'), [
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:4',
+    'flatTarget:global:one:newGroup',
+    'flatTarget:global:one:group:40',
+  ])
+})
+
+test('destinations only include normal windows and groups', async () => {
+  resetState({
+    menuItems: { one: ['global'] },
+    tabs: [
+      { id: 1, windowId: 1, index: 0, active: true },
+      { id: 2, windowId: 2, index: 0, active: true },
+      { id: 3, windowId: 3, index: 0, active: true, windowType: 'popup' },
+      {
+        id: 4,
+        windowId: 4,
+        index: 0,
+        active: true,
+        groupId: 40,
+        windowType: 'panel',
+      },
+      { id: 5, windowId: 5, index: 0, active: true, groupId: 50 },
+    ],
+  })
+  await rebuildMenu()
+  await showMenu(1)
+
+  assert.deepEqual(getChildIds('move'), [
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:2',
+    'flatTarget:global:one:window:5',
+    'flatTarget:global:one:newGroup',
+    'flatTarget:global:one:group:50',
+  ])
+})
+
+test('menu is hidden when the source window is not normal', async () => {
+  resetState({
+    menuItems: { one: ['global'] },
+    tabs: [
+      { id: 1, windowId: 1, index: 0, active: true, windowType: 'popup' },
+      { id: 2, windowId: 2, index: 0, active: true },
+    ],
+  })
+  await rebuildMenu()
+  await showMenu(1)
+
+  assert.equal(state.menuItems.get('move').visible, false)
+  assert.deepEqual(getChildIds('move'), [])
 })
 
 test('multiple visible entries render destinations under entry submenus', async () => {

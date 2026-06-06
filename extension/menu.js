@@ -232,6 +232,25 @@ async function getCurrentTab () {
   return tab
 }
 
+async function getNormalWindowIdSet (windowIds) {
+  const normalWindowIds = new Set()
+  for (const windowId of new Set(windowIds)) {
+    try {
+      const windowInfo = await windows.get(windowId)
+      if (windowInfo.type === 'normal') {
+        normalWindowIds.add(windowId)
+      }
+    } catch (error) {
+      debug(error)
+    }
+  }
+  return normalWindowIds
+}
+
+async function isNormalWindow (windowId) {
+  return (await getNormalWindowIdSet([windowId])).has(windowId)
+}
+
 function getWindowEntryTitle (tab) {
   return cut(i18n.getMessage('windowEntry', [tab.windowId, tab.title]),
     ITEM_LENGTH)
@@ -243,7 +262,7 @@ function getGroupEntryTitle (group) {
     [group.windowId, groupTitle, group.firstTabTitle]), ITEM_LENGTH)
 }
 
-async function getGroupEntries (selectWindowId) {
+async function getGroupEntries (selectWindowId, normalWindowIds) {
   const tabList = await tabs.query({})
   const firstTabByGroupId = new Map()
   for (const tab of sortTabsByWindowAndIndex(tabList)) {
@@ -266,6 +285,7 @@ async function getGroupEntries (selectWindowId) {
       groups.push({
         id: tab.groupId,
         windowId: tab.windowId,
+        incognito: tab.incognito === true,
         title: '',
       })
     }
@@ -273,6 +293,7 @@ async function getGroupEntries (selectWindowId) {
 
   return groups.
     filter((group) => group.windowId !== selectWindowId).
+    filter((group) => normalWindowIds.has(group.windowId)).
     sort((group1, group2) => {
       if (group1.windowId !== group2.windowId) {
         return group1.windowId - group2.windowId
@@ -280,12 +301,16 @@ async function getGroupEntries (selectWindowId) {
       return group1.id - group2.id
     }).
     map((group) => {
+      const firstTab = firstTabByGroupId.get(group.id)
       const entry = {
         type: 'group',
         groupId: group.id,
         windowId: group.windowId,
+        incognito: firstTab
+          ? firstTab.incognito === true
+          : group.incognito === true,
         title: group.title,
-        firstTabTitle: firstTabByGroupId.get(group.id)?.title || '',
+        firstTabTitle: firstTab?.title || '',
       }
       return {
         ...entry,
@@ -297,17 +322,22 @@ async function getGroupEntries (selectWindowId) {
 async function getDestinationEntries () {
   const selectWindowId = getSelectWindowId()
   const activeTabs = await tabs.query({ active: true })
+  const normalWindowIds = await getNormalWindowIdSet(
+    activeTabs.map((tab) => tab.windowId),
+  )
   const windowEntries = activeTabs.
     filter((tab) => tab.windowId !== selectWindowId).
+    filter((tab) => normalWindowIds.has(tab.windowId)).
     sort((tab1, tab2) => tab1.windowId - tab2.windowId).
     map((tab) => ({
       type: 'window',
       windowId: tab.windowId,
+      incognito: tab.incognito === true,
       title: getWindowEntryTitle(tab),
     }))
   return {
     windows: windowEntries,
-    groups: await getGroupEntries(selectWindowId),
+    groups: await getGroupEntries(selectWindowId, normalWindowIds),
   }
 }
 
@@ -413,6 +443,7 @@ async function getTargetSummary (entry, targetTab) {
     return {
       valid: true,
       sourceWindowId: targetTab.windowId,
+      sourceIncognito: targetTab.incognito === true,
       groupIds: entry.scope === KEY_TARGET_GROUP
         ? new Set([targetTab.groupId])
         : new Set(),
@@ -449,6 +480,7 @@ async function getTargetSummary (entry, targetTab) {
   return {
     valid: true,
     sourceWindowId: targetTab.windowId,
+    sourceIncognito: targetTab.incognito === true,
     groupIds,
     blockedGroupIds: entry.scope === KEY_TARGET_GROUP
       ? new Set([targetTab.groupId])
@@ -463,6 +495,11 @@ async function getTargetSummary (entry, targetTab) {
 
 function isDestinationVisible (entry, destination, summary, selectWindowId) {
   if (!summary.valid) {
+    return false
+  }
+
+  if (destination.incognito !== undefined &&
+      destination.incognito !== summary.sourceIncognito) {
     return false
   }
 
@@ -540,16 +577,18 @@ async function handleMenuShown (info, tab) {
   const selectWindowId = getSelectWindowId()
   const destinations = getAllDestinations()
   const visibleEntries = []
-  for (const entry of currentEntries) {
-    const summary = await getTargetSummary(entry, targetTab)
-    const visibleDestinations = destinations.filter((destination) => {
-      return isDestinationVisible(entry, destination, summary, selectWindowId)
-    })
-    if (visibleDestinations.length > 0) {
-      visibleEntries.push({
-        entry,
-        destinations: visibleDestinations,
+  if (await isNormalWindow(targetTab.windowId)) {
+    for (const entry of currentEntries) {
+      const summary = await getTargetSummary(entry, targetTab)
+      const visibleDestinations = destinations.filter((destination) => {
+        return isDestinationVisible(entry, destination, summary, selectWindowId)
       })
+      if (visibleDestinations.length > 0) {
+        visibleEntries.push({
+          entry,
+          destinations: visibleDestinations,
+        })
+      }
     }
   }
 
@@ -572,6 +611,9 @@ async function handleMenuClick (info, tab) {
 
   const targetTab = tab || await getCurrentTab()
   if (!targetTab) {
+    return
+  }
+  if (!await isNormalWindow(targetTab.windowId)) {
     return
   }
 

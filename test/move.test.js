@@ -12,6 +12,7 @@ const state = {
   ungrouped: [],
   removed: [],
   activated: [],
+  windowCreates: [],
   windowUpdates: [],
   notifications: [],
   notificationAllowed: true,
@@ -51,6 +52,7 @@ function resetTabs (tabs) {
     pinned: false,
     active: false,
     groupId: -1,
+    incognito: false,
     splitViewId: -1,
     title: 'Tab ' + tab.id,
     url: 'https://example.com/' + tab.id,
@@ -63,6 +65,7 @@ function resetTabs (tabs) {
   state.ungrouped = []
   state.removed = []
   state.activated = []
+  state.windowCreates = []
   state.windowUpdates = []
   state.notifications = []
   state.notificationAllowed = true
@@ -280,12 +283,14 @@ globalThis.browser = {
     WINDOW_ID_CURRENT: -2,
     create: async (properties = {}) => {
       const windowId = state.nextWindowId++
+      state.windowCreates.push({ id: windowId, properties })
       const tab = {
         id: state.nextTabId++,
         windowId,
         index: 0,
         active: true,
         pinned: false,
+        incognito: properties.incognito === true,
         title: 'New Tab',
         url: properties.url || 'about:blank',
         status: 'complete',
@@ -456,6 +461,22 @@ test('新規ウィンドウへ移動した後にプレースホルダータブ�
 
   assert.deepEqual(getTabIds(10), [1, 2])
   assert.deepEqual(state.removed, [100])
+})
+
+test('プライベートタブは新規プライベートウィンドウへ移動する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, active: true, incognito: true },
+  ])
+
+  await rawRun([1], undefined, false, false)
+
+  assert.equal(state.tabs.find((tab) => tab.id === 100), undefined)
+  assert.deepEqual(getTabIds(10), [1])
+  assert.deepEqual(state.windowCreates, [
+    { id: 10, properties: { incognito: true } },
+  ])
+  assert.equal(state.moved[0].windowId, 10)
+  assert.equal(state.removed[0], 100)
 })
 
 test('グループ全体をウィンドウへ移す場合はグループのまま移動する', async () => {
