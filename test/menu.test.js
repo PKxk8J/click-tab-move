@@ -63,6 +63,7 @@ function resetState ({ menuItems, tabs }) {
   state.tabs = tabs.map((tab) => ({
     active: false,
     groupId: -1,
+    incognito: false,
     pinned: false,
     splitViewId: -1,
     title: 'Tab ' + tab.id,
@@ -350,6 +351,42 @@ test('single visible entry renders destinations directly under root', async () =
   ])
   assert.equal(hasVisibleMenuIdPrefix('target:global:one:'), false)
   assert.equal(state.refreshCount, 1)
+})
+
+test('destinations only include the source incognito context', async () => {
+  resetState({
+    menuItems: { one: ['global'] },
+    tabs: [
+      { id: 1, windowId: 1, index: 0, active: true },
+      { id: 2, windowId: 2, index: 0, active: true, incognito: true },
+      { id: 3, windowId: 3, index: 0, active: true, groupId: 30 },
+      {
+        id: 4,
+        windowId: 4,
+        index: 0,
+        active: true,
+        groupId: 40,
+        incognito: true,
+      },
+    ],
+  })
+  await rebuildMenu()
+
+  await showMenu(1)
+  assert.deepEqual(getChildIds('move'), [
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:3',
+    'flatTarget:global:one:newGroup',
+    'flatTarget:global:one:group:30',
+  ])
+
+  await showMenu(2)
+  assert.deepEqual(getChildIds('move'), [
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:4',
+    'flatTarget:global:one:newGroup',
+    'flatTarget:global:one:group:40',
+  ])
 })
 
 test('multiple visible entries render destinations under entry submenus', async () => {

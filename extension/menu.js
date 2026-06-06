@@ -266,6 +266,7 @@ async function getGroupEntries (selectWindowId) {
       groups.push({
         id: tab.groupId,
         windowId: tab.windowId,
+        incognito: tab.incognito === true,
         title: '',
       })
     }
@@ -280,12 +281,16 @@ async function getGroupEntries (selectWindowId) {
       return group1.id - group2.id
     }).
     map((group) => {
+      const firstTab = firstTabByGroupId.get(group.id)
       const entry = {
         type: 'group',
         groupId: group.id,
         windowId: group.windowId,
+        incognito: firstTab
+          ? firstTab.incognito === true
+          : group.incognito === true,
         title: group.title,
-        firstTabTitle: firstTabByGroupId.get(group.id)?.title || '',
+        firstTabTitle: firstTab?.title || '',
       }
       return {
         ...entry,
@@ -303,6 +308,7 @@ async function getDestinationEntries () {
     map((tab) => ({
       type: 'window',
       windowId: tab.windowId,
+      incognito: tab.incognito === true,
       title: getWindowEntryTitle(tab),
     }))
   return {
@@ -413,6 +419,7 @@ async function getTargetSummary (entry, targetTab) {
     return {
       valid: true,
       sourceWindowId: targetTab.windowId,
+      sourceIncognito: targetTab.incognito === true,
       groupIds: entry.scope === KEY_TARGET_GROUP
         ? new Set([targetTab.groupId])
         : new Set(),
@@ -449,6 +456,7 @@ async function getTargetSummary (entry, targetTab) {
   return {
     valid: true,
     sourceWindowId: targetTab.windowId,
+    sourceIncognito: targetTab.incognito === true,
     groupIds,
     blockedGroupIds: entry.scope === KEY_TARGET_GROUP
       ? new Set([targetTab.groupId])
@@ -463,6 +471,11 @@ async function getTargetSummary (entry, targetTab) {
 
 function isDestinationVisible (entry, destination, summary, selectWindowId) {
   if (!summary.valid) {
+    return false
+  }
+
+  if (destination.incognito !== undefined &&
+      destination.incognito !== summary.sourceIncognito) {
     return false
   }
 

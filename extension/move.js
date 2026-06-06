@@ -360,7 +360,10 @@ async function runWithWindow (units, toWindowId, progress, focus) {
 }
 
 async function runWithNewWindow (units, progress, focus) {
-  const windowInfo = await windows.create()
+  const createProperties = units[0]?.tabs[0]?.incognito === true
+    ? { incognito: true }
+    : {}
+  const windowInfo = await windows.create(createProperties)
   const placeholderTabIds = windowInfo.tabs.map((tab) => tab.id)
   await runWithWindow(units, windowInfo.id, progress, false)
   await tabs.remove(placeholderTabIds)
