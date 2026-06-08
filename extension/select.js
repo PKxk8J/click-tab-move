@@ -7,6 +7,8 @@ import {
   KEY_MOVE,
   KEY_NEW_GROUP,
   KEY_NEW_WINDOW,
+  KEY_PRESERVE_FULL_GROUPS,
+  KEY_PRESERVE_GROUP_IDS,
   KEY_RAW,
   KEY_RESET,
   KEY_SELECT,
@@ -36,8 +38,14 @@ const {
   windows,
 } = browser
 
+const GROUP_STATE_NONE = 'none'
+const GROUP_STATE_GROUP = 'group'
+const GROUP_STATE_TABS = 'tabs'
+
 let currentMoveRequest
-let tabIdsByCheckboxId = new Map()
+let optionRecords = new Map()
+let groupRecords = new Map()
+let selectedOptionIds = new Set()
 
 async function closeWindow () {
   const windowInfo = await windows.getCurrent()
@@ -74,19 +82,64 @@ function getTabCheckboxes () {
   ]
 }
 
-function getSelectedTabIds () {
-  return getTabCheckboxes().
-    filter((checkbox) => checkbox.checked).
-    flatMap((checkbox) => tabIdsByCheckboxId.get(checkbox.id) || [])
+function appendUnitTabIds (unit, tabIds, knownTabIds) {
+  for (const tab of unit.tabs) {
+    if (knownTabIds.has(tab.id)) {
+      continue
+    }
+    knownTabIds.add(tab.id)
+    tabIds.push(tab.id)
+  }
+}
+
+function getSelectedMoveTargets () {
+  const tabIds = []
+  const preserveGroupIds = []
+  const knownTabIds = new Set()
+
+  for (const checkbox of getTabCheckboxes()) {
+    const option = optionRecords.get(checkbox.id)
+    if (!option) {
+      continue
+    }
+
+    if (option.type === 'unit') {
+      if (selectedOptionIds.has(option.id)) {
+        appendUnitTabIds(option.unit, tabIds, knownTabIds)
+      }
+      continue
+    }
+
+    const group = groupRecords.get(option.groupId)
+    if (!group) {
+      continue
+    }
+
+    if (option.type === 'group') {
+      if (group.state === GROUP_STATE_GROUP) {
+        preserveGroupIds.push(group.groupId)
+        appendUnitTabIds(group.unit, tabIds, knownTabIds)
+      }
+      continue
+    }
+
+    if (group.state === GROUP_STATE_TABS &&
+        group.selectedChildIds.has(option.id)) {
+      appendUnitTabIds(option.unit, tabIds, knownTabIds)
+    }
+  }
+
+  return { tabIds, preserveGroupIds }
 }
 
 function updateMoveButtonState () {
   const moveButton = document.getElementById(KEY_MOVE)
-  moveButton.disabled = !currentMoveRequest || getSelectedTabIds().length <= 0
+  moveButton.disabled = !currentMoveRequest ||
+    getSelectedMoveTargets().tabIds.length <= 0
 }
 
 function sendResult () {
-  const tabIds = getSelectedTabIds()
+  const { tabIds, preserveGroupIds } = getSelectedMoveTargets()
   if (!currentMoveRequest || tabIds.length <= 0) {
     return false
   }
@@ -98,6 +151,8 @@ function sendResult () {
     [KEY_DESTINATION]: currentMoveRequest.destination,
     [KEY_TARGET_SCOPE]: currentMoveRequest.targetScope,
     [KEY_GROUP_ID]: currentMoveRequest.groupId,
+    [KEY_PRESERVE_FULL_GROUPS]: false,
+    [KEY_PRESERVE_GROUP_IDS]: preserveGroupIds,
     [KEY_SOURCE_WINDOW_ID]: currentMoveRequest.fromWindowId,
     notification: currentMoveRequest.notification,
     focus: currentMoveRequest.focus,
@@ -190,9 +245,23 @@ function getTargetTitle (targetScope) {
     : 'selectGlobalTitle')
 }
 
-function createTabOption (unit, groupInfos, checkboxId) {
+async function getHighlightedTabIdSet (fromWindowId, targetScope, groupId) {
+  const highlightedTabs = await tabs.query({
+    windowId: fromWindowId,
+    highlighted: true,
+  })
+  const targetTabs = targetScope === KEY_TARGET_GROUP
+    ? highlightedTabs.filter((tab) => tab.groupId === groupId)
+    : highlightedTabs
+
+  return targetTabs.length > 1
+    ? new Set(targetTabs.map((tab) => tab.id))
+    : new Set()
+}
+
+function createTabOption (unit, groupInfos, checkboxId, classNames = []) {
   const label = document.createElement('label')
-  label.className = 'tab-option'
+  label.className = ['tab-option', ...classNames].join(' ')
   label.htmlFor = checkboxId
   label.setAttribute('role', 'option')
   label.setAttribute('aria-selected', 'false')
@@ -209,16 +278,142 @@ function createTabOption (unit, groupInfos, checkboxId) {
   return label
 }
 
-function replaceTabOptions (units, groupInfos) {
-  const nextTabIdsByCheckboxId = new Map()
-  const options = units.map((unit, index) => {
-    const checkboxId = 'tab-option-' + index
-    nextTabIdsByCheckboxId.set(checkboxId, unit.tabs.map((tab) => tab.id))
-    return createTabOption(unit, groupInfos, checkboxId)
-  })
+function hasSelectedTab (unit, selectedTabIds) {
+  return unit.tabs.some((tab) => selectedTabIds.has(tab.id))
+}
 
-  tabIdsByCheckboxId = nextTabIdsByCheckboxId
+function createOptionId (index) {
+  return 'tab-option-' + index
+}
+
+function addUnitOption (unit, groupInfos, options, selectedTabIds, index) {
+  const checkboxId = createOptionId(index)
+  optionRecords.set(checkboxId, {
+    id: checkboxId,
+    type: 'unit',
+    unit,
+  })
+  if (hasSelectedTab(unit, selectedTabIds)) {
+    selectedOptionIds.add(checkboxId)
+  }
+  options.push(createTabOption(unit, groupInfos, checkboxId))
+}
+
+function addGroupOption (unit, groupInfos, options, selectedTabIds, index) {
+  const groupCheckboxId = createOptionId(index.next++)
+  const childIds = []
+  const selectedChildIds = new Set()
+
+  optionRecords.set(groupCheckboxId, {
+    id: groupCheckboxId,
+    type: 'group',
+    groupId: unit.groupId,
+    unit,
+  })
+  options.push(createTabOption(unit, groupInfos, groupCheckboxId,
+    ['group-option']))
+
+  for (const childUnit of unit.units) {
+    const childCheckboxId = createOptionId(index.next++)
+    childIds.push(childCheckboxId)
+    optionRecords.set(childCheckboxId, {
+      id: childCheckboxId,
+      type: 'groupChild',
+      groupId: unit.groupId,
+      unit: childUnit,
+    })
+    if (hasSelectedTab(childUnit, selectedTabIds)) {
+      selectedChildIds.add(childCheckboxId)
+    }
+    options.push(createTabOption(childUnit, groupInfos, childCheckboxId,
+      ['tab-option-child']))
+  }
+
+  groupRecords.set(unit.groupId, {
+    id: groupCheckboxId,
+    groupId: unit.groupId,
+    unit,
+    childIds,
+    selectedChildIds,
+    state: selectedChildIds.size > 0
+      ? GROUP_STATE_TABS
+      : GROUP_STATE_NONE,
+  })
+}
+
+function setCheckboxState (checkbox, state) {
+  const checked = state === 'checked'
+  const mixed = state === 'mixed'
+  checkbox.checked = checked
+  checkbox.indeterminate = mixed
+  checkbox.setAttribute('aria-checked', mixed
+    ? 'mixed'
+    : String(checked))
+
+  checkbox.closest('.tab-option')?.
+    setAttribute('aria-selected', String(checked || mixed))
+}
+
+function renderSelectionState () {
+  for (const [optionId, option] of optionRecords) {
+    const checkbox = document.getElementById(optionId)
+    if (!checkbox) {
+      continue
+    }
+
+    if (option.type === 'unit') {
+      setCheckboxState(checkbox,
+        selectedOptionIds.has(optionId) ? 'checked' : 'unchecked')
+      continue
+    }
+
+    const group = groupRecords.get(option.groupId)
+    if (!group) {
+      setCheckboxState(checkbox, 'unchecked')
+      continue
+    }
+
+    if (option.type === 'group') {
+      if (group.state === GROUP_STATE_GROUP) {
+        setCheckboxState(checkbox, 'checked')
+      } else if (group.state === GROUP_STATE_TABS) {
+        setCheckboxState(checkbox, 'mixed')
+      } else {
+        setCheckboxState(checkbox, 'unchecked')
+      }
+      continue
+    }
+
+    if (group.state === GROUP_STATE_GROUP) {
+      setCheckboxState(checkbox, 'mixed')
+    } else if (group.state === GROUP_STATE_TABS &&
+        group.selectedChildIds.has(optionId)) {
+      setCheckboxState(checkbox, 'checked')
+    } else {
+      setCheckboxState(checkbox, 'unchecked')
+    }
+  }
+
+  updateMoveButtonState()
+}
+
+function replaceTabOptions (units, groupInfos, selectedTabIds) {
+  optionRecords = new Map()
+  groupRecords = new Map()
+  selectedOptionIds = new Set()
+
+  const options = []
+  const index = { next: 0 }
+  for (const unit of units) {
+    if (unit.type === 'group') {
+      addGroupOption(unit, groupInfos, options, selectedTabIds, index)
+    } else {
+      addUnitOption(unit, groupInfos, options, selectedTabIds, index.next++)
+    }
+  }
+
   document.getElementById(KEY_SELECT).replaceChildren(...options)
+  renderSelectionState()
 }
 
 function handleTabListKeyDown (event) {
@@ -241,22 +436,87 @@ function handleTabListKeyDown (event) {
   checkboxes[nextIndex]?.focus()
 }
 
-function handleTabListChange (event) {
+function updateGroupAfterChildSelection (group) {
+  group.state = group.selectedChildIds.size > 0
+    ? GROUP_STATE_TABS
+    : GROUP_STATE_NONE
+}
+
+function handleGroupClick (group) {
+  if (group.state === GROUP_STATE_NONE) {
+    group.state = GROUP_STATE_GROUP
+    group.selectedChildIds.clear()
+    return
+  }
+
+  if (group.state === GROUP_STATE_GROUP) {
+    group.state = GROUP_STATE_TABS
+    group.selectedChildIds = new Set(group.childIds)
+    return
+  }
+
+  group.state = GROUP_STATE_NONE
+  group.selectedChildIds.clear()
+}
+
+function handleGroupChildClick (group, optionId) {
+  if (group.state === GROUP_STATE_GROUP) {
+    group.state = GROUP_STATE_TABS
+    group.selectedChildIds = new Set(group.childIds)
+    group.selectedChildIds.delete(optionId)
+    updateGroupAfterChildSelection(group)
+    return
+  }
+
+  if (group.selectedChildIds.has(optionId)) {
+    group.selectedChildIds.delete(optionId)
+  } else {
+    group.selectedChildIds.add(optionId)
+  }
+  updateGroupAfterChildSelection(group)
+}
+
+function handleUnitClick (optionId) {
+  if (selectedOptionIds.has(optionId)) {
+    selectedOptionIds.delete(optionId)
+  } else {
+    selectedOptionIds.add(optionId)
+  }
+}
+
+function handleTabListClick (event) {
   const target = event.target
   if (!target || target.localName !== 'input' ||
       target.type !== 'checkbox') {
     return
   }
 
-  target.closest('.tab-option')?.
-    setAttribute('aria-selected', String(target.checked))
-  updateMoveButtonState()
+  const option = optionRecords.get(target.id)
+  if (!option) {
+    renderSelectionState()
+    return
+  }
+
+  if (option.type === 'unit') {
+    handleUnitClick(option.id)
+  } else {
+    const group = groupRecords.get(option.groupId)
+    if (group && option.type === 'group') {
+      handleGroupClick(group)
+    } else if (group) {
+      handleGroupChildClick(group, option.id)
+    }
+  }
+
+  renderSelectionState()
 }
 
 async function reset (
   { fromWindowId, groupId, targetScope, destination, notification, focus }) {
   currentMoveRequest = undefined
-  tabIdsByCheckboxId = new Map()
+  optionRecords = new Map()
+  groupRecords = new Map()
+  selectedOptionIds = new Set()
   updateMoveButtonState()
 
   const title = getTargetTitle(targetScope)
@@ -275,8 +535,10 @@ async function reset (
     ? buildTopLevelUnits(tabList)
     : buildTabUnits(tabList)
   const groupInfos = await getGroupInfoMap()
+  const highlightedTabIds = await getHighlightedTabIdSet(fromWindowId,
+    targetScope, groupId)
 
-  replaceTabOptions(units, groupInfos)
+  replaceTabOptions(units, groupInfos, highlightedTabIds)
 
   currentMoveRequest = {
     fromWindowId,
@@ -325,7 +587,7 @@ async function init () {
   document.getElementById(KEY_SELECT).
     addEventListener('keydown', handleTabListKeyDown)
   document.getElementById(KEY_SELECT).
-    addEventListener('change', handleTabListChange)
+    addEventListener('click', handleTabListClick)
   updateMoveButtonState()
 
   runtime.onMessage.addListener((message) => {

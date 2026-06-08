@@ -1,21 +1,27 @@
 import {
   ALL_MENU_SCOPES,
+  DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY,
   DEFAULT_FOCUS,
   DEFAULT_NOTIFICATION,
   KEY_ALL,
   KEY_CONTEXTS,
   KEY_FOCUS,
+  KEY_GROUP_ID,
   KEY_LEFT,
   KEY_MENU_ITEMS,
+  KEY_MOVE_HIGHLIGHTED_DIRECTLY,
   KEY_MOVE,
   KEY_NEW_GROUP,
   KEY_NEW_WINDOW,
   KEY_NOTIFICATION,
   KEY_ONE,
+  KEY_PRESERVE_FULL_GROUPS,
   KEY_RIGHT,
   KEY_SELECT,
+  KEY_SOURCE_WINDOW_ID,
   KEY_TARGET_GLOBAL,
   KEY_TARGET_GROUP,
+  KEY_TARGET_SCOPE,
   KEY_THIS_AND_LEFT,
   KEY_THIS_AND_RIGHT,
   MENU_ITEMS_BY_SCOPE,
@@ -24,12 +30,14 @@ import {
   normalizeContexts,
   normalizeFocus,
   normalizeMenuItems,
+  normalizeMoveHighlightedDirectly,
   normalizeNotification,
   onError,
 } from './common.js'
 import {
   getSelectWindowId,
   listTargetTabIds,
+  rawRun,
   run,
   select,
 } from './move.js'
@@ -249,6 +257,20 @@ async function getNormalWindowIdSet (windowIds) {
 
 async function isNormalWindow (windowId) {
   return (await getNormalWindowIdSet([windowId])).has(windowId)
+}
+
+async function getHighlightedTargetTabIds (targetTab, targetScope) {
+  const highlightedTabs = sortTabsByWindowAndIndex(await tabs.query({
+    windowId: targetTab.windowId,
+    highlighted: true,
+  }))
+  const targetTabs = targetScope === KEY_TARGET_GROUP
+    ? highlightedTabs.filter((tab) => tab.groupId === targetTab.groupId)
+    : highlightedTabs
+
+  return targetTabs.length > 1
+    ? targetTabs.map((tab) => tab.id)
+    : []
 }
 
 function getWindowEntryTitle (tab) {
@@ -622,6 +644,25 @@ async function handleMenuClick (info, tab) {
   )
   const focus = normalizeFocus(await getValue(KEY_FOCUS, DEFAULT_FOCUS))
   if (target.key === KEY_SELECT) {
+    const moveHighlightedDirectly = normalizeMoveHighlightedDirectly(
+      await getValue(KEY_MOVE_HIGHLIGHTED_DIRECTLY,
+        DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY),
+    )
+    const highlightedTabIds = moveHighlightedDirectly
+      ? await getHighlightedTargetTabIds(targetTab, target.scope)
+      : []
+    if (highlightedTabIds.length > 1) {
+      await rawRun(highlightedTabIds, target.destination, notification, focus, {
+        [KEY_PRESERVE_FULL_GROUPS]: false,
+        [KEY_TARGET_SCOPE]: target.scope,
+        [KEY_GROUP_ID]: target.scope === KEY_TARGET_GROUP
+          ? targetTab.groupId
+          : undefined,
+        [KEY_SOURCE_WINDOW_ID]: targetTab.windowId,
+      })
+      return
+    }
+
     await select({
       fromWindowId: targetTab.windowId,
       groupId: target.scope === KEY_TARGET_GROUP ? targetTab.groupId : undefined,

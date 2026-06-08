@@ -201,6 +201,12 @@
   "focus": {
     "message": "移動させたタブにフォーカスする"
   },
+  "moveHighlightedDirectly": {
+    "message": "Firefoxで複数選択したタブを選択ウィンドウなしで移動する"
+  },
+  "moveHighlightedDirectlyDescription": {
+    "message": "Ctrl/Shift/Commandクリックで複数選択されている場合だけ直接移動します。グループ内の全タブが選ばれていても、グループではなく個別タブとして移動します。"
+  },
   "pinnedGroupAction": {
     "message": "ピン留めされたタブをグループへ移そうとしています"
   },

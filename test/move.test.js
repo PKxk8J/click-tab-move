@@ -336,6 +336,7 @@ const {
   normalizeDestination,
   normalizeFocus,
   normalizeMenuItems,
+  normalizeMoveHighlightedDirectly,
   normalizeNotification,
   normalizePinnedGroupAction,
   normalizeSelectSave,
@@ -368,6 +369,8 @@ test('設定値を正規化する', () => {
   assert.equal(normalizeNotification('true'), false)
   assert.equal(normalizeFocus(undefined), false)
   assert.equal(normalizeFocus(true), true)
+  assert.equal(normalizeMoveHighlightedDirectly(undefined), false)
+  assert.equal(normalizeMoveHighlightedDirectly(true), true)
   assert.equal(normalizePinnedGroupAction(undefined), 'ask')
   assert.equal(normalizePinnedGroupAction('skipPinned'), 'skipPinned')
   assert.equal(normalizePinnedGroupAction('bad'), 'ask')
@@ -490,6 +493,46 @@ test('グループ全体をウィンドウへ移す場合はグループのま�
 
   assert.deepEqual(state.groupMoved, [{ groupId: 10, windowId: 2, index: 1 }])
   assert.deepEqual(getTabIds(2), [20, 1, 2])
+  assert.deepEqual(getMemberships().filter((tab) => [1, 2].includes(tab.id)), [
+    { id: 1, windowId: 2, groupId: 10, splitViewId: -1 },
+    { id: 2, windowId: 2, groupId: 10, splitViewId: -1 },
+  ])
+})
+
+test('全グループタブをタブ選択でウィンドウへ移す場合はグループを保持しない', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, groupId: 10, active: true },
+    { id: 2, windowId: 1, index: 1, groupId: 10 },
+    { id: 20, windowId: 2, index: 0, active: true },
+  ])
+
+  await rawRun([1, 2], { type: 'window', windowId: 2 }, false, false, {
+    preserveFullGroups: false,
+  })
+
+  assert.deepEqual(state.groupMoved, [])
+  assert.deepEqual(state.ungrouped, [1, 2])
+  assert.deepEqual(getTabIds(2), [20, 1, 2])
+  assert.deepEqual(getMemberships().filter((tab) => [1, 2].includes(tab.id)), [
+    { id: 1, windowId: 2, groupId: -1, splitViewId: -1 },
+    { id: 2, windowId: 2, groupId: -1, splitViewId: -1 },
+  ])
+})
+
+test('選択画面でグループ選択されたグループは明示的に保持する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, groupId: 10, active: true },
+    { id: 2, windowId: 1, index: 1, groupId: 10 },
+    { id: 20, windowId: 2, index: 0, active: true },
+  ])
+
+  await rawRun([1, 2], { type: 'window', windowId: 2 }, false, false, {
+    preserveFullGroups: false,
+    preserveGroupIds: [10],
+  })
+
+  assert.deepEqual(state.groupMoved, [{ groupId: 10, windowId: 2, index: 1 }])
+  assert.deepEqual(state.ungrouped, [])
   assert.deepEqual(getMemberships().filter((tab) => [1, 2].includes(tab.id)), [
     { id: 1, windowId: 2, groupId: 10, splitViewId: -1 },
     { id: 2, windowId: 2, groupId: 10, splitViewId: -1 },

@@ -5,8 +5,10 @@ const state = {
   tabs: [],
   storageData: {},
   menuItems: new Map(),
+  moved: [],
   refreshCount: 0,
   storageGetWait: undefined,
+  windowCreates: [],
 }
 
 function createEvent () {
@@ -63,6 +65,7 @@ function resetState ({ menuItems, tabs }) {
   state.tabs = tabs.map((tab) => ({
     active: false,
     groupId: -1,
+    highlighted: false,
     incognito: false,
     pinned: false,
     splitViewId: -1,
@@ -75,8 +78,10 @@ function resetState ({ menuItems, tabs }) {
     menuItems,
   }
   state.menuItems.clear()
+  state.moved = []
   state.refreshCount = 0
   state.storageGetWait = undefined
+  state.windowCreates = []
 }
 
 globalThis.browser = {
@@ -189,7 +194,11 @@ globalThis.browser = {
       return tab ? cloneTab(tab) : undefined
     },
     group: async () => 100,
-    move: async () => [],
+    move: async (ids, properties) => {
+      const idList = Array.isArray(ids) ? ids : [ids]
+      state.moved.push({ ids: idList, properties })
+      return idList.map((id) => cloneTab(state.tabs.find((tab) => tab.id === id)))
+    },
     query: async (query = {}) => {
       let result = state.tabs
       if (query.windowId !== undefined) {
@@ -200,6 +209,9 @@ globalThis.browser = {
       }
       if (query.active !== undefined) {
         result = result.filter((tab) => tab.active === query.active)
+      }
+      if (query.highlighted !== undefined) {
+        result = result.filter((tab) => tab.highlighted === query.highlighted)
       }
       if (query.pinned !== undefined) {
         result = result.filter((tab) => tab.pinned === query.pinned)
@@ -216,7 +228,10 @@ globalThis.browser = {
     onUpdated: events.tabsUpdated,
   },
   windows: {
-    create: async () => ({ id: 10, tabs: [{ id: 10 }] }),
+    create: async (properties = {}) => {
+      state.windowCreates.push(properties)
+      return { id: 10, tabs: [{ id: 10 }] }
+    },
     get: async (id) => ({
       id,
       type: state.tabs.find((tab) => tab.windowId === id)?.windowType,
@@ -245,6 +260,11 @@ async function rebuildMenu () {
 async function showMenu (tabId) {
   const tab = state.tabs.find((entry) => entry.id === tabId)
   await events.menusShown.listeners[0]({}, cloneTab(tab))
+}
+
+async function clickMenu (menuItemId, tabId) {
+  const tab = state.tabs.find((entry) => entry.id === tabId)
+  await events.menusClicked.listeners[0]({ menuItemId }, cloneTab(tab))
 }
 
 function getChildIds (parentId) {
@@ -355,6 +375,28 @@ test('single visible entry renders destinations directly under root', async () =
   ])
   assert.equal(hasVisibleMenuIdPrefix('target:global:one:'), false)
   assert.equal(state.refreshCount, 1)
+})
+
+test('select menu moves multiple highlighted tabs directly when enabled', async () => {
+  resetState({
+    menuItems: { select: ['global'] },
+    tabs: [
+      { id: 1, windowId: 1, index: 0, active: true, highlighted: true },
+      { id: 3, windowId: 1, index: 1, highlighted: true },
+      { id: 2, windowId: 2, index: 0, active: true },
+    ],
+  })
+  state.storageData.moveHighlightedDirectly = true
+  await rebuildMenu()
+  await showMenu(1)
+
+  await clickMenu('flatTarget:global:select:window:2', 1)
+
+  assert.deepEqual(state.windowCreates, [])
+  assert.deepEqual(state.moved, [
+    { ids: [1], properties: { windowId: 2, index: -1 } },
+    { ids: [3], properties: { windowId: 2, index: -1 } },
+  ])
 })
 
 test('destinations only include the source incognito context', async () => {

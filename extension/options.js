@@ -4,6 +4,7 @@ import {
   ALL_MENU_SCOPES,
   ALL_PINNED_GROUP_ACTIONS,
   DEFAULT_FOCUS,
+  DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY,
   DEFAULT_NOTIFICATION,
   DEFAULT_PINNED_GROUP_ACTION,
   DEFAULT_SELECT_SAVE,
@@ -14,6 +15,7 @@ import {
   KEY_FOCUS,
   KEY_HEIGHT,
   KEY_MENU_ITEMS,
+  KEY_MOVE_HIGHLIGHTED_DIRECTLY,
   KEY_NAME,
   KEY_NOTIFICATION,
   KEY_PINNED_GROUP_ACTION,
@@ -30,6 +32,7 @@ import {
   normalizeContexts,
   normalizeFocus,
   normalizeMenuItems,
+  normalizeMoveHighlightedDirectly,
   normalizeNotification,
   normalizePinnedGroupAction,
   normalizeSelectSave,
@@ -95,6 +98,10 @@ async function restore () {
   const notificationAllowed = notification &&
     await permissions.contains(NOTIFICATION_PERMISSION)
   const focus = normalizeFocus(data[KEY_FOCUS] ?? DEFAULT_FOCUS)
+  const moveHighlightedDirectly = normalizeMoveHighlightedDirectly(
+    data[KEY_MOVE_HIGHLIGHTED_DIRECTLY] ??
+      DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY,
+  )
   const pinnedGroupAction = normalizePinnedGroupAction(
     data[KEY_PINNED_GROUP_ACTION] ?? DEFAULT_PINNED_GROUP_ACTION,
   )
@@ -118,6 +125,8 @@ async function restore () {
   document.getElementById(KEY_SELECT_SAVE).checked = selectSave
   document.getElementById(KEY_NOTIFICATION).checked = notificationAllowed
   document.getElementById(KEY_FOCUS).checked = focus
+  document.getElementById(KEY_MOVE_HIGHLIGHTED_DIRECTLY).checked =
+    moveHighlightedDirectly
   document.getElementById(KEY_PINNED_GROUP_ACTION).value = pinnedGroupAction
 }
 
@@ -176,6 +185,8 @@ async function save () {
     [KEY_SELECT_SAVE]: document.getElementById(KEY_SELECT_SAVE).checked,
     [KEY_NOTIFICATION]: notification,
     [KEY_FOCUS]: document.getElementById(KEY_FOCUS).checked,
+    [KEY_MOVE_HIGHLIGHTED_DIRECTLY]:
+      document.getElementById(KEY_MOVE_HIGHLIGHTED_DIRECTLY).checked,
     [KEY_PINNED_GROUP_ACTION]: normalizePinnedGroupAction(
       document.getElementById(KEY_PINNED_GROUP_ACTION).value,
     ),
@@ -229,7 +240,12 @@ function createSwitch (inputId) {
   return switchWrapper
 }
 
-function createToggleLabel (labelKey, inputId, className = 'toggle-row') {
+function createToggleLabel (
+  labelKey,
+  inputId,
+  className = 'toggle-row',
+  descriptionKey,
+) {
   const title = document.createElement('span')
   title.className = 'setting-title'
   title.textContent = i18n.getMessage(labelKey)
@@ -237,6 +253,12 @@ function createToggleLabel (labelKey, inputId, className = 'toggle-row') {
   const copy = document.createElement('span')
   copy.className = 'setting-copy'
   copy.appendChild(title)
+  if (descriptionKey) {
+    const description = document.createElement('span')
+    description.className = 'setting-description'
+    description.textContent = i18n.getMessage(descriptionKey)
+    copy.appendChild(description)
+  }
 
   const label = document.createElement('label')
   label.className = className
@@ -246,8 +268,9 @@ function createToggleLabel (labelKey, inputId, className = 'toggle-row') {
   return label
 }
 
-function addCheckboxEntry (labelKey, container, inputId) {
-  container.appendChild(createToggleLabel(labelKey, inputId))
+function addCheckboxEntry (labelKey, container, inputId, descriptionKey) {
+  container.appendChild(createToggleLabel(labelKey, inputId, 'toggle-row',
+    descriptionKey))
 }
 
 function createSelectField (labelKey, selectId, options) {
@@ -366,6 +389,9 @@ async function init () {
 
   const behaviorContainer = document.getElementById(KEY_BEHAVIOR)
   addPinnedGroupActionEntry(behaviorContainer)
+  addCheckboxEntry(KEY_MOVE_HIGHLIGHTED_DIRECTLY, behaviorContainer,
+    KEY_MOVE_HIGHLIGHTED_DIRECTLY,
+    KEY_MOVE_HIGHLIGHTED_DIRECTLY + 'Description')
   addCheckboxEntry(KEY_FOCUS, behaviorContainer, KEY_FOCUS)
 
   const notificationContainer = document.getElementById('notificationSetting')

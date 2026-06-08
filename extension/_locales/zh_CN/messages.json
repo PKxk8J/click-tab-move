@@ -170,6 +170,12 @@
   "focus": {
     "message": "聚焦到移动的标签页"
   },
+  "moveHighlightedDirectly": {
+    "message": "不打开选择窗口，直接移动 Firefox 中已选的标签页"
+  },
+  "moveHighlightedDirectlyDescription": {
+    "message": "当使用 Ctrl/Shift/Command 点击选择了多个标签页时，直接将这些标签页作为单独标签页移动。即使选中了组内所有标签页，也不会按标签页组移动。"
+  },
   "pinnedGroupAction": {
     "message": "正在尝试将固定标签页移动到组"
   },

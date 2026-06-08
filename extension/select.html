@@ -109,6 +109,14 @@
             background: color-mix(in srgb, AccentColor 12%, transparent);
         }
 
+        .group-option {
+            font-weight: 650;
+        }
+
+        .tab-option-child {
+            padding-inline-start: 28px;
+        }
+
         .tab-title {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -119,6 +127,10 @@
         button:focus-visible {
             outline: 2px solid var(--accent);
             outline-offset: 2px;
+        }
+
+        input[type="checkbox"]:indeterminate {
+            accent-color: color-mix(in srgb, CanvasText 42%, Canvas);
         }
 
         .actions {

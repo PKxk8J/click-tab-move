@@ -27,6 +27,8 @@ export const KEY_CANCEL = 'cancel'
 export const KEY_DESTINATION = 'destination'
 export const KEY_TARGET_SCOPE = 'targetScope'
 export const KEY_GROUP_ID = 'groupId'
+export const KEY_PRESERVE_FULL_GROUPS = 'preserveFullGroups'
+export const KEY_PRESERVE_GROUP_IDS = 'preserveGroupIds'
 export const KEY_SOURCE_WINDOW_ID = 'sourceWindowId'
 export const KEY_REQUEST_ID = 'requestId'
 
@@ -38,6 +40,7 @@ export const KEY_HEIGHT = 'height'
 export const KEY_SELECT_SAVE = 'selectSave'
 export const KEY_NOTIFICATION = 'notification'
 export const KEY_FOCUS = 'focus'
+export const KEY_MOVE_HIGHLIGHTED_DIRECTLY = 'moveHighlightedDirectly'
 export const KEY_PINNED_GROUP_ACTION = 'pinnedGroupAction'
 export const KEY_SETTINGS = 'settings'
 export const KEY_FEEDBACK = 'feedback'
@@ -101,6 +104,7 @@ export const DEFAULT_SELECT_SIZE = [640, 480]
 export const DEFAULT_SELECT_SAVE = true
 export const DEFAULT_NOTIFICATION = false
 export const DEFAULT_FOCUS = false
+export const DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY = false
 export const DEFAULT_PINNED_GROUP_ACTION = KEY_PINNED_GROUP_ASK
 export const ALL_PINNED_GROUP_ACTIONS = [
   KEY_PINNED_GROUP_ASK,
@@ -267,6 +271,11 @@ export function normalizeNotification (notification) {
 
 export function normalizeFocus (focus) {
   return normalizeBoolean(focus, DEFAULT_FOCUS)
+}
+
+export function normalizeMoveHighlightedDirectly (moveHighlightedDirectly) {
+  return normalizeBoolean(moveHighlightedDirectly,
+    DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY)
 }
 
 export function normalizePinnedGroupAction (action) {

@@ -201,6 +201,12 @@
   "focus": {
     "message": "Focus on the moved tab"
   },
+  "moveHighlightedDirectly": {
+    "message": "Move Firefox-selected tabs without opening the select window"
+  },
+  "moveHighlightedDirectlyDescription": {
+    "message": "When multiple tabs are selected with Ctrl/Shift/Command click, the selected tabs are moved directly as individual tabs. Selecting every tab in a group does not move the group itself."
+  },
   "pinnedGroupAction": {
     "message": "You are moving pinned tabs to a group"
   },

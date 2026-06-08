@@ -17,6 +17,8 @@ import {
   KEY_PINNED_GROUP_SKIP,
   KEY_PINNED_GROUP_UNPIN,
   KEY_PROGRESS,
+  KEY_PRESERVE_FULL_GROUPS,
+  KEY_PRESERVE_GROUP_IDS,
   KEY_RAW,
   KEY_RESET,
   KEY_REQUEST_ID,
@@ -220,12 +222,19 @@ function normalizeRunContext (context) {
   if (!context || typeof context !== 'object') {
     return {
       targetScope: KEY_TARGET_GLOBAL,
+      preserveGroupIds: [],
     }
   }
 
   return {
     targetScope: normalizeTargetScope(context[KEY_TARGET_SCOPE]),
     groupId: normalizeInteger(context[KEY_GROUP_ID]),
+    preserveFullGroups: context[KEY_PRESERVE_FULL_GROUPS] === undefined
+      ? undefined
+      : context[KEY_PRESERVE_FULL_GROUPS] === true,
+    preserveGroupIds: normalizeIntegerList(
+      context[KEY_PRESERVE_GROUP_IDS],
+    ),
     sourceWindowId: normalizeInteger(context[KEY_SOURCE_WINDOW_ID]),
   }
 }
@@ -454,6 +463,14 @@ function getMovingTabIds (units) {
   return flattenUnits(units).map((tab) => tab.id)
 }
 
+function getIndividuallyMovingGroupedTabIds (units) {
+  return units.
+    filter((unit) => unit.type !== 'group').
+    flatMap((unit) => unit.tabs).
+    filter(isGroupedTab).
+    map((tab) => tab.id)
+}
+
 function filterDestinationGroupUnits (units, groupId) {
   return units.filter((unit) => {
     return !unit.tabs.every((tab) => tab.groupId === groupId)
@@ -608,7 +625,11 @@ async function runWithNewGroup (units, progress, focus) {
   await focusMovedUnit(toWindowId, units, focus)
 }
 
-async function buildSelectedUnits (tabIds, { preserveFullGroups = true } = {}) {
+async function buildSelectedUnits (
+  tabIds,
+  { preserveFullGroups = true, preserveGroupIds = [] } = {},
+) {
+  const preserveGroupIdSet = new Set(preserveGroupIds)
   const tabInfos = []
   const windowIds = []
   const knownWindowIds = new Set()
@@ -631,7 +652,8 @@ async function buildSelectedUnits (tabIds, { preserveFullGroups = true } = {}) {
       map((tab) => tab.id))
     const topLevelUnits = buildTopLevelUnits(await querySortedTabs(windowId))
     for (const unit of topLevelUnits) {
-      if (preserveFullGroups &&
+      if (unit.type === 'group' &&
+          (preserveFullGroups || preserveGroupIdSet.has(unit.groupId)) &&
           unit.tabs.every((tab) => requestedIds.has(tab.id))) {
         units.push(unit)
         continue
@@ -684,7 +706,9 @@ async function runRawInternal (
   const normalizedDestination = normalizeDestination(destination)
   const normalizedContext = normalizeRunContext(context)
   const selectedUnits = await buildSelectedUnits(tabIds, {
-    preserveFullGroups: normalizedContext.targetScope !== KEY_TARGET_GROUP,
+    preserveFullGroups: normalizedContext.preserveFullGroups ??
+      normalizedContext.targetScope !== KEY_TARGET_GROUP,
+    preserveGroupIds: normalizedContext.preserveGroupIds,
   })
   const destinationFilteredUnits = normalizedDestination.type === 'group'
     ? filterDestinationGroupUnits(selectedUnits, normalizedDestination.groupId)
@@ -699,6 +723,8 @@ async function runRawInternal (
   }
 
   const movingTabIds = getMovingTabIds(units)
+  const individuallyMovingGroupedTabIds =
+    getIndividuallyMovingGroupedTabIds(units)
   progress.all = movingTabIds.length
   progress.target = movingTabIds.length
 
@@ -725,6 +751,8 @@ async function runRawInternal (
           focus)
         if (groupScopeWindowMove) {
           await ungroupTabIds(movingTabIds)
+        } else {
+          await ungroupTabIds(individuallyMovingGroupedTabIds)
         }
       }
       break
@@ -733,6 +761,8 @@ async function runRawInternal (
       await runWithNewWindow(units, progress, focus)
       if (groupScopeWindowMove) {
         await ungroupTabIds(movingTabIds)
+      } else {
+        await ungroupTabIds(individuallyMovingGroupedTabIds)
       }
       break
     }
@@ -765,6 +795,24 @@ function normalizeTabIds (tabIds) {
       continue
     }
     knownIds.add(id)
+    normalized.push(id)
+  }
+  return normalized
+}
+
+function normalizeIntegerList (values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const normalized = []
+  const knownValues = new Set()
+  for (const value of values) {
+    const id = normalizeInteger(value)
+    if (id === undefined || knownValues.has(id)) {
+      continue
+    }
+    knownValues.add(id)
     normalized.push(id)
   }
   return normalized
@@ -917,6 +965,8 @@ async function handleInternalMessage (message) {
         normalizeFocus(message.focus), {
           [KEY_TARGET_SCOPE]: message[KEY_TARGET_SCOPE],
           [KEY_GROUP_ID]: message[KEY_GROUP_ID],
+          [KEY_PRESERVE_FULL_GROUPS]: message[KEY_PRESERVE_FULL_GROUPS],
+          [KEY_PRESERVE_GROUP_IDS]: message[KEY_PRESERVE_GROUP_IDS],
           [KEY_SOURCE_WINDOW_ID]: message[KEY_SOURCE_WINDOW_ID],
         })
       break
