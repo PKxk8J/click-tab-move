@@ -160,6 +160,66 @@ async function findWindowHandle (predicate) {
   throw new Error('matching window handle was not found')
 }
 
+async function waitForSelectCheckboxCount (count) {
+  try {
+    await driver.wait(async () => {
+      return await driver.executeScript(`
+        return document.querySelectorAll('#select input[type="checkbox"]').
+          length === arguments[0]
+      `, count)
+    }, WAIT_MS, 'select checkbox count did not become ' + count)
+  } catch (error) {
+    const latest = await driver.executeScript(`
+      const options = Array.from(
+        document.querySelectorAll('#select .tab-option'),
+      ).map((option) => option.textContent)
+      return {
+        errors: window.__selectTestErrors || [],
+        options,
+      }
+    `).catch(() => [])
+    throw new Error(error.message + '; latest options: ' +
+      JSON.stringify(latest))
+  }
+}
+
+async function waitForSelectPage () {
+  await driver.wait(async () => {
+    return await driver.executeScript(`
+      return document.readyState === 'complete' &&
+        !!document.getElementById('select') &&
+        document.getElementById('label_move')?.textContent !== ''
+    `)
+  }, WAIT_MS, 'select page did not become ready')
+  await driver.executeScript(`
+    if (!window.__selectTestErrorListenerAttached) {
+      window.__selectTestErrorListenerAttached = true
+      window.__selectTestErrors = []
+      window.addEventListener('error', (event) => {
+        window.__selectTestErrors.push(event.message || String(event.error))
+      })
+      window.addEventListener('unhandledrejection', (event) => {
+        window.__selectTestErrors.push(
+          event.reason?.message || String(event.reason),
+        )
+      })
+    }
+  `)
+}
+
+async function getSelectCheckboxStates () {
+  return await driver.executeScript(`
+    return Array.from(
+      document.querySelectorAll('#select input[type="checkbox"]'),
+    ).map((input) => ({
+      ariaChecked: input.getAttribute('aria-checked'),
+      checked: input.checked,
+      indeterminate: input.indeterminate,
+      selected: input.closest('.tab-option')?.getAttribute('aria-selected'),
+    }))
+  `)
+}
+
 describe('Firefox extension E2E', () => {
   before(async () => {
     driver = await createDriver()
@@ -186,7 +246,9 @@ describe('Firefox extension E2E', () => {
     await setInputValue('height', 333)
     await setCheckboxValue('contexts_all', true)
     await setCheckboxValue('menuItems_global_right', false)
+    await setCheckboxValue('menuItems_group_right', false)
     await setCheckboxValue('focus', true)
+    await setCheckboxValue('moveHighlightedDirectly', true)
     await setSelectValue('pinnedGroupAction', 'skipPinned')
 
     await waitForStorageData((data) => {
@@ -195,6 +257,7 @@ describe('Firefox extension E2E', () => {
         data.contexts?.includes('all') &&
         !data.menuItems?.right &&
         data.focus === true &&
+        data.moveHighlightedDirectly === true &&
         data.pinnedGroupAction === 'skipPinned'
     }, 'options page settings were not saved')
 
@@ -205,7 +268,9 @@ describe('Firefox extension E2E', () => {
     assert.equal(await getInputValue('height'), '333')
     assert.equal(await (await driver.findElement(By.id('contexts_all'))).isSelected(), true)
     assert.equal(await (await driver.findElement(By.id('menuItems_global_right'))).isSelected(), false)
+    assert.equal(await (await driver.findElement(By.id('menuItems_group_right'))).isSelected(), false)
     assert.equal(await (await driver.findElement(By.id('focus'))).isSelected(), true)
+    assert.equal(await (await driver.findElement(By.id('moveHighlightedDirectly'))).isSelected(), true)
     assert.equal(await getInputValue('pinnedGroupAction'), 'skipPinned')
   })
 
@@ -844,6 +909,8 @@ describe('Firefox extension E2E', () => {
 
       const selectHandle = await findWindowHandle(url =>
         url.endsWith('/select.html'))
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectPage()
       await driver.switchTo().window(optionsHandle)
       await runExtensionScript(`
         const setup = args[0]
@@ -903,6 +970,277 @@ describe('Firefox extension E2E', () => {
         await driver.switchTo().window(optionsHandle).catch(() => {})
         await runExtensionScript(`
           const setup = args[0]
+          await browser.windows.remove(setup.targetWindowId).catch(() => {})
+          await browser.windows.remove(setup.sourceWindowId).catch(() => {})
+        `, setup).catch(() => {})
+      }
+    }
+  })
+
+  test('select window group checkbox cycles and updates child states immediately', async () => {
+    await openFreshOptionsPage()
+
+    const optionsHandle = await driver.getWindowHandle()
+    let setup
+    try {
+      setup = await runExtensionScript(`
+        const sourceWindow = await browser.windows.create({
+          focused: false,
+          url: ['about:blank', 'about:blank', 'about:blank', 'about:blank'],
+        })
+        const sourceTabs = await waitUntil(async () => {
+          const tabs = await browser.tabs.query({
+            windowId: sourceWindow.id,
+          })
+          if (tabs.length === 4) {
+            tabs.sort((tab1, tab2) => tab1.index - tab2.index)
+            return tabs
+          }
+        })
+        await browser.tabs.group({
+          createProperties: {
+            windowId: sourceWindow.id,
+          },
+          tabIds: sourceTabs.slice(0, 3).map(tab => tab.id),
+        })
+        const targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+        const selectWindow = await browser.windows.create({
+          type: 'detached_panel',
+          url: browser.runtime.getURL('select.html'),
+          width: 640,
+          height: 480,
+        })
+        return {
+          selectWindowId: selectWindow.id,
+          sourceWindowId: sourceWindow.id,
+          targetWindowId: targetWindow.id,
+        }
+      `)
+
+      const selectHandle = await findWindowHandle(url =>
+        url.endsWith('/select.html'))
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectPage()
+      await driver.switchTo().window(optionsHandle)
+      await runExtensionScript(`
+        const setup = args[0]
+        await browser.runtime.sendMessage({
+          type: 'reset',
+          fromWindowId: setup.sourceWindowId,
+          targetScope: 'global',
+          destination: {
+            type: 'window',
+            windowId: setup.targetWindowId,
+          },
+          notification: false,
+          focus: false,
+        })
+      `, setup)
+
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectCheckboxCount(5)
+      const checkboxes = await driver.findElements(By.css(
+        '#select input[type="checkbox"]',
+      ))
+
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[0].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[1].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[0].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[0].click()
+      await checkboxes[0].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[0].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+    } finally {
+      if (setup) {
+        await driver.switchTo().window(optionsHandle).catch(() => {})
+        await runExtensionScript(`
+          const setup = args[0]
+          await browser.windows.remove(setup.selectWindowId).catch(() => {})
+          await browser.windows.remove(setup.targetWindowId).catch(() => {})
+          await browser.windows.remove(setup.sourceWindowId).catch(() => {})
+        `, setup).catch(() => {})
+      }
+    }
+  })
+
+  test('select window treats highlighted group tabs as tab selection', async () => {
+    await openFreshOptionsPage()
+
+    const optionsHandle = await driver.getWindowHandle()
+    let setup
+    try {
+      setup = await runExtensionScript(`
+        const sourceWindow = await browser.windows.create({
+          focused: false,
+          url: ['about:blank', 'about:blank', 'about:blank', 'about:blank'],
+        })
+        const sourceTabs = await waitUntil(async () => {
+          const tabs = await browser.tabs.query({
+            windowId: sourceWindow.id,
+          })
+          if (tabs.length === 4) {
+            tabs.sort((tab1, tab2) => tab1.index - tab2.index)
+            return tabs
+          }
+        })
+        await browser.tabs.group({
+          createProperties: {
+            windowId: sourceWindow.id,
+          },
+          tabIds: sourceTabs.slice(0, 3).map(tab => tab.id),
+        })
+        const targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+        const selectWindow = await browser.windows.create({
+          type: 'detached_panel',
+          url: browser.runtime.getURL('select.html'),
+          width: 640,
+          height: 480,
+        })
+        return {
+          groupTabIds: sourceTabs.slice(0, 3).map(tab => tab.id),
+          selectWindowId: selectWindow.id,
+          sourceWindowId: sourceWindow.id,
+          targetWindowId: targetWindow.id,
+        }
+      `)
+
+      const selectHandle = await findWindowHandle(url =>
+        url.endsWith('/select.html'))
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectPage()
+      await driver.switchTo().window(optionsHandle)
+      await runExtensionScript(`
+        const setup = args[0]
+        await browser.windows.update(setup.sourceWindowId, {
+          focused: true,
+        })
+        const groupTabIds = new Set(setup.groupTabIds)
+        const highlightedTabs = (await browser.tabs.query({
+          windowId: setup.sourceWindowId,
+        })).
+          filter(tab => groupTabIds.has(tab.id)).
+          sort((tab1, tab2) => tab1.index - tab2.index)
+        await browser.tabs.highlight({
+          windowId: setup.sourceWindowId,
+          tabs: highlightedTabs.map(tab => tab.index),
+        })
+        await browser.runtime.sendMessage({
+          type: 'reset',
+          fromWindowId: setup.sourceWindowId,
+          targetScope: 'global',
+          destination: {
+            type: 'window',
+            windowId: setup.targetWindowId,
+          },
+          notification: false,
+          focus: false,
+        })
+      `, setup)
+
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectCheckboxCount(5)
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await driver.findElement(By.id('move')).click()
+      await driver.wait(async () => {
+        return !(await driver.getAllWindowHandles()).includes(selectHandle)
+      }, WAIT_MS)
+
+      await driver.switchTo().window(optionsHandle)
+      const result = await runExtensionScript(`
+        const setup = args[0]
+        const movedTabs = []
+        for (const tabId of setup.groupTabIds) {
+          movedTabs.push(await browser.tabs.get(tabId))
+        }
+        const targetTabs = await browser.tabs.query({
+          windowId: setup.targetWindowId,
+        })
+        return {
+          movedGroupIds: movedTabs.map(tab => tab.groupId),
+          movedWindowIds: movedTabs.map(tab => tab.windowId),
+          noneGroupId: browser.tabGroups.TAB_GROUP_ID_NONE,
+          targetTabIds: targetTabs.map(tab => tab.id),
+          targetWindowId: setup.targetWindowId,
+        }
+      `, setup)
+
+      assert.deepEqual(result.movedWindowIds, [
+        result.targetWindowId,
+        result.targetWindowId,
+        result.targetWindowId,
+      ])
+      assert.deepEqual(result.movedGroupIds, [
+        result.noneGroupId,
+        result.noneGroupId,
+        result.noneGroupId,
+      ])
+      assert.equal(setup.groupTabIds.every((tabId) =>
+        result.targetTabIds.includes(tabId)), true)
+    } finally {
+      if (setup) {
+        await driver.switchTo().window(optionsHandle).catch(() => {})
+        await runExtensionScript(`
+          const setup = args[0]
+          await browser.windows.remove(setup.selectWindowId).catch(() => {})
           await browser.windows.remove(setup.targetWindowId).catch(() => {})
           await browser.windows.remove(setup.sourceWindowId).catch(() => {})
         `, setup).catch(() => {})
