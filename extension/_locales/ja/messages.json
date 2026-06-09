@@ -22,7 +22,10 @@
     "message": "すべてのタブ"
   },
   "select": {
-    "message": "選択したタブ"
+    "message": "タブを選ぶ"
+  },
+  "highlighted": {
+    "message": "選択済みのタブ"
   },
   "menuItems": {
     "message": "移動対象"
@@ -117,8 +120,11 @@
   "targetGlobalAll": {
     "message": "全てのタブ・グループ"
   },
+  "targetGlobalHighlighted": {
+    "message": "選択済みのタブ"
+  },
   "targetGlobalSelect": {
-    "message": "選択したタブ・グループ"
+    "message": "タブ・グループを選ぶ"
   },
   "targetGroupRight": {
     "message": "グループ内のこのタブより右側のタブ"
@@ -136,7 +142,7 @@
     "message": "グループ内の全てのタブ"
   },
   "targetGroupSelect": {
-    "message": "グループ内の選択したタブ"
+    "message": "グループ内のタブを選ぶ"
   },
   "menuItem_global_one": {
     "message": "クリックしたタブ・グループ"
@@ -156,8 +162,11 @@
   "menuItem_global_all": {
     "message": "全てのタブ・グループ"
   },
+  "menuItem_global_highlighted": {
+    "message": "Firefoxで選択済みのタブ"
+  },
   "menuItem_global_select": {
-    "message": "選択したタブ・グループ"
+    "message": "選択画面でタブ・グループを選ぶ"
   },
   "menuItem_group_one": {
     "message": "クリックしたタブ"
@@ -178,7 +187,7 @@
     "message": "全てのタブ"
   },
   "menuItem_group_select": {
-    "message": "選択したタブ"
+    "message": "選択画面でタブを選ぶ"
   },
   "selectSave": {
     "message": "閉じたときの選択ウィンドウサイズを記憶する"
@@ -200,12 +209,6 @@
   },
   "focus": {
     "message": "移動させたタブにフォーカスする"
-  },
-  "moveHighlightedDirectly": {
-    "message": "Firefoxで複数選択したタブを選択ウィンドウなしで移動する"
-  },
-  "moveHighlightedDirectlyDescription": {
-    "message": "Ctrl/Shift/Commandクリックで複数選択されている場合だけ直接移動します。グループ内の全タブが選ばれていても、グループではなく個別タブとして移動します。"
   },
   "pinnedGroupAction": {
     "message": "ピン留めされたタブをグループへ移そうとしています"

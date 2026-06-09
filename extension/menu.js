@@ -1,15 +1,13 @@
 import {
   ALL_MENU_SCOPES,
-  DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY,
   DEFAULT_FOCUS,
   DEFAULT_NOTIFICATION,
   KEY_ALL,
   KEY_CONTEXTS,
   KEY_FOCUS,
-  KEY_GROUP_ID,
+  KEY_HIGHLIGHTED,
   KEY_LEFT,
   KEY_MENU_ITEMS,
-  KEY_MOVE_HIGHLIGHTED_DIRECTLY,
   KEY_MOVE,
   KEY_NEW_GROUP,
   KEY_NEW_WINDOW,
@@ -30,7 +28,6 @@ import {
   normalizeContexts,
   normalizeFocus,
   normalizeMenuItems,
-  normalizeMoveHighlightedDirectly,
   normalizeNotification,
   onError,
 } from './common.js'
@@ -170,6 +167,8 @@ function getGlobalTitle (key, targetTab) {
       return i18n.getMessage('targetGlobalThisAndLeft', subject)
     case KEY_ALL:
       return i18n.getMessage('targetGlobalAll')
+    case KEY_HIGHLIGHTED:
+      return i18n.getMessage('targetGlobalHighlighted')
     case KEY_SELECT:
       return i18n.getMessage('targetGlobalSelect')
   }
@@ -259,17 +258,13 @@ async function isNormalWindow (windowId) {
   return (await getNormalWindowIdSet([windowId])).has(windowId)
 }
 
-async function getHighlightedTargetTabIds (targetTab, targetScope) {
+async function getHighlightedTargetTabIds (targetTab) {
   const highlightedTabs = sortTabsByWindowAndIndex(await tabs.query({
     windowId: targetTab.windowId,
     highlighted: true,
   }))
-  const targetTabs = targetScope === KEY_TARGET_GROUP
-    ? highlightedTabs.filter((tab) => tab.groupId === targetTab.groupId)
-    : highlightedTabs
-
-  return targetTabs.length > 1
-    ? targetTabs.map((tab) => tab.id)
+  return highlightedTabs.length > 1
+    ? highlightedTabs.map((tab) => tab.id)
     : []
 }
 
@@ -456,6 +451,41 @@ async function waitForMenuRebuild () {
   }
 }
 
+async function getTabInfos (tabIds) {
+  const tabInfos = []
+  for (const tabId of tabIds) {
+    tabInfos.push(await tabs.get(tabId))
+  }
+  return tabInfos
+}
+
+function summarizeTabInfos (entry, targetTab, tabInfos, singleWholeGroup) {
+  const groupIds = new Set(tabInfos.
+    filter(isGroupedTab).
+    map((tab) => tab.groupId))
+  const groupTabCounts = new Map()
+  for (const tabInfo of tabInfos) {
+    if (!isGroupedTab(tabInfo)) {
+      continue
+    }
+    groupTabCounts.set(tabInfo.groupId,
+      (groupTabCounts.get(tabInfo.groupId) || 0) + 1)
+  }
+
+  return {
+    valid: true,
+    sourceWindowId: targetTab.windowId,
+    sourceIncognito: targetTab.incognito === true,
+    groupIds,
+    blockedGroupIds: entry.scope === KEY_TARGET_GROUP
+      ? new Set([targetTab.groupId])
+      : new Set(),
+    groupTabCounts,
+    singleWholeGroup,
+    targetTabCount: tabInfos.length,
+  }
+}
+
 async function getTargetSummary (entry, targetTab) {
   if (entry.scope === KEY_TARGET_GROUP && !isGroupedTab(targetTab)) {
     return { valid: false }
@@ -478,41 +508,23 @@ async function getTargetSummary (entry, targetTab) {
     }
   }
 
+  if (entry.key === KEY_HIGHLIGHTED) {
+    const tabIds = await getHighlightedTargetTabIds(targetTab)
+    if (tabIds.length <= 0) {
+      return { valid: false }
+    }
+    return summarizeTabInfos(entry, targetTab, await getTabInfos(tabIds), false)
+  }
+
   const tabIds = await listTargetTabIds(targetTab.id, entry.key, entry.scope)
   if (tabIds.length <= 0) {
     return { valid: false }
   }
 
-  const tabInfos = []
-  for (const tabId of tabIds) {
-    tabInfos.push(await tabs.get(tabId))
-  }
-  const groupIds = new Set(tabInfos.
-    filter(isGroupedTab).
-    map((tab) => tab.groupId))
-  const groupTabCounts = new Map()
-  for (const tabInfo of tabInfos) {
-    if (!isGroupedTab(tabInfo)) {
-      continue
-    }
-    groupTabCounts.set(tabInfo.groupId,
-      (groupTabCounts.get(tabInfo.groupId) || 0) + 1)
-  }
-
-  return {
-    valid: true,
-    sourceWindowId: targetTab.windowId,
-    sourceIncognito: targetTab.incognito === true,
-    groupIds,
-    blockedGroupIds: entry.scope === KEY_TARGET_GROUP
-      ? new Set([targetTab.groupId])
-      : new Set(),
-    groupTabCounts,
-    singleWholeGroup: entry.scope === KEY_TARGET_GLOBAL &&
+  return summarizeTabInfos(entry, targetTab, await getTabInfos(tabIds),
+    entry.scope === KEY_TARGET_GLOBAL &&
       entry.key === KEY_ONE &&
-      isGroupedTab(targetTab),
-    targetTabCount: tabInfos.length,
-  }
+      isGroupedTab(targetTab))
 }
 
 function isDestinationVisible (entry, destination, summary, selectWindowId) {
@@ -643,26 +655,20 @@ async function handleMenuClick (info, tab) {
     await getValue(KEY_NOTIFICATION, DEFAULT_NOTIFICATION),
   )
   const focus = normalizeFocus(await getValue(KEY_FOCUS, DEFAULT_FOCUS))
-  if (target.key === KEY_SELECT) {
-    const moveHighlightedDirectly = normalizeMoveHighlightedDirectly(
-      await getValue(KEY_MOVE_HIGHLIGHTED_DIRECTLY,
-        DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY),
-    )
-    const highlightedTabIds = moveHighlightedDirectly
-      ? await getHighlightedTargetTabIds(targetTab, target.scope)
-      : []
-    if (highlightedTabIds.length > 1) {
-      await rawRun(highlightedTabIds, target.destination, notification, focus, {
-        [KEY_PRESERVE_FULL_GROUPS]: false,
-        [KEY_TARGET_SCOPE]: target.scope,
-        [KEY_GROUP_ID]: target.scope === KEY_TARGET_GROUP
-          ? targetTab.groupId
-          : undefined,
-        [KEY_SOURCE_WINDOW_ID]: targetTab.windowId,
-      })
+  if (target.key === KEY_HIGHLIGHTED) {
+    const highlightedTabIds = await getHighlightedTargetTabIds(targetTab)
+    if (highlightedTabIds.length <= 1) {
       return
     }
+    await rawRun(highlightedTabIds, target.destination, notification, focus, {
+      [KEY_PRESERVE_FULL_GROUPS]: false,
+      [KEY_TARGET_SCOPE]: KEY_TARGET_GLOBAL,
+      [KEY_SOURCE_WINDOW_ID]: targetTab.windowId,
+    })
+    return
+  }
 
+  if (target.key === KEY_SELECT) {
     await select({
       fromWindowId: targetTab.windowId,
       groupId: target.scope === KEY_TARGET_GROUP ? targetTab.groupId : undefined,

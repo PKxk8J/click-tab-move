@@ -143,13 +143,6 @@ h3 {
   font-weight: 560;
 }
 
-.setting-description {
-  display: block;
-  margin-block-start: 4px;
-  color: var(--muted);
-  font-size: 0.86rem;
-}
-
 .number-field input,
 .select-field select {
   inline-size: 8rem;

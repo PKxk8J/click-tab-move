@@ -248,7 +248,6 @@ describe('Firefox extension E2E', () => {
     await setCheckboxValue('menuItems_global_right', false)
     await setCheckboxValue('menuItems_group_right', false)
     await setCheckboxValue('focus', true)
-    await setCheckboxValue('moveHighlightedDirectly', true)
     await setSelectValue('pinnedGroupAction', 'skipPinned')
 
     await waitForStorageData((data) => {
@@ -257,7 +256,6 @@ describe('Firefox extension E2E', () => {
         data.contexts?.includes('all') &&
         !data.menuItems?.right &&
         data.focus === true &&
-        data.moveHighlightedDirectly === true &&
         data.pinnedGroupAction === 'skipPinned'
     }, 'options page settings were not saved')
 
@@ -270,7 +268,6 @@ describe('Firefox extension E2E', () => {
     assert.equal(await (await driver.findElement(By.id('menuItems_global_right'))).isSelected(), false)
     assert.equal(await (await driver.findElement(By.id('menuItems_group_right'))).isSelected(), false)
     assert.equal(await (await driver.findElement(By.id('focus'))).isSelected(), true)
-    assert.equal(await (await driver.findElement(By.id('moveHighlightedDirectly'))).isSelected(), true)
     assert.equal(await getInputValue('pinnedGroupAction'), 'skipPinned')
   })
 

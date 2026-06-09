@@ -22,6 +22,9 @@
     "message": "All Tabs"
   },
   "select": {
+    "message": "Choose Tabs"
+  },
+  "highlighted": {
     "message": "Selected Tabs"
   },
   "menuItems": {
@@ -117,8 +120,11 @@
   "targetGlobalAll": {
     "message": "All Tabs and Groups"
   },
+  "targetGlobalHighlighted": {
+    "message": "Selected Tabs"
+  },
   "targetGlobalSelect": {
-    "message": "Selected Tabs and Groups"
+    "message": "Choose Tabs and Groups"
   },
   "targetGroupRight": {
     "message": "Tabs to the right of this tab in the group"
@@ -136,7 +142,7 @@
     "message": "All Tabs in This Group"
   },
   "targetGroupSelect": {
-    "message": "Selected Tabs in This Group"
+    "message": "Choose Tabs in This Group"
   },
   "menuItem_global_one": {
     "message": "Clicked tab/group"
@@ -156,8 +162,11 @@
   "menuItem_global_all": {
     "message": "All tabs/groups"
   },
+  "menuItem_global_highlighted": {
+    "message": "Firefox-selected tabs"
+  },
   "menuItem_global_select": {
-    "message": "Selected tabs/groups"
+    "message": "Choose tabs/groups in the select window"
   },
   "menuItem_group_one": {
     "message": "Clicked tab"
@@ -178,7 +187,7 @@
     "message": "All tabs"
   },
   "menuItem_group_select": {
-    "message": "Selected tabs"
+    "message": "Choose tabs in this group in the select window"
   },
   "selectSave": {
     "message": "Save last select window size"
@@ -200,12 +209,6 @@
   },
   "focus": {
     "message": "Focus on the moved tab"
-  },
-  "moveHighlightedDirectly": {
-    "message": "Move Firefox-selected tabs without opening the select window"
-  },
-  "moveHighlightedDirectlyDescription": {
-    "message": "When multiple tabs are selected with Ctrl/Shift/Command click, the selected tabs are moved directly as individual tabs. Selecting every tab in a group does not move the group itself."
   },
   "pinnedGroupAction": {
     "message": "You are moving pinned tabs to a group"

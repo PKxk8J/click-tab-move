@@ -336,7 +336,6 @@ const {
   normalizeDestination,
   normalizeFocus,
   normalizeMenuItems,
-  normalizeMoveHighlightedDirectly,
   normalizeNotification,
   normalizePinnedGroupAction,
   normalizeSelectSave,
@@ -351,6 +350,7 @@ test('設定値を正規化する', () => {
     one: ['global', 'group'],
     right: ['global', 'group'],
     all: ['global', 'group'],
+    highlighted: ['global'],
     select: ['global', 'group'],
   })
   assert.deepEqual(normalizeMenuItems(['select', 'unknown', 'left']), {
@@ -369,8 +369,6 @@ test('設定値を正規化する', () => {
   assert.equal(normalizeNotification('true'), false)
   assert.equal(normalizeFocus(undefined), false)
   assert.equal(normalizeFocus(true), true)
-  assert.equal(normalizeMoveHighlightedDirectly(undefined), false)
-  assert.equal(normalizeMoveHighlightedDirectly(true), true)
   assert.equal(normalizePinnedGroupAction(undefined), 'ask')
   assert.equal(normalizePinnedGroupAction('skipPinned'), 'skipPinned')
   assert.equal(normalizePinnedGroupAction('bad'), 'ask')

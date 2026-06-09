@@ -14,6 +14,7 @@ export const KEY_RIGHT = 'right'
 export const KEY_THIS_AND_RIGHT = 'thisAndRight'
 export const KEY_LEFT = 'left'
 export const KEY_THIS_AND_LEFT = 'thisAndLeft'
+export const KEY_HIGHLIGHTED = 'highlighted'
 export const KEY_SELECT = 'select'
 export const KEY_RAW = 'raw'
 export const KEY_TARGET_GLOBAL = 'global'
@@ -40,7 +41,6 @@ export const KEY_HEIGHT = 'height'
 export const KEY_SELECT_SAVE = 'selectSave'
 export const KEY_NOTIFICATION = 'notification'
 export const KEY_FOCUS = 'focus'
-export const KEY_MOVE_HIGHLIGHTED_DIRECTLY = 'moveHighlightedDirectly'
 export const KEY_PINNED_GROUP_ACTION = 'pinnedGroupAction'
 export const KEY_SETTINGS = 'settings'
 export const KEY_FEEDBACK = 'feedback'
@@ -69,6 +69,7 @@ export const ALL_MENU_ITEMS = [
   KEY_LEFT,
   KEY_THIS_AND_LEFT,
   KEY_ALL,
+  KEY_HIGHLIGHTED,
   KEY_SELECT,
 ]
 export const GLOBAL_MENU_ITEMS = [
@@ -78,6 +79,7 @@ export const GLOBAL_MENU_ITEMS = [
   KEY_LEFT,
   KEY_THIS_AND_LEFT,
   KEY_ALL,
+  KEY_HIGHLIGHTED,
   KEY_SELECT,
 ]
 export const GROUP_MENU_ITEMS = [
@@ -98,13 +100,13 @@ export const DEFAULT_MENU_ITEMS = {
   [KEY_ONE]: [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP],
   [KEY_RIGHT]: [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP],
   [KEY_ALL]: [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP],
+  [KEY_HIGHLIGHTED]: [KEY_TARGET_GLOBAL],
   [KEY_SELECT]: [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP],
 }
 export const DEFAULT_SELECT_SIZE = [640, 480]
 export const DEFAULT_SELECT_SAVE = true
 export const DEFAULT_NOTIFICATION = false
 export const DEFAULT_FOCUS = false
-export const DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY = false
 export const DEFAULT_PINNED_GROUP_ACTION = KEY_PINNED_GROUP_ASK
 export const ALL_PINNED_GROUP_ACTIONS = [
   KEY_PINNED_GROUP_ASK,
@@ -271,11 +273,6 @@ export function normalizeNotification (notification) {
 
 export function normalizeFocus (focus) {
   return normalizeBoolean(focus, DEFAULT_FOCUS)
-}
-
-export function normalizeMoveHighlightedDirectly (moveHighlightedDirectly) {
-  return normalizeBoolean(moveHighlightedDirectly,
-    DEFAULT_MOVE_HIGHLIGHTED_DIRECTLY)
 }
 
 export function normalizePinnedGroupAction (action) {

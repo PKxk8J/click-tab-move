@@ -377,26 +377,41 @@ test('single visible entry renders destinations directly under root', async () =
   assert.equal(state.refreshCount, 1)
 })
 
-test('select menu moves multiple highlighted tabs directly when enabled', async () => {
+test('highlighted menu moves multiple highlighted tabs directly', async () => {
   resetState({
-    menuItems: { select: ['global'] },
+    menuItems: { highlighted: ['global'] },
     tabs: [
-      { id: 1, windowId: 1, index: 0, active: true, highlighted: true },
+      { id: 1, windowId: 1, index: 0, highlighted: true },
       { id: 3, windowId: 1, index: 1, highlighted: true },
+      { id: 4, windowId: 1, index: 2, active: true },
       { id: 2, windowId: 2, index: 0, active: true },
     ],
   })
-  state.storageData.moveHighlightedDirectly = true
   await rebuildMenu()
-  await showMenu(1)
+  await showMenu(4)
 
-  await clickMenu('flatTarget:global:select:window:2', 1)
+  await clickMenu('flatTarget:global:highlighted:window:2', 4)
 
   assert.deepEqual(state.windowCreates, [])
   assert.deepEqual(state.moved, [
     { ids: [1], properties: { windowId: 2, index: -1 } },
     { ids: [3], properties: { windowId: 2, index: -1 } },
   ])
+})
+
+test('highlighted menu is hidden unless multiple tabs are highlighted', async () => {
+  resetState({
+    menuItems: { highlighted: ['global'] },
+    tabs: [
+      { id: 1, windowId: 1, index: 0, active: true, highlighted: true },
+      { id: 2, windowId: 2, index: 0, active: true },
+    ],
+  })
+  await rebuildMenu()
+  await showMenu(1)
+
+  assert.equal(state.menuItems.get('move').visible, false)
+  assert.deepEqual(getChildIds('move'), [])
 })
 
 test('destinations only include the source incognito context', async () => {
