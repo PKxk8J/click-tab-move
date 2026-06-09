@@ -163,7 +163,7 @@
     "message": "全てのタブ・グループ"
   },
   "menuItem_global_highlighted": {
-    "message": "Firefoxで選択済みのタブ"
+    "message": "タブバーで選択済みのタブ"
   },
   "menuItem_global_select": {
     "message": "選択画面でタブ・グループを選ぶ"

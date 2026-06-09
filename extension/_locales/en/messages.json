@@ -163,7 +163,7 @@
     "message": "All tabs/groups"
   },
   "menuItem_global_highlighted": {
-    "message": "Firefox-selected tabs"
+    "message": "Tabs selected in the tab bar"
   },
   "menuItem_global_select": {
     "message": "Choose tabs/groups in the select window"
