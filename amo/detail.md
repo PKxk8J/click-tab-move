@@ -19,11 +19,15 @@ You can move:
 - Tabs and groups to the right or left of the clicked item
 - The clicked item and everything to the right or left
 - All tabs and groups in the window
-- Tabs and groups selected in a popup window
-- Tabs inside the clicked group, including selected tabs in that group
+- Tabs selected in the tab bar from the "Selected Tabs" menu item
+- Tabs and groups checked in the selection window from the "Choose Tabs and Groups" menu item
+- Tabs inside the clicked group checked in the selection window from the "Choose Tabs in This Group" menu item
 
 Moving all tabs from one window to another window can merge the two windows.
 Moving a whole tab group to another window keeps it grouped.
+Selecting a whole tab group is different from selecting every tab inside that group.
+In the selection window, a group checkbox can mean "move the group", "move all tabs inside the group", or "move neither".
+Tabs selected in the tab bar are moved as individual tabs, even if every tab in a group is selected.
 Moving tabs into an existing group merges them into that group.
 
 Pinned tabs remain pinned when they are moved to a window.
