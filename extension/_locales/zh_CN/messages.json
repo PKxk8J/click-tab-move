@@ -12,7 +12,10 @@
     "message": "所有标签页"
   },
   "select": {
-    "message": "选定标签页"
+    "message": "选择标签页"
+  },
+  "highlighted": {
+    "message": "已选标签页"
   },
   "menuItems": {
     "message": "移动目标"
@@ -92,8 +95,11 @@
   "targetGlobalAll": {
     "message": "所有标签页和标签页组"
   },
+  "targetGlobalHighlighted": {
+    "message": "已选标签页"
+  },
   "targetGlobalSelect": {
-    "message": "选定的标签页和标签页组"
+    "message": "选择标签页和标签页组"
   },
   "targetGroupRight": {
     "message": "组内此标签页右侧的标签页"
@@ -111,7 +117,7 @@
     "message": "组内所有标签页"
   },
   "targetGroupSelect": {
-    "message": "组内选定的标签页"
+    "message": "选择组内标签页"
   },
   "menuItem_global_one": {
     "message": "点击的标签页/标签页组"
@@ -131,8 +137,11 @@
   "menuItem_global_all": {
     "message": "所有标签页/标签页组"
   },
+  "menuItem_global_highlighted": {
+    "message": "标签页栏中已选的标签页"
+  },
   "menuItem_global_select": {
-    "message": "选定的标签页/标签页组"
+    "message": "在选择窗口中选择标签页/标签页组"
   },
   "menuItem_group_one": {
     "message": "点击的标签页"
@@ -153,7 +162,7 @@
     "message": "所有标签页"
   },
   "menuItem_group_select": {
-    "message": "选定的标签页"
+    "message": "在选择窗口中选择标签页"
   },
   "selectSave": {
     "message": "保存最后窗口大小"

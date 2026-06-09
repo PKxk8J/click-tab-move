@@ -14,6 +14,7 @@ export const KEY_RIGHT = 'right'
 export const KEY_THIS_AND_RIGHT = 'thisAndRight'
 export const KEY_LEFT = 'left'
 export const KEY_THIS_AND_LEFT = 'thisAndLeft'
+export const KEY_HIGHLIGHTED = 'highlighted'
 export const KEY_SELECT = 'select'
 export const KEY_RAW = 'raw'
 export const KEY_TARGET_GLOBAL = 'global'
@@ -27,6 +28,8 @@ export const KEY_CANCEL = 'cancel'
 export const KEY_DESTINATION = 'destination'
 export const KEY_TARGET_SCOPE = 'targetScope'
 export const KEY_GROUP_ID = 'groupId'
+export const KEY_PRESERVE_FULL_GROUPS = 'preserveFullGroups'
+export const KEY_PRESERVE_GROUP_IDS = 'preserveGroupIds'
 export const KEY_SOURCE_WINDOW_ID = 'sourceWindowId'
 export const KEY_REQUEST_ID = 'requestId'
 
@@ -66,6 +69,7 @@ export const ALL_MENU_ITEMS = [
   KEY_LEFT,
   KEY_THIS_AND_LEFT,
   KEY_ALL,
+  KEY_HIGHLIGHTED,
   KEY_SELECT,
 ]
 export const GLOBAL_MENU_ITEMS = [
@@ -75,6 +79,7 @@ export const GLOBAL_MENU_ITEMS = [
   KEY_LEFT,
   KEY_THIS_AND_LEFT,
   KEY_ALL,
+  KEY_HIGHLIGHTED,
   KEY_SELECT,
 ]
 export const GROUP_MENU_ITEMS = [
@@ -95,6 +100,7 @@ export const DEFAULT_MENU_ITEMS = {
   [KEY_ONE]: [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP],
   [KEY_RIGHT]: [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP],
   [KEY_ALL]: [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP],
+  [KEY_HIGHLIGHTED]: [KEY_TARGET_GLOBAL],
   [KEY_SELECT]: [KEY_TARGET_GLOBAL, KEY_TARGET_GROUP],
 }
 export const DEFAULT_SELECT_SIZE = [640, 480]

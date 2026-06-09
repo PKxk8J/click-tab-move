@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict'
 import { after, before, describe, test } from 'node:test'
 import process from 'node:process'
+import { statSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import { Builder, By, until } from 'selenium-webdriver'
 import firefox from 'selenium-webdriver/firefox.js'
 import { download } from 'geckodriver'
+
+const require = createRequire(import.meta.url)
+const { Command } = require('selenium-webdriver/lib/command')
+const { Zip } = require('selenium-webdriver/io/zip')
+const io = require('selenium-webdriver/io')
 
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const EXTENSION_DIR = resolve(ROOT_DIR, 'extension')
@@ -30,6 +37,25 @@ async function createDriver () {
     setFirefoxOptions(options).
     setFirefoxService(new firefox.ServiceBuilder(geckoDriverPath)).
     build()
+}
+
+async function installAddon ({ allowPrivateBrowsing = false } = {}) {
+  const stats = statSync(EXTENSION_DIR)
+  let buffer
+  if (stats.isDirectory()) {
+    const zip = new Zip()
+    await zip.addDir(EXTENSION_DIR)
+    buffer = await zip.toBuffer('DEFLATE')
+  } else {
+    buffer = await io.read(EXTENSION_DIR)
+  }
+
+  return await driver.execute(
+    new Command('install addon').
+      setParameter('addon', buffer.toString('base64')).
+      setParameter('temporary', true).
+      setParameter('allowPrivateBrowsing', allowPrivateBrowsing),
+  )
 }
 
 async function getExtensionBaseUrl (addonId) {
@@ -160,10 +186,145 @@ async function findWindowHandle (predicate) {
   throw new Error('matching window handle was not found')
 }
 
+async function waitForSelectCheckboxCount (count) {
+  try {
+    await driver.wait(async () => {
+      return await driver.executeScript(`
+        return document.querySelectorAll('#select input[type="checkbox"]').
+          length === arguments[0]
+      `, count)
+    }, WAIT_MS, 'select checkbox count did not become ' + count)
+  } catch (error) {
+    const latest = await driver.executeScript(`
+      const options = Array.from(
+        document.querySelectorAll('#select .tab-option'),
+      ).map((option) => option.textContent)
+      return {
+        errors: window.__selectTestErrors || [],
+        options,
+      }
+    `).catch(() => [])
+    throw new Error(error.message + '; latest options: ' +
+      JSON.stringify(latest))
+  }
+}
+
+async function waitForSelectPage () {
+  await driver.wait(async () => {
+    return await driver.executeScript(`
+      return document.readyState === 'complete' &&
+        !!document.getElementById('select') &&
+        document.getElementById('label_move')?.textContent !== ''
+    `)
+  }, WAIT_MS, 'select page did not become ready')
+  await driver.executeScript(`
+    if (!window.__selectTestErrorListenerAttached) {
+      window.__selectTestErrorListenerAttached = true
+      window.__selectTestErrors = []
+      window.addEventListener('error', (event) => {
+        window.__selectTestErrors.push(event.message || String(event.error))
+      })
+      window.addEventListener('unhandledrejection', (event) => {
+        window.__selectTestErrors.push(
+          event.reason?.message || String(event.reason),
+        )
+      })
+    }
+  `)
+}
+
+async function getSelectCheckboxStates () {
+  return await driver.executeScript(`
+    return Array.from(
+      document.querySelectorAll('#select input[type="checkbox"]'),
+    ).map((input) => ({
+      ariaChecked: input.getAttribute('aria-checked'),
+      checked: input.checked,
+      indeterminate: input.indeterminate,
+      selected: input.closest('.tab-option')?.getAttribute('aria-selected'),
+    }))
+  `)
+}
+
+async function hasNotificationPermission () {
+  return await runExtensionScript(`
+    return await browser.permissions.contains({
+      permissions: ['notifications'],
+    })
+  `)
+}
+
+async function acceptNotificationPermissionPrompt () {
+  await driver.setContext(firefox.Context.CHROME)
+  try {
+    await driver.wait(async () => {
+      return await driver.executeScript(`
+        const panel = document.getElementById('notification-popup')
+        const notification = panel?.querySelector(
+          '#addon-webext-permissions-notification',
+        )
+        return panel?.state === 'open' && !!notification?.button
+      `)
+    }, WAIT_MS, 'notification permission prompt did not open')
+    await driver.executeScript(`
+      document.getElementById('notification-popup').
+        querySelector('#addon-webext-permissions-notification').
+        button.click()
+    `)
+  } finally {
+    await driver.setContext(firefox.Context.CONTENT)
+  }
+}
+
+async function startPinnedGroupMove () {
+  return await runExtensionScript(`
+    const pinnedTab = await browser.tabs.create({
+      active: false,
+      url: 'about:blank',
+    })
+    await browser.tabs.update(pinnedTab.id, {
+      pinned: true,
+    })
+    const unpinnedTab = await browser.tabs.create({
+      active: false,
+      url: 'about:blank',
+    })
+    browser.runtime.sendMessage({
+      type: 'move',
+      keyType: 'raw',
+      tabIds: [pinnedTab.id, unpinnedTab.id],
+      destination: {
+        type: 'newGroup',
+      },
+      targetScope: 'global',
+      sourceWindowId: pinnedTab.windowId,
+      notification: false,
+      focus: false,
+    }).catch(console.error)
+    return {
+      pinnedTabId: pinnedTab.id,
+      unpinnedTabId: unpinnedTab.id,
+    }
+  `)
+}
+
+async function submitPinnedDialog (actionId, { remember = false } = {}) {
+  const dialogHandle = await findWindowHandle(url =>
+    url.includes('/pinned.html?'))
+  await driver.wait(until.elementLocated(By.id(actionId)), WAIT_MS)
+  if (remember) {
+    await setCheckboxValue('remember', true)
+  }
+  await driver.findElement(By.id(actionId)).click()
+  await driver.wait(async () => {
+    return !(await driver.getAllWindowHandles()).includes(dialogHandle)
+  }, WAIT_MS)
+}
+
 describe('Firefox extension E2E', () => {
   before(async () => {
     driver = await createDriver()
-    const addonId = await driver.installAddon(EXTENSION_DIR, true)
+    const addonId = await installAddon({ allowPrivateBrowsing: true })
     extensionBaseUrl = await getExtensionBaseUrl(addonId)
     assert.ok(extensionBaseUrl, '拡張機能の moz-extension URL を取得できません')
   })
@@ -186,6 +347,7 @@ describe('Firefox extension E2E', () => {
     await setInputValue('height', 333)
     await setCheckboxValue('contexts_all', true)
     await setCheckboxValue('menuItems_global_right', false)
+    await setCheckboxValue('menuItems_group_right', false)
     await setCheckboxValue('focus', true)
     await setSelectValue('pinnedGroupAction', 'skipPinned')
 
@@ -205,8 +367,78 @@ describe('Firefox extension E2E', () => {
     assert.equal(await getInputValue('height'), '333')
     assert.equal(await (await driver.findElement(By.id('contexts_all'))).isSelected(), true)
     assert.equal(await (await driver.findElement(By.id('menuItems_global_right'))).isSelected(), false)
+    assert.equal(await (await driver.findElement(By.id('menuItems_group_right'))).isSelected(), false)
     assert.equal(await (await driver.findElement(By.id('focus'))).isSelected(), true)
     assert.equal(await getInputValue('pinnedGroupAction'), 'skipPinned')
+  })
+
+  test('notification setting requests permission and allows notified moves', async () => {
+    await openFreshOptionsPage()
+
+    const alreadyAllowed = await hasNotificationPermission()
+    await setCheckboxValue('notification', true)
+    if (!alreadyAllowed) {
+      await acceptNotificationPermissionPrompt()
+    }
+
+    await waitForStorageData((data) => {
+      return data.notification === true
+    }, 'notification setting was not saved')
+    assert.equal(await hasNotificationPermission(), true)
+
+    const result = await runExtensionScript(`
+      let sourceTab
+      let targetWindow
+      try {
+        sourceTab = await browser.tabs.create({
+          active: false,
+          url: 'about:blank',
+        })
+        targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+
+        await browser.runtime.sendMessage({
+          type: 'move',
+          keyType: 'raw',
+          tabIds: [sourceTab.id],
+          destination: {
+            type: 'window',
+            windowId: targetWindow.id,
+          },
+          targetScope: 'global',
+          sourceWindowId: sourceTab.windowId,
+          notification: true,
+          focus: false,
+        })
+
+        const movedTab = await waitUntil(async () => {
+          const tab = await browser.tabs.get(sourceTab.id)
+          if (tab.windowId === targetWindow.id) {
+            return tab
+          }
+        })
+        return {
+          movedWindowId: movedTab.windowId,
+          targetWindowId: targetWindow.id,
+        }
+      } finally {
+        if (targetWindow) {
+          await browser.windows.remove(targetWindow.id).catch(() => {})
+        }
+        if (sourceTab) {
+          await browser.tabs.remove(sourceTab.id).catch(() => {})
+        }
+      }
+    `)
+
+    assert.equal(result.movedWindowId, result.targetWindowId)
+    await runExtensionScript(`
+      await browser.permissions.remove({
+        permissions: ['notifications'],
+      })
+    `)
   })
 
   test('background move message moves a tab to another Firefox window', async () => {
@@ -273,6 +505,75 @@ describe('Firefox extension E2E', () => {
     assert.ok(result.targetTabIds.includes(result.sourceTabId))
   })
 
+  test('focus option activates the target Firefox window and last moved tab', async () => {
+    await openFreshOptionsPage()
+
+    const result = await runExtensionScript(`
+      const createdTabs = []
+      let targetWindow
+      try {
+        createdTabs.push(await browser.tabs.create({
+          active: false,
+          url: 'about:blank',
+        }))
+        createdTabs.push(await browser.tabs.create({
+          active: false,
+          url: 'about:blank',
+        }))
+        targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+
+        await browser.runtime.sendMessage({
+          type: 'move',
+          keyType: 'raw',
+          tabIds: createdTabs.map(tab => tab.id),
+          destination: {
+            type: 'window',
+            windowId: targetWindow.id,
+          },
+          targetScope: 'global',
+          sourceWindowId: createdTabs[0].windowId,
+          notification: false,
+          focus: true,
+        })
+
+        const finalState = await waitUntil(async () => {
+          const movedTabs = []
+          for (const tab of createdTabs) {
+            movedTabs.push(await browser.tabs.get(tab.id))
+          }
+          const [activeTab] = await browser.tabs.query({
+            windowId: targetWindow.id,
+            active: true,
+          })
+          const targetWindowInfo = await browser.windows.get(targetWindow.id)
+          if (movedTabs.every(tab => tab.windowId === targetWindow.id) &&
+              targetWindowInfo.focused &&
+              activeTab?.id === createdTabs[1].id) {
+            return { activeTab, targetWindowInfo }
+          }
+        })
+        return {
+          activeTabId: finalState.activeTab.id,
+          lastMovedTabId: createdTabs[1].id,
+          targetFocused: finalState.targetWindowInfo.focused,
+        }
+      } finally {
+        if (targetWindow) {
+          await browser.windows.remove(targetWindow.id).catch(() => {})
+        }
+        for (const tab of createdTabs) {
+          await browser.tabs.remove(tab.id).catch(() => {})
+        }
+      }
+    `)
+
+    assert.equal(result.targetFocused, true)
+    assert.equal(result.activeTabId, result.lastMovedTabId)
+  })
+
   test('selected tabs move to a new Firefox window in source order', async () => {
     await openFreshOptionsPage()
 
@@ -332,6 +633,64 @@ describe('Firefox extension E2E', () => {
 
     assert.notEqual(result.movedWindowId, result.sourceWindowId)
     assert.deepEqual(result.targetTabIds, result.sourceTabIds)
+  })
+
+  test('private tabs move to a new private Firefox window', async () => {
+    await openFreshOptionsPage()
+
+    const result = await runExtensionScript(`
+      let sourceWindow
+      let movedWindowId
+      try {
+        sourceWindow = await browser.windows.create({
+          focused: false,
+          incognito: true,
+          url: 'about:blank',
+        })
+        const [sourceTab] = await browser.tabs.query({
+          windowId: sourceWindow.id,
+        })
+
+        await browser.runtime.sendMessage({
+          type: 'move',
+          keyType: 'raw',
+          tabIds: [sourceTab.id],
+          destination: {
+            type: 'newWindow',
+          },
+          targetScope: 'global',
+          sourceWindowId: sourceWindow.id,
+          notification: false,
+          focus: false,
+        })
+
+        const movedTab = await waitUntil(async () => {
+          const tab = await browser.tabs.get(sourceTab.id)
+          if (tab.windowId !== sourceWindow.id && tab.incognito) {
+            return tab
+          }
+        })
+        const movedWindow = await browser.windows.get(movedTab.windowId)
+        movedWindowId = movedTab.windowId
+        return {
+          movedIncognito: movedTab.incognito,
+          movedWindowId: movedTab.windowId,
+          movedWindowIncognito: movedWindow.incognito,
+          sourceWindowId: sourceWindow.id,
+        }
+      } finally {
+        if (movedWindowId) {
+          await browser.windows.remove(movedWindowId).catch(() => {})
+        }
+        if (sourceWindow) {
+          await browser.windows.remove(sourceWindow.id).catch(() => {})
+        }
+      }
+    `)
+
+    assert.notEqual(result.movedWindowId, result.sourceWindowId)
+    assert.equal(result.movedIncognito, true)
+    assert.equal(result.movedWindowIncognito, true)
   })
 
   test('pinned tab stays pinned after moving to another Firefox window', async () => {
@@ -404,6 +763,116 @@ describe('Firefox extension E2E', () => {
     assert.equal(result.movedPinned, true)
     assert.equal(result.movedIndex, 0)
     assert.deepEqual(result.targetPinnedTabIds, [result.sourceTabId])
+  })
+
+  test('pinned tab does not join target window group after moving', async () => {
+    await openFreshOptionsPage()
+
+    const result = await runExtensionScript(`
+      let sourceTab
+      let targetWindow
+      const createdTabs = []
+      try {
+        sourceTab = await browser.tabs.create({
+          active: false,
+          url: 'about:blank',
+        })
+        sourceTab = await browser.tabs.update(sourceTab.id, {
+          pinned: true,
+        })
+        targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+        const targetPinnedTab = await browser.tabs.update(
+          targetWindow.tabs[0].id,
+          {
+            pinned: true,
+          },
+        )
+        const groupTab1 = await browser.tabs.create({
+          active: false,
+          windowId: targetWindow.id,
+          url: 'about:blank',
+        })
+        const groupTab2 = await browser.tabs.create({
+          active: false,
+          windowId: targetWindow.id,
+          url: 'about:blank',
+        })
+        createdTabs.push(groupTab1, groupTab2)
+        const groupId = await browser.tabs.group({
+          createProperties: {
+            windowId: targetWindow.id,
+          },
+          tabIds: createdTabs.map(tab => tab.id),
+        })
+
+        await browser.runtime.sendMessage({
+          type: 'move',
+          keyType: 'raw',
+          tabIds: [sourceTab.id],
+          destination: {
+            type: 'window',
+            windowId: targetWindow.id,
+          },
+          targetScope: 'global',
+          sourceWindowId: sourceTab.windowId,
+          notification: false,
+          focus: false,
+        })
+
+        const movedTab = await waitUntil(async () => {
+          const tab = await browser.tabs.get(sourceTab.id)
+          if (tab.windowId === targetWindow.id &&
+              tab.pinned &&
+              tab.groupId === browser.tabGroups.TAB_GROUP_ID_NONE) {
+            return tab
+          }
+        })
+        if (!movedTab) {
+          throw new Error('pinned tab stayed grouped after moving')
+        }
+
+        const targetTabs = (await browser.tabs.query({
+          windowId: targetWindow.id,
+        })).sort((tab1, tab2) => tab1.index - tab2.index)
+
+        return {
+          groupId,
+          movedGroupId: movedTab.groupId,
+          movedPinned: movedTab.pinned,
+          movedWindowId: movedTab.windowId,
+          noneGroupId: browser.tabGroups.TAB_GROUP_ID_NONE,
+          sourceTabId: sourceTab.id,
+          targetGroupTabIds: targetTabs.
+            filter(tab => tab.groupId === groupId).
+            map(tab => tab.id),
+          targetPinnedTabIds: targetTabs.
+            filter(tab => tab.pinned).
+            map(tab => tab.id),
+          targetPinnedTabId: targetPinnedTab.id,
+          targetWindowId: targetWindow.id,
+        }
+      } finally {
+        if (targetWindow) {
+          await browser.windows.remove(targetWindow.id).catch(() => {})
+        }
+        if (sourceTab) {
+          await browser.tabs.remove(sourceTab.id).catch(() => {})
+        }
+      }
+    `)
+
+    assert.equal(result.movedWindowId, result.targetWindowId)
+    assert.equal(result.movedPinned, true)
+    assert.equal(result.movedGroupId, result.noneGroupId)
+    assert.equal(result.targetGroupTabIds.length, 2)
+    assert.deepEqual([...result.targetPinnedTabIds].sort((id1, id2) => id1 - id2), [
+      result.sourceTabId,
+      result.targetPinnedTabId,
+    ].sort((id1, id2) => id1 - id2))
+    assert.equal(result.targetGroupTabIds.includes(result.sourceTabId), false)
   })
 
   test('selected tabs move into a new Firefox tab group', async () => {
@@ -844,6 +1313,8 @@ describe('Firefox extension E2E', () => {
 
       const selectHandle = await findWindowHandle(url =>
         url.endsWith('/select.html'))
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectPage()
       await driver.switchTo().window(optionsHandle)
       await runExtensionScript(`
         const setup = args[0]
@@ -903,6 +1374,277 @@ describe('Firefox extension E2E', () => {
         await driver.switchTo().window(optionsHandle).catch(() => {})
         await runExtensionScript(`
           const setup = args[0]
+          await browser.windows.remove(setup.targetWindowId).catch(() => {})
+          await browser.windows.remove(setup.sourceWindowId).catch(() => {})
+        `, setup).catch(() => {})
+      }
+    }
+  })
+
+  test('select window group checkbox cycles and updates child states immediately', async () => {
+    await openFreshOptionsPage()
+
+    const optionsHandle = await driver.getWindowHandle()
+    let setup
+    try {
+      setup = await runExtensionScript(`
+        const sourceWindow = await browser.windows.create({
+          focused: false,
+          url: ['about:blank', 'about:blank', 'about:blank', 'about:blank'],
+        })
+        const sourceTabs = await waitUntil(async () => {
+          const tabs = await browser.tabs.query({
+            windowId: sourceWindow.id,
+          })
+          if (tabs.length === 4) {
+            tabs.sort((tab1, tab2) => tab1.index - tab2.index)
+            return tabs
+          }
+        })
+        await browser.tabs.group({
+          createProperties: {
+            windowId: sourceWindow.id,
+          },
+          tabIds: sourceTabs.slice(0, 3).map(tab => tab.id),
+        })
+        const targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+        const selectWindow = await browser.windows.create({
+          type: 'detached_panel',
+          url: browser.runtime.getURL('select.html'),
+          width: 640,
+          height: 480,
+        })
+        return {
+          selectWindowId: selectWindow.id,
+          sourceWindowId: sourceWindow.id,
+          targetWindowId: targetWindow.id,
+        }
+      `)
+
+      const selectHandle = await findWindowHandle(url =>
+        url.endsWith('/select.html'))
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectPage()
+      await driver.switchTo().window(optionsHandle)
+      await runExtensionScript(`
+        const setup = args[0]
+        await browser.runtime.sendMessage({
+          type: 'reset',
+          fromWindowId: setup.sourceWindowId,
+          targetScope: 'global',
+          destination: {
+            type: 'window',
+            windowId: setup.targetWindowId,
+          },
+          notification: false,
+          focus: false,
+        })
+      `, setup)
+
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectCheckboxCount(5)
+      const checkboxes = await driver.findElements(By.css(
+        '#select input[type="checkbox"]',
+      ))
+
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[0].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[1].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[0].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[0].click()
+      await checkboxes[0].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await checkboxes[0].click()
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+    } finally {
+      if (setup) {
+        await driver.switchTo().window(optionsHandle).catch(() => {})
+        await runExtensionScript(`
+          const setup = args[0]
+          await browser.windows.remove(setup.selectWindowId).catch(() => {})
+          await browser.windows.remove(setup.targetWindowId).catch(() => {})
+          await browser.windows.remove(setup.sourceWindowId).catch(() => {})
+        `, setup).catch(() => {})
+      }
+    }
+  })
+
+  test('select window treats highlighted group tabs as tab selection', async () => {
+    await openFreshOptionsPage()
+
+    const optionsHandle = await driver.getWindowHandle()
+    let setup
+    try {
+      setup = await runExtensionScript(`
+        const sourceWindow = await browser.windows.create({
+          focused: false,
+          url: ['about:blank', 'about:blank', 'about:blank', 'about:blank'],
+        })
+        const sourceTabs = await waitUntil(async () => {
+          const tabs = await browser.tabs.query({
+            windowId: sourceWindow.id,
+          })
+          if (tabs.length === 4) {
+            tabs.sort((tab1, tab2) => tab1.index - tab2.index)
+            return tabs
+          }
+        })
+        await browser.tabs.group({
+          createProperties: {
+            windowId: sourceWindow.id,
+          },
+          tabIds: sourceTabs.slice(0, 3).map(tab => tab.id),
+        })
+        const targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+        const selectWindow = await browser.windows.create({
+          type: 'detached_panel',
+          url: browser.runtime.getURL('select.html'),
+          width: 640,
+          height: 480,
+        })
+        return {
+          groupTabIds: sourceTabs.slice(0, 3).map(tab => tab.id),
+          selectWindowId: selectWindow.id,
+          sourceWindowId: sourceWindow.id,
+          targetWindowId: targetWindow.id,
+        }
+      `)
+
+      const selectHandle = await findWindowHandle(url =>
+        url.endsWith('/select.html'))
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectPage()
+      await driver.switchTo().window(optionsHandle)
+      await runExtensionScript(`
+        const setup = args[0]
+        await browser.windows.update(setup.sourceWindowId, {
+          focused: true,
+        })
+        const groupTabIds = new Set(setup.groupTabIds)
+        const highlightedTabs = (await browser.tabs.query({
+          windowId: setup.sourceWindowId,
+        })).
+          filter(tab => groupTabIds.has(tab.id)).
+          sort((tab1, tab2) => tab1.index - tab2.index)
+        await browser.tabs.highlight({
+          windowId: setup.sourceWindowId,
+          tabs: highlightedTabs.map(tab => tab.index),
+        })
+        await browser.runtime.sendMessage({
+          type: 'reset',
+          fromWindowId: setup.sourceWindowId,
+          targetScope: 'global',
+          destination: {
+            type: 'window',
+            windowId: setup.targetWindowId,
+          },
+          notification: false,
+          focus: false,
+        })
+      `, setup)
+
+      await driver.switchTo().window(selectHandle)
+      await waitForSelectCheckboxCount(5)
+      assert.deepEqual(await getSelectCheckboxStates(), [
+        { ariaChecked: 'mixed', checked: false, indeterminate: true, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'true', checked: true, indeterminate: false, selected: 'true' },
+        { ariaChecked: 'false', checked: false, indeterminate: false, selected: 'false' },
+      ])
+
+      await driver.findElement(By.id('move')).click()
+      await driver.wait(async () => {
+        return !(await driver.getAllWindowHandles()).includes(selectHandle)
+      }, WAIT_MS)
+
+      await driver.switchTo().window(optionsHandle)
+      const result = await runExtensionScript(`
+        const setup = args[0]
+        const movedTabs = []
+        for (const tabId of setup.groupTabIds) {
+          movedTabs.push(await browser.tabs.get(tabId))
+        }
+        const targetTabs = await browser.tabs.query({
+          windowId: setup.targetWindowId,
+        })
+        return {
+          movedGroupIds: movedTabs.map(tab => tab.groupId),
+          movedWindowIds: movedTabs.map(tab => tab.windowId),
+          noneGroupId: browser.tabGroups.TAB_GROUP_ID_NONE,
+          targetTabIds: targetTabs.map(tab => tab.id),
+          targetWindowId: setup.targetWindowId,
+        }
+      `, setup)
+
+      assert.deepEqual(result.movedWindowIds, [
+        result.targetWindowId,
+        result.targetWindowId,
+        result.targetWindowId,
+      ])
+      assert.deepEqual(result.movedGroupIds, [
+        result.noneGroupId,
+        result.noneGroupId,
+        result.noneGroupId,
+      ])
+      assert.equal(setup.groupTabIds.every((tabId) =>
+        result.targetTabIds.includes(tabId)), true)
+    } finally {
+      if (setup) {
+        await driver.switchTo().window(optionsHandle).catch(() => {})
+        await runExtensionScript(`
+          const setup = args[0]
+          await browser.windows.remove(setup.selectWindowId).catch(() => {})
           await browser.windows.remove(setup.targetWindowId).catch(() => {})
           await browser.windows.remove(setup.sourceWindowId).catch(() => {})
         `, setup).catch(() => {})
@@ -983,6 +1725,156 @@ describe('Firefox extension E2E', () => {
       assert.equal(result.pinnedPinned, true)
       assert.equal(result.pinnedGroupId, result.noneGroupId)
       assert.notEqual(result.unpinnedGroupId, result.noneGroupId)
+      assert.equal(result.remembered, false)
+    } finally {
+      if (setup) {
+        await driver.switchTo().window(optionsHandle).catch(() => {})
+        await runExtensionScript(`
+          const setup = args[0]
+          await browser.tabs.remove(setup.pinnedTabId).catch(() => {})
+          await browser.tabs.remove(setup.unpinnedTabId).catch(() => {})
+        `, setup).catch(() => {})
+      }
+    }
+  })
+
+  test('pinned confirmation dialog remembers skip pinned choice', async () => {
+    await openFreshOptionsPage()
+
+    const optionsHandle = await driver.getWindowHandle()
+    let setup
+    try {
+      setup = await startPinnedGroupMove()
+
+      await submitPinnedDialog('skipPinned', { remember: true })
+
+      await driver.switchTo().window(optionsHandle)
+      const result = await runExtensionScript(`
+        const setup = args[0]
+        const finalTabs = await waitUntil(async () => {
+          const pinned = await browser.tabs.get(setup.pinnedTabId)
+          const unpinned = await browser.tabs.get(setup.unpinnedTabId)
+          if (pinned.groupId === browser.tabGroups.TAB_GROUP_ID_NONE &&
+              unpinned.groupId !== browser.tabGroups.TAB_GROUP_ID_NONE) {
+            return { pinned, unpinned }
+          }
+        })
+        if (!finalTabs) {
+          throw new Error('remembered skip decision did not move only the unpinned tab')
+        }
+        const storage = await browser.storage.sync.get('pinnedGroupAction')
+        return {
+          noneGroupId: browser.tabGroups.TAB_GROUP_ID_NONE,
+          pinnedGroupId: finalTabs.pinned.groupId,
+          pinnedPinned: finalTabs.pinned.pinned,
+          rememberedAction: storage.pinnedGroupAction,
+          unpinnedGroupId: finalTabs.unpinned.groupId,
+        }
+      `, setup)
+
+      assert.equal(result.pinnedPinned, true)
+      assert.equal(result.pinnedGroupId, result.noneGroupId)
+      assert.notEqual(result.unpinnedGroupId, result.noneGroupId)
+      assert.equal(result.rememberedAction, 'skipPinned')
+    } finally {
+      if (setup) {
+        await driver.switchTo().window(optionsHandle).catch(() => {})
+        await runExtensionScript(`
+          const setup = args[0]
+          await browser.tabs.remove(setup.pinnedTabId).catch(() => {})
+          await browser.tabs.remove(setup.unpinnedTabId).catch(() => {})
+        `, setup).catch(() => {})
+      }
+    }
+  })
+
+  test('pinned confirmation dialog remembers unpin pinned choice', async () => {
+    await openFreshOptionsPage()
+
+    const optionsHandle = await driver.getWindowHandle()
+    let setup
+    try {
+      setup = await startPinnedGroupMove()
+
+      await submitPinnedDialog('unpinPinned', { remember: true })
+
+      await driver.switchTo().window(optionsHandle)
+      const result = await runExtensionScript(`
+        const setup = args[0]
+        const finalTabs = await waitUntil(async () => {
+          const pinned = await browser.tabs.get(setup.pinnedTabId)
+          const unpinned = await browser.tabs.get(setup.unpinnedTabId)
+          if (!pinned.pinned &&
+              pinned.groupId !== browser.tabGroups.TAB_GROUP_ID_NONE &&
+              pinned.groupId === unpinned.groupId) {
+            return { pinned, unpinned }
+          }
+        })
+        if (!finalTabs) {
+          throw new Error('remembered unpin decision did not group both tabs')
+        }
+        const storage = await browser.storage.sync.get('pinnedGroupAction')
+        return {
+          groupIds: [
+            finalTabs.pinned.groupId,
+            finalTabs.unpinned.groupId,
+          ],
+          noneGroupId: browser.tabGroups.TAB_GROUP_ID_NONE,
+          pinnedStates: [
+            finalTabs.pinned.pinned,
+            finalTabs.unpinned.pinned,
+          ],
+          rememberedAction: storage.pinnedGroupAction,
+        }
+      `, setup)
+
+      assert.deepEqual(result.pinnedStates, [false, false])
+      assert.notEqual(result.groupIds[0], result.noneGroupId)
+      assert.equal(new Set(result.groupIds).size, 1)
+      assert.equal(result.rememberedAction, 'unpinPinned')
+    } finally {
+      if (setup) {
+        await driver.switchTo().window(optionsHandle).catch(() => {})
+        await runExtensionScript(`
+          const setup = args[0]
+          await browser.tabs.remove(setup.pinnedTabId).catch(() => {})
+          await browser.tabs.remove(setup.unpinnedTabId).catch(() => {})
+        `, setup).catch(() => {})
+      }
+    }
+  })
+
+  test('pinned confirmation dialog cancel leaves selected tabs unchanged', async () => {
+    await openFreshOptionsPage()
+
+    const optionsHandle = await driver.getWindowHandle()
+    let setup
+    try {
+      setup = await startPinnedGroupMove()
+
+      await submitPinnedDialog('cancel')
+
+      await driver.switchTo().window(optionsHandle)
+      const result = await runExtensionScript(`
+        const setup = args[0]
+        await wait(300)
+        const pinned = await browser.tabs.get(setup.pinnedTabId)
+        const unpinned = await browser.tabs.get(setup.unpinnedTabId)
+        const storage = await browser.storage.sync.get('pinnedGroupAction')
+        return {
+          noneGroupId: browser.tabGroups.TAB_GROUP_ID_NONE,
+          pinnedGroupId: pinned.groupId,
+          pinnedPinned: pinned.pinned,
+          remembered: Object.hasOwn(storage, 'pinnedGroupAction'),
+          unpinnedGroupId: unpinned.groupId,
+          unpinnedPinned: unpinned.pinned,
+        }
+      `, setup)
+
+      assert.equal(result.pinnedPinned, true)
+      assert.equal(result.unpinnedPinned, false)
+      assert.equal(result.pinnedGroupId, result.noneGroupId)
+      assert.equal(result.unpinnedGroupId, result.noneGroupId)
       assert.equal(result.remembered, false)
     } finally {
       if (setup) {

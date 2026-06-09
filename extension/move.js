@@ -17,6 +17,8 @@ import {
   KEY_PINNED_GROUP_SKIP,
   KEY_PINNED_GROUP_UNPIN,
   KEY_PROGRESS,
+  KEY_PRESERVE_FULL_GROUPS,
+  KEY_PRESERVE_GROUP_IDS,
   KEY_RAW,
   KEY_RESET,
   KEY_REQUEST_ID,
@@ -146,15 +148,10 @@ export async function select (
   resetWindow()
 }
 
-async function searchLastPinnedIndex (windowId) {
-  const pinnedTabList = await tabs.query({ windowId, pinned: true })
-  let lastIndex = -1
-  for (const pinnedTab of pinnedTabList) {
-    if (pinnedTab.index > lastIndex) {
-      lastIndex = pinnedTab.index
-    }
-  }
-  return lastIndex
+async function getPinnedInsertIndex (windowId) {
+  const tabList = await querySortedTabs(windowId)
+  const firstUnpinnedTab = tabList.find((tab) => !tab.pinned)
+  return firstUnpinnedTab?.index ?? tabList.length
 }
 
 async function querySortedTabs (windowId) {
@@ -207,10 +204,25 @@ function splitUnitsByPinned (units) {
   const pinnedUnits = []
   const unpinnedUnits = []
   for (const unit of units) {
-    if (unit.tabs.some((tab) => tab.pinned)) {
+    const pinnedTabs = unit.tabs.filter((tab) => tab.pinned)
+    const unpinnedTabs = unit.tabs.filter((tab) => !tab.pinned)
+    if (pinnedTabs.length <= 0) {
+      unpinnedUnits.push(unit)
+    } else if (unpinnedTabs.length <= 0 || unit.type === 'group') {
       pinnedUnits.push(unit)
     } else {
-      unpinnedUnits.push(unit)
+      pinnedUnits.push({
+        ...unit,
+        id: unit.id + ':pinned',
+        type: 'tabs',
+        tabs: pinnedTabs,
+      })
+      unpinnedUnits.push({
+        ...unit,
+        id: unit.id + ':unpinned',
+        type: 'tabs',
+        tabs: unpinnedTabs,
+      })
     }
   }
   return { pinnedUnits, unpinnedUnits }
@@ -220,12 +232,19 @@ function normalizeRunContext (context) {
   if (!context || typeof context !== 'object') {
     return {
       targetScope: KEY_TARGET_GLOBAL,
+      preserveGroupIds: [],
     }
   }
 
   return {
     targetScope: normalizeTargetScope(context[KEY_TARGET_SCOPE]),
     groupId: normalizeInteger(context[KEY_GROUP_ID]),
+    preserveFullGroups: context[KEY_PRESERVE_FULL_GROUPS] === undefined
+      ? undefined
+      : context[KEY_PRESERVE_FULL_GROUPS] === true,
+    preserveGroupIds: normalizeIntegerList(
+      context[KEY_PRESERVE_GROUP_IDS],
+    ),
     sourceWindowId: normalizeInteger(context[KEY_SOURCE_WINDOW_ID]),
   }
 }
@@ -305,7 +324,15 @@ async function moveTabIdsToWindow (tabIds, toWindowId, index) {
     tabIds.length === 1 ? tabIds[0] : tabIds,
     { windowId: toWindowId, index },
   )
-  const movedTabs = Array.isArray(moved) ? moved : [moved]
+  const movedTabs = Array.isArray(moved)
+    ? moved
+    : moved
+      ? [moved]
+      : []
+  if (movedTabs.length <= 0) {
+    throw new Error('Tabs ' + tabIds.join(',') +
+      ' were not moved to window ' + toWindowId + ' index ' + index)
+  }
   debug('Tabs ' + tabIds.join(',') + ' moved to window ' + toWindowId +
     ' index ' + index)
   return movedTabs
@@ -340,7 +367,7 @@ async function runWithWindow (units, toWindowId, progress, focus) {
   const { pinnedUnits, unpinnedUnits } = splitUnitsByPinned(units)
 
   if (pinnedUnits.length > 0) {
-    const index = await searchLastPinnedIndex(toWindowId) + 1
+    const index = await getPinnedInsertIndex(toWindowId)
     for (let i = pinnedUnits.length - 1; i >= 0; i--) {
       const unit = pinnedUnits[i]
       await moveUnitToWindow(unit, toWindowId, index)
@@ -452,6 +479,25 @@ async function runGroupUnitsWithSourceWindow (
 
 function getMovingTabIds (units) {
   return flattenUnits(units).map((tab) => tab.id)
+}
+
+function getIndividuallyMovingTabIds (units) {
+  return units.
+    filter((unit) => unit.type !== 'group').
+    flatMap((unit) => unit.tabs).
+    map((tab) => tab.id)
+}
+
+async function ungroupMovedIndividualTabs (units) {
+  const tabIds = getIndividuallyMovingTabIds(units)
+  const groupedTabIds = []
+  for (const tabId of tabIds) {
+    const tab = await tabs.get(tabId)
+    if (tab && isGroupedTab(tab)) {
+      groupedTabIds.push(tabId)
+    }
+  }
+  await ungroupTabIds(groupedTabIds)
 }
 
 function filterDestinationGroupUnits (units, groupId) {
@@ -608,7 +654,11 @@ async function runWithNewGroup (units, progress, focus) {
   await focusMovedUnit(toWindowId, units, focus)
 }
 
-async function buildSelectedUnits (tabIds, { preserveFullGroups = true } = {}) {
+async function buildSelectedUnits (
+  tabIds,
+  { preserveFullGroups = true, preserveGroupIds = [] } = {},
+) {
+  const preserveGroupIdSet = new Set(preserveGroupIds)
   const tabInfos = []
   const windowIds = []
   const knownWindowIds = new Set()
@@ -631,7 +681,8 @@ async function buildSelectedUnits (tabIds, { preserveFullGroups = true } = {}) {
       map((tab) => tab.id))
     const topLevelUnits = buildTopLevelUnits(await querySortedTabs(windowId))
     for (const unit of topLevelUnits) {
-      if (preserveFullGroups &&
+      if (unit.type === 'group' &&
+          (preserveFullGroups || preserveGroupIdSet.has(unit.groupId)) &&
           unit.tabs.every((tab) => requestedIds.has(tab.id))) {
         units.push(unit)
         continue
@@ -684,7 +735,9 @@ async function runRawInternal (
   const normalizedDestination = normalizeDestination(destination)
   const normalizedContext = normalizeRunContext(context)
   const selectedUnits = await buildSelectedUnits(tabIds, {
-    preserveFullGroups: normalizedContext.targetScope !== KEY_TARGET_GROUP,
+    preserveFullGroups: normalizedContext.preserveFullGroups ??
+      normalizedContext.targetScope !== KEY_TARGET_GROUP,
+    preserveGroupIds: normalizedContext.preserveGroupIds,
   })
   const destinationFilteredUnits = normalizedDestination.type === 'group'
     ? filterDestinationGroupUnits(selectedUnits, normalizedDestination.groupId)
@@ -725,6 +778,8 @@ async function runRawInternal (
           focus)
         if (groupScopeWindowMove) {
           await ungroupTabIds(movingTabIds)
+        } else {
+          await ungroupMovedIndividualTabs(units)
         }
       }
       break
@@ -733,6 +788,8 @@ async function runRawInternal (
       await runWithNewWindow(units, progress, focus)
       if (groupScopeWindowMove) {
         await ungroupTabIds(movingTabIds)
+      } else {
+        await ungroupMovedIndividualTabs(units)
       }
       break
     }
@@ -765,6 +822,24 @@ function normalizeTabIds (tabIds) {
       continue
     }
     knownIds.add(id)
+    normalized.push(id)
+  }
+  return normalized
+}
+
+function normalizeIntegerList (values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const normalized = []
+  const knownValues = new Set()
+  for (const value of values) {
+    const id = normalizeInteger(value)
+    if (id === undefined || knownValues.has(id)) {
+      continue
+    }
+    knownValues.add(id)
     normalized.push(id)
   }
   return normalized
@@ -917,6 +992,8 @@ async function handleInternalMessage (message) {
         normalizeFocus(message.focus), {
           [KEY_TARGET_SCOPE]: message[KEY_TARGET_SCOPE],
           [KEY_GROUP_ID]: message[KEY_GROUP_ID],
+          [KEY_PRESERVE_FULL_GROUPS]: message[KEY_PRESERVE_FULL_GROUPS],
+          [KEY_PRESERVE_GROUP_IDS]: message[KEY_PRESERVE_GROUP_IDS],
           [KEY_SOURCE_WINDOW_ID]: message[KEY_SOURCE_WINDOW_ID],
         })
       break

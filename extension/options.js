@@ -229,7 +229,11 @@ function createSwitch (inputId) {
   return switchWrapper
 }
 
-function createToggleLabel (labelKey, inputId, className = 'toggle-row') {
+function createToggleLabel (
+  labelKey,
+  inputId,
+  className = 'toggle-row',
+) {
   const title = document.createElement('span')
   title.className = 'setting-title'
   title.textContent = i18n.getMessage(labelKey)
