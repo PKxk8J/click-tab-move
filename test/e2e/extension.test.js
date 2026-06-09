@@ -765,6 +765,116 @@ describe('Firefox extension E2E', () => {
     assert.deepEqual(result.targetPinnedTabIds, [result.sourceTabId])
   })
 
+  test('pinned tab does not join target window group after moving', async () => {
+    await openFreshOptionsPage()
+
+    const result = await runExtensionScript(`
+      let sourceTab
+      let targetWindow
+      const createdTabs = []
+      try {
+        sourceTab = await browser.tabs.create({
+          active: false,
+          url: 'about:blank',
+        })
+        sourceTab = await browser.tabs.update(sourceTab.id, {
+          pinned: true,
+        })
+        targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+        const targetPinnedTab = await browser.tabs.update(
+          targetWindow.tabs[0].id,
+          {
+            pinned: true,
+          },
+        )
+        const groupTab1 = await browser.tabs.create({
+          active: false,
+          windowId: targetWindow.id,
+          url: 'about:blank',
+        })
+        const groupTab2 = await browser.tabs.create({
+          active: false,
+          windowId: targetWindow.id,
+          url: 'about:blank',
+        })
+        createdTabs.push(groupTab1, groupTab2)
+        const groupId = await browser.tabs.group({
+          createProperties: {
+            windowId: targetWindow.id,
+          },
+          tabIds: createdTabs.map(tab => tab.id),
+        })
+
+        await browser.runtime.sendMessage({
+          type: 'move',
+          keyType: 'raw',
+          tabIds: [sourceTab.id],
+          destination: {
+            type: 'window',
+            windowId: targetWindow.id,
+          },
+          targetScope: 'global',
+          sourceWindowId: sourceTab.windowId,
+          notification: false,
+          focus: false,
+        })
+
+        const movedTab = await waitUntil(async () => {
+          const tab = await browser.tabs.get(sourceTab.id)
+          if (tab.windowId === targetWindow.id &&
+              tab.pinned &&
+              tab.groupId === browser.tabGroups.TAB_GROUP_ID_NONE) {
+            return tab
+          }
+        })
+        if (!movedTab) {
+          throw new Error('pinned tab stayed grouped after moving')
+        }
+
+        const targetTabs = (await browser.tabs.query({
+          windowId: targetWindow.id,
+        })).sort((tab1, tab2) => tab1.index - tab2.index)
+
+        return {
+          groupId,
+          movedGroupId: movedTab.groupId,
+          movedPinned: movedTab.pinned,
+          movedWindowId: movedTab.windowId,
+          noneGroupId: browser.tabGroups.TAB_GROUP_ID_NONE,
+          sourceTabId: sourceTab.id,
+          targetGroupTabIds: targetTabs.
+            filter(tab => tab.groupId === groupId).
+            map(tab => tab.id),
+          targetPinnedTabIds: targetTabs.
+            filter(tab => tab.pinned).
+            map(tab => tab.id),
+          targetPinnedTabId: targetPinnedTab.id,
+          targetWindowId: targetWindow.id,
+        }
+      } finally {
+        if (targetWindow) {
+          await browser.windows.remove(targetWindow.id).catch(() => {})
+        }
+        if (sourceTab) {
+          await browser.tabs.remove(sourceTab.id).catch(() => {})
+        }
+      }
+    `)
+
+    assert.equal(result.movedWindowId, result.targetWindowId)
+    assert.equal(result.movedPinned, true)
+    assert.equal(result.movedGroupId, result.noneGroupId)
+    assert.equal(result.targetGroupTabIds.length, 2)
+    assert.deepEqual([...result.targetPinnedTabIds].sort((id1, id2) => id1 - id2), [
+      result.sourceTabId,
+      result.targetPinnedTabId,
+    ].sort((id1, id2) => id1 - id2))
+    assert.equal(result.targetGroupTabIds.includes(result.sourceTabId), false)
+  })
+
   test('selected tabs move into a new Firefox tab group', async () => {
     await openFreshOptionsPage()
 

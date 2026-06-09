@@ -148,15 +148,10 @@ export async function select (
   resetWindow()
 }
 
-async function searchLastPinnedIndex (windowId) {
-  const pinnedTabList = await tabs.query({ windowId, pinned: true })
-  let lastIndex = -1
-  for (const pinnedTab of pinnedTabList) {
-    if (pinnedTab.index > lastIndex) {
-      lastIndex = pinnedTab.index
-    }
-  }
-  return lastIndex
+async function getPinnedInsertIndex (windowId) {
+  const tabList = await querySortedTabs(windowId)
+  const firstUnpinnedTab = tabList.find((tab) => !tab.pinned)
+  return firstUnpinnedTab?.index ?? tabList.length
 }
 
 async function querySortedTabs (windowId) {
@@ -209,10 +204,25 @@ function splitUnitsByPinned (units) {
   const pinnedUnits = []
   const unpinnedUnits = []
   for (const unit of units) {
-    if (unit.tabs.some((tab) => tab.pinned)) {
+    const pinnedTabs = unit.tabs.filter((tab) => tab.pinned)
+    const unpinnedTabs = unit.tabs.filter((tab) => !tab.pinned)
+    if (pinnedTabs.length <= 0) {
+      unpinnedUnits.push(unit)
+    } else if (unpinnedTabs.length <= 0 || unit.type === 'group') {
       pinnedUnits.push(unit)
     } else {
-      unpinnedUnits.push(unit)
+      pinnedUnits.push({
+        ...unit,
+        id: unit.id + ':pinned',
+        type: 'tabs',
+        tabs: pinnedTabs,
+      })
+      unpinnedUnits.push({
+        ...unit,
+        id: unit.id + ':unpinned',
+        type: 'tabs',
+        tabs: unpinnedTabs,
+      })
     }
   }
   return { pinnedUnits, unpinnedUnits }
@@ -314,7 +324,15 @@ async function moveTabIdsToWindow (tabIds, toWindowId, index) {
     tabIds.length === 1 ? tabIds[0] : tabIds,
     { windowId: toWindowId, index },
   )
-  const movedTabs = Array.isArray(moved) ? moved : [moved]
+  const movedTabs = Array.isArray(moved)
+    ? moved
+    : moved
+      ? [moved]
+      : []
+  if (movedTabs.length <= 0) {
+    throw new Error('Tabs ' + tabIds.join(',') +
+      ' were not moved to window ' + toWindowId + ' index ' + index)
+  }
   debug('Tabs ' + tabIds.join(',') + ' moved to window ' + toWindowId +
     ' index ' + index)
   return movedTabs
@@ -349,7 +367,7 @@ async function runWithWindow (units, toWindowId, progress, focus) {
   const { pinnedUnits, unpinnedUnits } = splitUnitsByPinned(units)
 
   if (pinnedUnits.length > 0) {
-    const index = await searchLastPinnedIndex(toWindowId) + 1
+    const index = await getPinnedInsertIndex(toWindowId)
     for (let i = pinnedUnits.length - 1; i >= 0; i--) {
       const unit = pinnedUnits[i]
       await moveUnitToWindow(unit, toWindowId, index)
@@ -463,12 +481,23 @@ function getMovingTabIds (units) {
   return flattenUnits(units).map((tab) => tab.id)
 }
 
-function getIndividuallyMovingGroupedTabIds (units) {
+function getIndividuallyMovingTabIds (units) {
   return units.
     filter((unit) => unit.type !== 'group').
     flatMap((unit) => unit.tabs).
-    filter(isGroupedTab).
     map((tab) => tab.id)
+}
+
+async function ungroupMovedIndividualTabs (units) {
+  const tabIds = getIndividuallyMovingTabIds(units)
+  const groupedTabIds = []
+  for (const tabId of tabIds) {
+    const tab = await tabs.get(tabId)
+    if (tab && isGroupedTab(tab)) {
+      groupedTabIds.push(tabId)
+    }
+  }
+  await ungroupTabIds(groupedTabIds)
 }
 
 function filterDestinationGroupUnits (units, groupId) {
@@ -723,8 +752,6 @@ async function runRawInternal (
   }
 
   const movingTabIds = getMovingTabIds(units)
-  const individuallyMovingGroupedTabIds =
-    getIndividuallyMovingGroupedTabIds(units)
   progress.all = movingTabIds.length
   progress.target = movingTabIds.length
 
@@ -752,7 +779,7 @@ async function runRawInternal (
         if (groupScopeWindowMove) {
           await ungroupTabIds(movingTabIds)
         } else {
-          await ungroupTabIds(individuallyMovingGroupedTabIds)
+          await ungroupMovedIndividualTabs(units)
         }
       }
       break
@@ -762,7 +789,7 @@ async function runRawInternal (
       if (groupScopeWindowMove) {
         await ungroupTabIds(movingTabIds)
       } else {
-        await ungroupTabIds(individuallyMovingGroupedTabIds)
+        await ungroupMovedIndividualTabs(units)
       }
       break
     }

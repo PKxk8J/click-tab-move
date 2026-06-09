@@ -80,6 +80,39 @@ function moveTabIds (ids, properties) {
   const idSet = new Set(idList)
   const movingTabs = idList.map((id) => state.tabs.find((tab) => tab.id === id))
   const targetWindowId = properties.windowId ?? movingTabs[0].windowId
+  const remainingTargetTabs = getWindowTabs(targetWindowId).
+    filter((tab) => !idSet.has(tab.id))
+  const targetIndex = properties.index === -1
+    ? remainingTargetTabs.length
+    : Math.max(0, Math.min(properties.index, remainingTargetTabs.length))
+  const firstUnpinnedIndex = remainingTargetTabs.findIndex((tab) => !tab.pinned)
+  const pinnedInsertMax = firstUnpinnedIndex < 0
+    ? remainingTargetTabs.length
+    : firstUnpinnedIndex
+  let unpinnedInsertMin = 0
+  for (const [index, tab] of remainingTargetTabs.entries()) {
+    if (tab.pinned) {
+      unpinnedInsertMin = index + 1
+    }
+  }
+  const pinnedMovingCount = movingTabs.filter((tab) => tab.pinned).length
+  const unpinnedMovingCount = movingTabs.length - pinnedMovingCount
+  const orderedPinnedBeforeUnpinned = movingTabs.
+    findIndex((tab) => !tab.pinned) === -1 ||
+    movingTabs.
+      slice(movingTabs.findIndex((tab) => !tab.pinned)).
+      every((tab) => !tab.pinned)
+  if (pinnedMovingCount > 0 && targetIndex > pinnedInsertMax) {
+    return []
+  }
+  if (unpinnedMovingCount > 0 &&
+      targetIndex + pinnedMovingCount < unpinnedInsertMin) {
+    return []
+  }
+  if (pinnedMovingCount > 0 && unpinnedMovingCount > 0 &&
+      !orderedPinnedBeforeUnpinned) {
+    return []
+  }
 
   state.tabs = state.tabs.filter((tab) => !idSet.has(tab.id))
   for (const tab of movingTabs) {
@@ -87,10 +120,8 @@ function moveTabIds (ids, properties) {
   }
 
   const targetTabs = getWindowTabs(targetWindowId)
-  const targetIndex = properties.index === -1
-    ? targetTabs.length
-    : Math.max(0, Math.min(properties.index, targetTabs.length))
   targetTabs.splice(targetIndex, 0, ...movingTabs)
+  autoJoinUngroupedTabsAtGroupBoundary(targetTabs, movingTabs)
   targetTabs.forEach((tab, index) => {
     tab.index = index
   })
@@ -139,6 +170,31 @@ function ungroupTabs (tabIds) {
     }
   })
   state.ungrouped.push(...idList)
+}
+
+function autoJoinUngroupedTabsAtGroupBoundary (targetTabs, movingTabs) {
+  for (const movingTab of movingTabs) {
+    if (movingTab.groupId !== -1 || !movingTab.pinned) {
+      continue
+    }
+
+    const index = targetTabs.indexOf(movingTab)
+    const nextTab = targetTabs[index + 1]
+    if (index < 0 || nextTab?.groupId === undefined ||
+        nextTab.groupId === -1) {
+      continue
+    }
+
+    movingTab.groupId = nextTab.groupId
+    targetTabs.splice(index, 1)
+    let lastGroupIndex = -1
+    for (const [tabIndex, tab] of targetTabs.entries()) {
+      if (tab.groupId === movingTab.groupId) {
+        lastGroupIndex = tabIndex
+      }
+    }
+    targetTabs.splice(lastGroupIndex + 1, 0, movingTab)
+  }
 }
 
 function getMemberships () {
@@ -450,6 +506,66 @@ test('固定タブを固定タブ領域へ、通常タブを末尾へ移動す�
     { ids: [2], windowId: 2, index: -1 },
   ])
   assert.deepEqual(getTabIds(2), [10, 1, 11, 2])
+})
+
+test('固定タブを含む分割ビューは固定と通常を分けて移動する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, pinned: true, splitViewId: 7, active: true },
+    { id: 2, windowId: 1, index: 1, splitViewId: 7 },
+    { id: 3, windowId: 1, index: 2, pinned: true, splitViewId: 8 },
+    { id: 4, windowId: 1, index: 3, splitViewId: 8 },
+    { id: 10, windowId: 2, index: 0, pinned: true, active: true },
+    { id: 11, windowId: 2, index: 1 },
+  ])
+
+  await rawRun([1, 2, 3, 4], { type: 'window', windowId: 2 }, false, false)
+
+  assert.deepEqual(state.moved, [
+    { ids: [3], windowId: 2, index: 1 },
+    { ids: [1], windowId: 2, index: 1 },
+    { ids: [2], windowId: 2, index: -1 },
+    { ids: [4], windowId: 2, index: -1 },
+  ])
+  assert.deepEqual(getTabIds(2), [10, 1, 3, 11, 2, 4])
+})
+
+test('移動先の固定タブが先頭にない場合は新しい固定タブを先頭へ移動する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, pinned: true, active: true },
+    { id: 10, windowId: 2, index: 0, active: true },
+    { id: 11, windowId: 2, index: 1, pinned: true },
+    { id: 12, windowId: 2, index: 2 },
+  ])
+
+  await rawRun([1], { type: 'window', windowId: 2 }, false, false)
+
+  assert.deepEqual(state.moved, [
+    { ids: [1], windowId: 2, index: 0 },
+  ])
+  assert.deepEqual(getTabIds(2), [1, 10, 11, 12])
+})
+
+test('移動先グループ境界で自動参加した個別固定タブはグループ解除する', async () => {
+  resetTabs([
+    { id: 1, windowId: 1, index: 0, pinned: true, active: true },
+    { id: 10, windowId: 2, index: 0, pinned: true, active: true },
+    { id: 20, windowId: 2, index: 1, groupId: 30 },
+    { id: 21, windowId: 2, index: 2, groupId: 30 },
+    { id: 22, windowId: 2, index: 3 },
+  ])
+
+  await rawRun([1], { type: 'window', windowId: 2 }, false, false)
+
+  assert.deepEqual(state.moved, [
+    { ids: [1], windowId: 2, index: 1 },
+  ])
+  assert.deepEqual(state.ungrouped, [1])
+  assert.equal(state.tabs.find((tab) => tab.id === 1).pinned, true)
+  assert.deepEqual(getMemberships().filter((tab) => [1, 20, 21].includes(tab.id)), [
+    { id: 1, windowId: 2, groupId: -1, splitViewId: -1 },
+    { id: 20, windowId: 2, groupId: 30, splitViewId: -1 },
+    { id: 21, windowId: 2, groupId: 30, splitViewId: -1 },
+  ])
 })
 
 test('新規ウィンドウへ移動した後にプレースホルダータブを削除する', async () => {
