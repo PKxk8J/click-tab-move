@@ -187,7 +187,7 @@
     "message": "All tabs"
   },
   "menuItem_group_select": {
-    "message": "Choose tabs in this group in the select window"
+    "message": "Choose tabs in the select window"
   },
   "selectSave": {
     "message": "Save last select window size"
