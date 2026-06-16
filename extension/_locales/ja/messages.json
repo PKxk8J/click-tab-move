@@ -30,6 +30,9 @@
   "menuItems": {
     "message": "移動対象"
   },
+  "targetScopeDescription": {
+    "message": "グループ内のタブをクリックしたとき、トップレベルではグループをクリックしたと判定します。グループ内のタブだけを移動させたい場合はグループ内を ON にしてください。"
+  },
   "settings": {
     "message": "設定"
   },
@@ -89,6 +92,12 @@
   },
   "group": {
     "message": "グループ"
+  },
+  "topLevelScope": {
+    "message": "トップレベル"
+  },
+  "groupScope": {
+    "message": "グループ内"
   },
   "windowEntry": {
     "message": "[ウィンドウ$1] $2"

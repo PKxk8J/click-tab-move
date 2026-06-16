@@ -20,6 +20,9 @@
   "menuItems": {
     "message": "移动目标"
   },
+  "targetScopeDescription": {
+    "message": "点击组内标签页时，顶层会按点击该标签页组处理。如果只想移动组内标签页，请开启组内。"
+  },
   "save": {
     "message": "保存"
   },
@@ -64,6 +67,12 @@
   },
   "group": {
     "message": "标签页组"
+  },
+  "topLevelScope": {
+    "message": "顶层"
+  },
+  "groupScope": {
+    "message": "组内"
   },
   "windowEntry": {
     "message": "[窗口 $1] $2"

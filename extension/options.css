@@ -98,19 +98,19 @@ h3 {
   padding-block-start: 10px;
 }
 
+.section-description {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: pre-line;
+}
+
 .toggle-list,
-.number-list {
+.number-list,
+.menu-list,
+.mode-list {
   display: grid;
   gap: 10px;
-}
-
-.menu-scope {
-  display: grid;
-  gap: 10px;
-}
-
-.menu-scope + .menu-scope {
-  margin-block-start: 18px;
 }
 
 .toggle-row,
@@ -132,6 +132,7 @@ h3 {
 }
 
 .toggle-row:hover,
+.menu-item:hover,
 .number-field:hover,
 .select-field:hover {
   background: var(--surface-hover);
@@ -141,6 +142,35 @@ h3 {
   display: block;
   overflow-wrap: anywhere;
   font-weight: 560;
+}
+
+.menu-item {
+  display: grid;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.menu-item h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 680;
+}
+
+.mode-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  min-block-size: 42px;
+  cursor: pointer;
+}
+
+.mode-row + .mode-row {
+  padding-block-start: 10px;
+  border-block-start: 1px solid var(--border);
 }
 
 .number-field input,

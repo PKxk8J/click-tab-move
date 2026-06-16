@@ -9,20 +9,33 @@ import {
   DEFAULT_SELECT_SAVE,
   DEFAULT_SELECT_SIZE,
   KEY_BEHAVIOR,
+  KEY_ALL,
   KEY_CONTEXTS,
   KEY_FEEDBACK,
   KEY_FOCUS,
+  KEY_GROUP_SCOPE,
   KEY_HEIGHT,
+  KEY_HIGHLIGHTED,
+  KEY_LEFT,
   KEY_MENU_ITEMS,
   KEY_NAME,
   KEY_NOTIFICATION,
+  KEY_ONE,
   KEY_PINNED_GROUP_ACTION,
+  KEY_RIGHT,
   KEY_SAVE_STATUS_FAILED,
   KEY_SAVE_STATUS_SAVED,
   KEY_SAVE_STATUS_SAVING,
+  KEY_SELECT,
   KEY_SELECT_SAVE,
   KEY_SELECT_SIZE,
   KEY_SETTINGS,
+  KEY_TARGET_GLOBAL,
+  KEY_TARGET_GROUP,
+  KEY_TARGET_SCOPE_DESCRIPTION,
+  KEY_THIS_AND_LEFT,
+  KEY_THIS_AND_RIGHT,
+  KEY_TOP_LEVEL_SCOPE,
   KEY_WIDTH,
   MENU_ITEMS_BY_SCOPE,
   NOTIFICATION_PERMISSION,
@@ -54,8 +67,34 @@ function getContextInputId (key) {
   return KEY_CONTEXTS + '_' + key
 }
 
-function getMenuScopeInputId (scope, key) {
-  return KEY_MENU_ITEMS + '_' + scope + '_' + key
+const OPTIONS_MENU_ITEMS = [
+  KEY_ONE,
+  KEY_RIGHT,
+  KEY_THIS_AND_RIGHT,
+  KEY_LEFT,
+  KEY_THIS_AND_LEFT,
+  KEY_ALL,
+  KEY_SELECT,
+  KEY_HIGHLIGHTED,
+]
+
+const MENU_SCOPE_LABEL_KEYS = {
+  [KEY_TARGET_GLOBAL]: KEY_TOP_LEVEL_SCOPE,
+  [KEY_TARGET_GROUP]: KEY_GROUP_SCOPE,
+}
+
+function getMenuScopeInputId (key, scope) {
+  return KEY_MENU_ITEMS + '_' + key + '_' + scope
+}
+
+function getMenuItemScopes (key) {
+  return ALL_MENU_SCOPES.filter((scope) => {
+    return MENU_ITEMS_BY_SCOPE[scope].includes(key)
+  })
+}
+
+function getMenuItemLabelKey (key) {
+  return 'menuItem_' + KEY_TARGET_GLOBAL + '_' + key
 }
 
 function setLabelText (id, key) {
@@ -105,10 +144,9 @@ async function restore () {
       contextSet.has(key)
   })
 
-  ALL_MENU_SCOPES.forEach((scope) => {
-    const scopeItems = MENU_ITEMS_BY_SCOPE[scope]
-    scopeItems.forEach((key) => {
-      document.getElementById(getMenuScopeInputId(scope, key)).checked =
+  ALL_MENU_ITEMS.forEach((key) => {
+    getMenuItemScopes(key).forEach((scope) => {
+      document.getElementById(getMenuScopeInputId(key, scope)).checked =
         menuItems[key]?.includes(scope) || false
     })
   })
@@ -142,11 +180,8 @@ async function save () {
   const menuItems = {}
   ALL_MENU_ITEMS.forEach((key) => {
     const scopes = []
-    ALL_MENU_SCOPES.forEach((scope) => {
-      if (!MENU_ITEMS_BY_SCOPE[scope].includes(key)) {
-        return
-      }
-      if (document.getElementById(getMenuScopeInputId(scope, key)).checked) {
+    getMenuItemScopes(key).forEach((scope) => {
+      if (document.getElementById(getMenuScopeInputId(key, scope)).checked) {
         scopes.push(scope)
       }
     })
@@ -289,26 +324,35 @@ function addPinnedGroupActionEntry (container) {
   ))
 }
 
-function addMenuItemEntry (scope, key, container) {
-  addCheckboxEntry('menuItem_' + scope + '_' + key, container,
-    getMenuScopeInputId(scope, key))
+function addScopeEntry (scope, container, inputId) {
+  container.appendChild(createToggleLabel(MENU_SCOPE_LABEL_KEYS[scope], inputId,
+    'mode-row'))
 }
 
-function addMenuScopeSection (scope, container) {
+function addMenuItemEntry (key, container) {
+  const scopes = getMenuItemScopes(key)
+  const titleKey = getMenuItemLabelKey(key)
+
+  if (scopes.length === 1) {
+    addCheckboxEntry(titleKey, container, getMenuScopeInputId(key, scopes[0]))
+    return
+  }
+
   const title = document.createElement('h3')
-  title.textContent = i18n.getMessage(scope)
+  title.textContent = i18n.getMessage(titleKey)
 
   const list = document.createElement('div')
-  list.className = 'toggle-list menu-scope-list'
-  MENU_ITEMS_BY_SCOPE[scope].forEach((key) => {
-    addMenuItemEntry(scope, key, list)
+  list.className = 'mode-list'
+  scopes.forEach((scope) => {
+    addScopeEntry(scope, list, getMenuScopeInputId(key, scope))
   })
 
-  const section = document.createElement('section')
-  section.className = 'menu-scope'
-  section.appendChild(title)
-  section.appendChild(list)
-  container.appendChild(section)
+  const item = document.createElement('article')
+  item.className = 'menu-item'
+  item.appendChild(title)
+  item.appendChild(list)
+
+  container.appendChild(item)
 }
 
 function createNumberField (labelKey, inputId) {
@@ -359,9 +403,7 @@ async function init () {
   })
 
   const itemContainer = document.getElementById(KEY_MENU_ITEMS)
-  ALL_MENU_SCOPES.forEach((scope) => {
-    addMenuScopeSection(scope, itemContainer)
-  })
+  OPTIONS_MENU_ITEMS.forEach((key) => addMenuItemEntry(key, itemContainer))
 
   const selectSizeContainer = document.getElementById(KEY_SELECT_SIZE)
   selectSizeContainer.appendChild(createNumberField(KEY_WIDTH, KEY_WIDTH))
@@ -379,6 +421,8 @@ async function init () {
   setLabelText('label_' + KEY_SETTINGS, KEY_SETTINGS)
   setLabelText('label_' + KEY_CONTEXTS, KEY_CONTEXTS)
   setLabelText('label_' + KEY_MENU_ITEMS, KEY_MENU_ITEMS)
+  setLabelText('label_' + KEY_TARGET_SCOPE_DESCRIPTION,
+    KEY_TARGET_SCOPE_DESCRIPTION)
   setLabelText('label_' + KEY_SELECT_SIZE, KEY_SELECT_SIZE)
   setLabelText('label_' + KEY_BEHAVIOR, KEY_BEHAVIOR)
   setLabelText('label_' + KEY_FEEDBACK, KEY_FEEDBACK)
