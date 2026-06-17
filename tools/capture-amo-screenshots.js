@@ -1,7 +1,7 @@
 import process from 'node:process'
 import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { statSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,6 +21,7 @@ const execFileAsync = promisify(execFile)
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const EXTENSION_DIR = resolve(ROOT_DIR, 'extension')
 const AMO_ROOT_DIR = resolve(ROOT_DIR, 'amo')
+const AMO_OUTPUT_DIR = resolve(AMO_ROOT_DIR, 'en')
 const WAIT_MS = Number(process.env.AMO_WAIT_MS || 15_000)
 
 const SCREENSHOT_FILENAMES = {
@@ -39,61 +40,31 @@ const DEFAULT_TARGETS = [
   'notification',
 ]
 
-const LOCALES = {
-  en: {
-    extensionLocale: 'en',
-    firefoxLocale: 'en-US',
-    labels: {
-      move: 'Move',
-      thisGroup: 'This Group',
-    },
-    tabs: {
-      archive: 'Destination Archive',
-      bug: 'Bug Tracker',
-      destination: 'Destination Window',
-      notificationFirst: 'Notification Source 1',
-      notificationSecond: 'Notification Source 2',
-      notificationTarget: 'Notification Target',
-      project: 'Project Plan',
-      research: 'Move Source Research',
-      source: 'Move Source Tab',
-    },
-    groups: {
-      archive: 'Archive',
-      research: 'Research',
-    },
+const SCREENSHOT_LOCALE = {
+  firefoxLocale: 'en-US',
+  labels: {
+    move: 'Move',
+    thisGroup: 'This Group',
   },
-  ja: {
-    extensionLocale: 'ja',
-    firefoxLocale: 'ja',
-    labels: {
-      move: 'タブ移動',
-      thisGroup: 'このグループ',
-    },
-    tabs: {
-      archive: '移動先アーカイブ',
-      bug: 'バグ管理',
-      destination: '移動先ウィンドウ',
-      notificationFirst: '通知元タブ 1',
-      notificationSecond: '通知元タブ 2',
-      notificationTarget: '通知先ウィンドウ',
-      project: '計画書',
-      research: '移動元リサーチ',
-      source: '移動元タブ',
-    },
-    groups: {
-      archive: 'アーカイブ',
-      research: '調査',
-    },
+  tabs: {
+    archive: 'Destination Archive',
+    bug: 'Bug Tracker',
+    destination: 'Destination Window',
+    notificationFirst: 'Notification Source 1',
+    notificationSecond: 'Notification Source 2',
+    notificationTarget: 'Notification Target',
+    project: 'Project Plan',
+    research: 'Move Source Research',
+    source: 'Move Source Tab',
+  },
+  groups: {
+    archive: 'Archive',
+    research: 'Research',
   },
 }
 
-const DEFAULT_LOCALES = Object.keys(LOCALES)
-
 let driver
 let extensionBaseUrl
-let activeLocale
-let activeOutputDir
 
 async function runPowerShell (command, env = {}) {
   const encodedCommand = Buffer.from(command, 'utf16le').toString('base64')
@@ -119,7 +90,7 @@ function pageUrl (title) {
 }
 
 function screenshotPath (key) {
-  return resolve(activeOutputDir, SCREENSHOT_FILENAMES[key])
+  return resolve(AMO_OUTPUT_DIR, SCREENSHOT_FILENAMES[key])
 }
 
 function parseCrop (name, fallback) {
@@ -154,7 +125,7 @@ async function createDriver () {
   const geckoDriverPath = process.env.GECKODRIVER_PATH || await download()
   const options = new firefox.Options()
   options.addArguments('-remote-allow-system-access')
-  options.setPreference('intl.locale.requested', activeLocale.firefoxLocale)
+  options.setPreference('intl.locale.requested', SCREENSHOT_LOCALE.firefoxLocale)
   options.setPreference('layout.css.prefers-color-scheme.content-override', 0)
   options.setPreference('ui.systemUsesDarkTheme', 1)
 
@@ -178,7 +149,6 @@ async function installAddon ({ allowPrivateBrowsing = false } = {}) {
   if (stats.isDirectory()) {
     const zip = new Zip()
     await zip.addDir(EXTENSION_DIR)
-    await addForcedDefaultLocale(zip)
     zip.z_.file('screenshot-tab.html', `
       <!doctype html>
       <html>
@@ -220,13 +190,6 @@ async function installAddon ({ allowPrivateBrowsing = false } = {}) {
       setParameter('temporary', true).
       setParameter('allowPrivateBrowsing', allowPrivateBrowsing),
   )
-}
-
-async function addForcedDefaultLocale (zip) {
-  const messagesPath = resolve(EXTENSION_DIR, '_locales',
-    activeLocale.extensionLocale, 'messages.json')
-  const messages = await readFile(messagesPath)
-  zip.z_.file('_locales/en/messages.json', messages)
 }
 
 async function getExtensionBaseUrl (addonId) {
@@ -484,16 +447,16 @@ async function captureSelectWindowScreenshot () {
         sourceWindowId: sourceWindow.id,
       }
     `, {
-      bug: pageUrl(activeLocale.tabs.bug),
-      project: pageUrl(activeLocale.tabs.project),
-      research: pageUrl(activeLocale.tabs.research),
-      researchGroup: activeLocale.groups.research,
-      source: pageUrl(activeLocale.tabs.source),
+      bug: pageUrl(SCREENSHOT_LOCALE.tabs.bug),
+      project: pageUrl(SCREENSHOT_LOCALE.tabs.project),
+      research: pageUrl(SCREENSHOT_LOCALE.tabs.research),
+      researchGroup: SCREENSHOT_LOCALE.groups.research,
+      source: pageUrl(SCREENSHOT_LOCALE.tabs.source),
       titles: [
-        activeLocale.tabs.source,
-        activeLocale.tabs.project,
-        activeLocale.tabs.research,
-        activeLocale.tabs.bug,
+        SCREENSHOT_LOCALE.tabs.source,
+        SCREENSHOT_LOCALE.tabs.project,
+        SCREENSHOT_LOCALE.tabs.research,
+        SCREENSHOT_LOCALE.tabs.bug,
       ],
     })
 
@@ -768,7 +731,7 @@ async function prepareMenuCapture ({ shallow }) {
         },
   })
 
-  await driver.get(pageUrl(activeLocale.tabs.source))
+  await driver.get(pageUrl(SCREENSHOT_LOCALE.tabs.source))
   return await runExtensionScript(`
     const sourceTab = (await browser.tabs.query({
       active: true,
@@ -810,10 +773,10 @@ async function prepareMenuCapture ({ shallow }) {
       targetWindowId: targetWindow.id,
     }
   `, {
-    archive: pageUrl(activeLocale.tabs.archive),
-    archiveGroup: activeLocale.groups.archive,
-    destination: pageUrl(activeLocale.tabs.destination),
-    researchGroup: activeLocale.groups.research,
+    archive: pageUrl(SCREENSHOT_LOCALE.tabs.archive),
+    archiveGroup: SCREENSHOT_LOCALE.groups.archive,
+    destination: pageUrl(SCREENSHOT_LOCALE.tabs.destination),
+    researchGroup: SCREENSHOT_LOCALE.groups.research,
     shallow,
   })
 }
@@ -846,8 +809,8 @@ async function captureMenuScreenshot ({ shallow, path, cropName, fallbackCrop })
     })
     await driver.sleep(500)
     const topMatcher = shallow
-      ? createLabelMatcher({ prefix: activeLocale.labels.move + ': ' })
-      : createLabelMatcher({ exact: activeLocale.labels.move })
+      ? createLabelMatcher({ prefix: SCREENSHOT_LOCALE.labels.move + ': ' })
+      : createLabelMatcher({ exact: SCREENSHOT_LOCALE.labels.move })
 
     await openSelectedTabContextMenu()
     if (shallow) {
@@ -855,7 +818,7 @@ async function captureMenuScreenshot ({ shallow, path, cropName, fallbackCrop })
     } else {
       await hoverChromeMenuItem(topMatcher)
       await hoverChromeMenuItem(createLabelMatcher({
-        exact: activeLocale.labels.thisGroup,
+        exact: SCREENSHOT_LOCALE.labels.thisGroup,
       }))
     }
     await driver.sleep(500)
@@ -953,9 +916,9 @@ async function captureNotificationScreenshot () {
       }
     }
   `, {
-    first: pageUrl(activeLocale.tabs.notificationFirst),
-    second: pageUrl(activeLocale.tabs.notificationSecond),
-    target: pageUrl(activeLocale.tabs.notificationTarget),
+    first: pageUrl(SCREENSHOT_LOCALE.tabs.notificationFirst),
+    second: pageUrl(SCREENSHOT_LOCALE.tabs.notificationSecond),
+    target: pageUrl(SCREENSHOT_LOCALE.tabs.notificationTarget),
   })
 
   await captureScreenCrop(screenshotPath('notification'),
@@ -964,20 +927,8 @@ async function captureNotificationScreenshot () {
 
 async function main () {
   const targets = getRequestedTargets()
-  const locales = getRequestedLocales()
-  await mkdir(AMO_ROOT_DIR, { recursive: true })
+  await mkdir(AMO_OUTPUT_DIR, { recursive: true })
 
-  for (const localeId of locales) {
-    await captureLocale(localeId, targets)
-  }
-}
-
-async function captureLocale (localeId, targets) {
-  activeLocale = LOCALES[localeId]
-  activeOutputDir = resolve(AMO_ROOT_DIR, localeId)
-  await mkdir(activeOutputDir, { recursive: true })
-
-  console.log('Locale ' + localeId)
   driver = await createDriver()
   try {
     const addonId = await installAddon({ allowPrivateBrowsing: true })
@@ -1026,25 +977,6 @@ function getRequestedTargets () {
       unsupportedTargets.join(', '))
   }
   return new Set(targets)
-}
-
-function getRequestedLocales () {
-  const rawLocales = process.env.AMO_LOCALES || process.env.AMO_LOCALE
-  if (!rawLocales) {
-    return DEFAULT_LOCALES
-  }
-
-  const locales = rawLocales.
-    split(',').
-    map((locale) => locale.trim()).
-    filter((locale) => locale.length > 0)
-  const unsupportedLocales = locales.filter((locale) =>
-    !Object.hasOwn(LOCALES, locale))
-  if (unsupportedLocales.length > 0) {
-    throw new Error('Unsupported AMO_LOCALES locale: ' +
-      unsupportedLocales.join(', '))
-  }
-  return locales
 }
 
 async function runIfRequested (targets, target, run) {

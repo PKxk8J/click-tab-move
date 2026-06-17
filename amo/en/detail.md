@@ -42,3 +42,11 @@ When notifications are enabled, they can show progress and completion results.
 
 ClickTabMove uses tab access to move tabs, tab groups, pinned tabs, and split view tabs.
 It does not collect or send browsing data.
+
+# Caption
+
+- screenshot1_menu_item.png: Move tabs or entire tab groups from the right-click menu.
+- screenshot2_shallow_menu_item.png: Use the compact menu when there is only one move action.
+- screenshot3_notification.png: See move progress and completion results in desktop notifications.
+- screenshot4_select_window.png: Choose exactly which tabs and groups to move in the selection window.
+- screenshot5_settings.png: Configure move targets, destinations, pinned tabs, and notifications.
