@@ -30,6 +30,9 @@
   "menuItems": {
     "message": "Move Targets"
   },
+  "targetScopeDescription": {
+    "message": "When you click a tab inside a group, Top level treats it as a click on the group. Turn on In group when you want to move only tabs inside the group."
+  },
   "settings": {
     "message": "Settings"
   },
@@ -89,6 +92,12 @@
   },
   "group": {
     "message": "Group"
+  },
+  "topLevelScope": {
+    "message": "Top level"
+  },
+  "groupScope": {
+    "message": "In group"
   },
   "windowEntry": {
     "message": "[Window $1] $2"
