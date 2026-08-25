@@ -17,10 +17,10 @@
     "run": "web-ext --config web-ext-config.mjs run"
   },
   "devDependencies": {
-    "@eslint/js": "^9.28.0",
-    "eslint": "^9.28.0",
-    "geckodriver": "^6.1.0",
-    "selenium-webdriver": "^4.44.0",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.1",
+    "geckodriver": "^6.1.1",
+    "selenium-webdriver": "^4.47.0",
     "web-ext": "^10.6.0"
   }
 }

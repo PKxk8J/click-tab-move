@@ -207,7 +207,7 @@ async function waitForSelectCheckboxCount (count) {
       }
     `).catch(() => [])
     throw new Error(error.message + '; latest options: ' +
-      JSON.stringify(latest))
+      JSON.stringify(latest), { cause: error })
   }
 }
 

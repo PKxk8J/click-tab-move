@@ -628,7 +628,7 @@ async function hoverChromeMenuItem (matcher) {
   } catch (error) {
     const labels = await getVisibleChromeMenuLabels().catch(() => [])
     throw new Error(error.message + '; visible menu labels: ' +
-      JSON.stringify(labels))
+      JSON.stringify(labels), { cause: error })
   } finally {
     await driver.setContext(firefox.Context.CONTENT)
   }
