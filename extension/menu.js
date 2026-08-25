@@ -254,8 +254,18 @@ async function getNormalWindowIdSet (windowIds) {
   return normalWindowIds
 }
 
-async function isNormalWindow (windowId) {
-  return (await getNormalWindowIdSet([windowId])).has(windowId)
+async function isSupportedSourceTab (tab) {
+  try {
+    const windowInfo = await windows.get(tab.windowId)
+    if (windowInfo.type === 'normal') {
+      return true
+    }
+    return windowInfo.type === 'popup' &&
+      !tab.url?.startsWith(runtime.getURL(''))
+  } catch (error) {
+    debug(error)
+    return false
+  }
 }
 
 async function getHighlightedTargetTabIds (targetTab) {
@@ -611,7 +621,7 @@ async function handleMenuShown (info, tab) {
   const selectWindowId = getSelectWindowId()
   const destinations = getAllDestinations()
   const visibleEntries = []
-  if (await isNormalWindow(targetTab.windowId)) {
+  if (await isSupportedSourceTab(targetTab)) {
     for (const entry of currentEntries) {
       const summary = await getTargetSummary(entry, targetTab)
       const visibleDestinations = destinations.filter((destination) => {
@@ -647,7 +657,7 @@ async function handleMenuClick (info, tab) {
   if (!targetTab) {
     return
   }
-  if (!await isNormalWindow(targetTab.windowId)) {
+  if (!await isSupportedSourceTab(targetTab)) {
     return
   }
 

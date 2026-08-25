@@ -480,11 +480,50 @@ test('destinations only include normal windows and groups', async () => {
   ])
 })
 
-test('menu is hidden when the source window is not normal', async () => {
+test('popup tab can be moved but is not offered as a destination', async () => {
   resetState({
     menuItems: { one: ['global'] },
     tabs: [
-      { id: 1, windowId: 1, index: 0, active: true, windowType: 'popup' },
+      {
+        id: 1,
+        windowId: 1,
+        index: 0,
+        active: true,
+        url: 'https://example.com/popup',
+        windowType: 'popup',
+      },
+      { id: 2, windowId: 2, index: 0, active: true },
+    ],
+  })
+  await rebuildMenu()
+  await showMenu(1)
+
+  assert.equal(state.menuItems.get('move').visible, true)
+  assert.deepEqual(getChildIds('move'), [
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:2',
+    'flatTarget:global:one:newGroup',
+  ])
+
+  await clickMenu('flatTarget:global:one:window:2', 1)
+
+  assert.deepEqual(state.moved, [
+    { ids: [1], properties: { windowId: 2, index: -1 } },
+  ])
+})
+
+test('menu is hidden in extension popup windows', async () => {
+  resetState({
+    menuItems: { one: ['global'] },
+    tabs: [
+      {
+        id: 1,
+        windowId: 1,
+        index: 0,
+        active: true,
+        url: 'moz-extension://test/select.html',
+        windowType: 'popup',
+      },
       { id: 2, windowId: 2, index: 0, active: true },
     ],
   })
@@ -493,6 +532,31 @@ test('menu is hidden when the source window is not normal', async () => {
 
   assert.equal(state.menuItems.get('move').visible, false)
   assert.deepEqual(getChildIds('move'), [])
+
+  await clickMenu('flatTarget:global:one:window:2', 1)
+
+  assert.deepEqual(state.moved, [])
+})
+
+test('menu is hidden when the source window type is unsupported', async () => {
+  for (const windowType of ['panel', 'devtools']) {
+    resetState({
+      menuItems: { one: ['global'] },
+      tabs: [
+        { id: 1, windowId: 1, index: 0, active: true, windowType },
+        { id: 2, windowId: 2, index: 0, active: true },
+      ],
+    })
+    await rebuildMenu()
+    await showMenu(1)
+
+    assert.equal(state.menuItems.get('move').visible, false)
+    assert.deepEqual(getChildIds('move'), [])
+
+    await clickMenu('flatTarget:global:one:window:2', 1)
+
+    assert.deepEqual(state.moved, [])
+  }
 })
 
 test('multiple visible entries render destinations under entry submenus', async () => {

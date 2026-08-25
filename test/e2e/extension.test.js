@@ -637,6 +637,71 @@ describe('Firefox extension E2E', () => {
     assert.deepEqual(result.targetTabIds, result.sourceTabIds)
   })
 
+  test('popup tab moves to a normal Firefox window', async () => {
+    await openFreshOptionsPage()
+
+    const result = await runExtensionScript(`
+      let popupWindow
+      let targetWindow
+      try {
+        popupWindow = await browser.windows.create({
+          focused: false,
+          type: 'popup',
+          url: 'https://example.com/',
+          width: 500,
+          height: 400,
+        })
+        targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+        const sourceTab = popupWindow.tabs[0]
+
+        await browser.runtime.sendMessage({
+          type: 'move',
+          keyType: 'raw',
+          tabIds: [sourceTab.id],
+          destination: {
+            type: 'window',
+            windowId: targetWindow.id,
+          },
+          targetScope: 'global',
+          sourceWindowId: popupWindow.id,
+          notification: false,
+          focus: false,
+        })
+
+        const movedTab = await waitUntil(async () => {
+          const tab = await browser.tabs.get(sourceTab.id)
+          return tab.windowId === targetWindow.id ? tab : undefined
+        })
+        let popupClosed = false
+        try {
+          await browser.windows.get(popupWindow.id)
+        } catch {
+          popupClosed = true
+        }
+        return {
+          movedTabId: movedTab.id,
+          popupClosed,
+          sourceTabId: sourceTab.id,
+          targetWindowType: (await browser.windows.get(targetWindow.id)).type,
+        }
+      } finally {
+        if (targetWindow) {
+          await browser.windows.remove(targetWindow.id).catch(() => {})
+        }
+        if (popupWindow) {
+          await browser.windows.remove(popupWindow.id).catch(() => {})
+        }
+      }
+    `)
+
+    assert.equal(result.movedTabId, result.sourceTabId)
+    assert.equal(result.popupClosed, true)
+    assert.equal(result.targetWindowType, 'normal')
+  })
+
   test('private tabs move to a new private Firefox window', async () => {
     await openFreshOptionsPage()
 
