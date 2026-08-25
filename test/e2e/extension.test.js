@@ -24,7 +24,6 @@ let extensionBaseUrl
 async function createDriver () {
   const geckoDriverPath = process.env.GECKODRIVER_PATH || await download()
   const options = new firefox.Options()
-  options.addArguments('-remote-allow-system-access')
   if (process.env.E2E_HEADLESS !== '0') {
     options.addArguments('-headless')
   }
@@ -35,7 +34,10 @@ async function createDriver () {
   return new Builder().
     forBrowser('firefox').
     setFirefoxOptions(options).
-    setFirefoxService(new firefox.ServiceBuilder(geckoDriverPath)).
+    setFirefoxService(
+      new firefox.ServiceBuilder(geckoDriverPath).
+        addArguments('--allow-system-access'),
+    ).
     build()
 }
 
