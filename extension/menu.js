@@ -41,6 +41,11 @@ import {
 import {
   isGroupedTab,
 } from './tab-units.js'
+import {
+  addVerticalTabsChangeListener,
+  getDirectionMessageKey,
+  getVerticalTabsEnabled,
+} from './tab-direction.js'
 
 const {
   i18n,
@@ -62,6 +67,7 @@ let destinationEntries = {
   groups: [],
 }
 let currentMenuItemIds = []
+let verticalTabsEnabled = false
 
 function cut (text, length) {
   if (text.length <= length) {
@@ -158,13 +164,12 @@ function getGlobalTitle (key, targetTab) {
     case KEY_ONE:
       return subject
     case KEY_RIGHT:
-      return i18n.getMessage('targetGlobalRight', subject)
     case KEY_THIS_AND_RIGHT:
-      return i18n.getMessage('targetGlobalThisAndRight', subject)
     case KEY_LEFT:
-      return i18n.getMessage('targetGlobalLeft', subject)
     case KEY_THIS_AND_LEFT:
-      return i18n.getMessage('targetGlobalThisAndLeft', subject)
+      return i18n.getMessage(getDirectionalTargetMessageKey(
+        'targetGlobal', key,
+      ), subject)
     case KEY_ALL:
       return i18n.getMessage('targetGlobalAll')
     case KEY_HIGHLIGHTED:
@@ -179,18 +184,22 @@ function getGroupTitle (key) {
     case KEY_ONE:
       return i18n.getMessage('targetSubjectTab')
     case KEY_RIGHT:
-      return i18n.getMessage('targetGroupRight')
     case KEY_THIS_AND_RIGHT:
-      return i18n.getMessage('targetGroupThisAndRight')
     case KEY_LEFT:
-      return i18n.getMessage('targetGroupLeft')
     case KEY_THIS_AND_LEFT:
-      return i18n.getMessage('targetGroupThisAndLeft')
+      return i18n.getMessage(getDirectionalTargetMessageKey(
+        'targetGroup', key,
+      ))
     case KEY_ALL:
       return i18n.getMessage('targetGroupAll')
     case KEY_SELECT:
       return i18n.getMessage('targetGroupSelect')
   }
+}
+
+function getDirectionalTargetMessageKey (prefix, key) {
+  const directionKey = getDirectionMessageKey(key, verticalTabsEnabled)
+  return prefix + directionKey.charAt(0).toUpperCase() + directionKey.slice(1)
 }
 
 function getEntryTitle (entry, targetTab) {
@@ -395,7 +404,9 @@ async function createStaticMenuItems (entries, destinations, contexts) {
     const entryMenuId = getEntryMenuId(entry.scope, entry.key)
     await createManagedMenuItem({
       id: entryMenuId,
-      title: i18n.getMessage(entry.key),
+      title: i18n.getMessage(getDirectionMessageKey(
+        entry.key, verticalTabsEnabled,
+      )),
       contexts,
       parentId: KEY_MOVE,
       visible: false,
@@ -408,10 +419,12 @@ async function createStaticMenuItems (entries, destinations, contexts) {
 }
 
 async function rebuildMenu () {
-  const [storedContexts, storedMenuItems] = await Promise.all([
-    getValue(KEY_CONTEXTS),
-    getValue(KEY_MENU_ITEMS),
-  ])
+  const [storedContexts, storedMenuItems, currentVerticalTabsEnabled] =
+    await Promise.all([
+      getValue(KEY_CONTEXTS),
+      getValue(KEY_MENU_ITEMS),
+      getVerticalTabsEnabled(),
+    ])
   const contexts = normalizeContexts(storedContexts)
   const menuItems = normalizeMenuItems(storedMenuItems)
   const entries = getMenuEntries(menuItems)
@@ -421,6 +434,7 @@ async function rebuildMenu () {
   currentEntries = entries
   destinationEntries = destinations
   currentMenuItemIds = []
+  verticalTabsEnabled = currentVerticalTabsEnabled
 
   await menus.removeAll()
   debug('Clear menu items')
@@ -613,6 +627,7 @@ async function renderCurrentMenuItems (targetTab, visibleEntries) {
 
 async function handleMenuShown (info, tab) {
   await waitForMenuRebuild()
+  verticalTabsEnabled = await getVerticalTabsEnabled()
   const targetTab = tab || await getCurrentTab()
   if (!targetTab || currentContexts.length <= 0 || currentEntries.length <= 0) {
     return
@@ -757,6 +772,11 @@ addGroupListener('onCreated')
 addGroupListener('onRemoved')
 addGroupListener('onUpdated')
 addGroupListener('onMoved')
+
+addVerticalTabsChangeListener((enabled) => {
+  verticalTabsEnabled = enabled
+  return queueRebuildMenu().catch(onError)
+})
 
 menus.onClicked.addListener((info, tab) => {
   return handleMenuClick(info, tab).catch(onError)

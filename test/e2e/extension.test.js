@@ -173,6 +173,26 @@ async function getInputValue (id) {
   return await (await driver.findElement(By.id(id))).getAttribute('value')
 }
 
+async function waitForMenuItemLabel (key, messageKey) {
+  await driver.wait(async () => {
+    return await driver.executeScript(`
+      return document.getElementById(arguments[0])?.textContent ===
+        browser.i18n.getMessage(arguments[1])
+    `, 'label_menuItems_' + key, messageKey)
+  }, WAIT_MS, 'menu item label did not become ' + messageKey)
+}
+
+async function setVerticalTabsPreference (enabled) {
+  await driver.setContext(firefox.Context.CHROME)
+  try {
+    await driver.executeScript(`
+      Services.prefs.setBoolPref('sidebar.verticalTabs', arguments[0])
+    `, enabled)
+  } finally {
+    await driver.setContext(firefox.Context.CONTENT)
+  }
+}
+
 async function findWindowHandle (predicate) {
   const startedAt = Date.now()
   while (Date.now() - startedAt < WAIT_MS) {
@@ -372,6 +392,28 @@ describe('Firefox extension E2E', () => {
     assert.equal(await (await driver.findElement(By.id('menuItems_right_group'))).isSelected(), false)
     assert.equal(await (await driver.findElement(By.id('focus'))).isSelected(), true)
     assert.equal(await getInputValue('pinnedGroupAction'), 'skipPinned')
+  })
+
+  test('options page refreshes direction labels when it regains focus', async () => {
+    await openFreshOptionsPage()
+
+    try {
+      await setVerticalTabsPreference(false)
+      await driver.executeScript(`window.dispatchEvent(new Event('focus'))`)
+      await waitForMenuItemLabel('right', 'menuItem_global_right')
+      await waitForMenuItemLabel('left', 'menuItem_global_left')
+
+      await setVerticalTabsPreference(true)
+      await driver.executeScript(`window.dispatchEvent(new Event('focus'))`)
+      await waitForMenuItemLabel('right', 'menuItem_global_below')
+      await waitForMenuItemLabel('thisAndRight',
+        'menuItem_global_thisAndBelow')
+      await waitForMenuItemLabel('left', 'menuItem_global_above')
+      await waitForMenuItemLabel('thisAndLeft',
+        'menuItem_global_thisAndAbove')
+    } finally {
+      await setVerticalTabsPreference(false)
+    }
   })
 
   test('notification setting requests permission and allows notified moves', async () => {

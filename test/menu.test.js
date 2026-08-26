@@ -8,6 +8,7 @@ const state = {
   moved: [],
   refreshCount: 0,
   storageGetWait: undefined,
+  verticalTabsEnabled: false,
   windowCreates: [],
 }
 
@@ -40,6 +41,7 @@ const events = {
   windowsCreated: createEvent(),
   windowsFocusChanged: createEvent(),
   windowsRemoved: createEvent(),
+  verticalTabsChanged: createEvent(),
 }
 
 function cloneTab (tab) {
@@ -81,10 +83,17 @@ function resetState ({ menuItems, tabs }) {
   state.moved = []
   state.refreshCount = 0
   state.storageGetWait = undefined
+  state.verticalTabsEnabled = false
   state.windowCreates = []
 }
 
 globalThis.browser = {
+  browserSettings: {
+    verticalTabs: {
+      get: async () => ({ value: state.verticalTabsEnabled }),
+      onChange: events.verticalTabsChanged,
+    },
+  },
   i18n: {
     getMessage: (key, substitutions) => {
       if (key === 'debug') {
@@ -589,6 +598,45 @@ test('multiple visible entries render destinations under entry submenus', async 
   )
   assert.equal(hasVisibleMenuIdPrefix('flatTarget:'), false)
 })
+
+test('vertical tabs use above and below titles and recheck the setting when shown',
+  async () => {
+    resetState({
+      menuItems: {
+        right: ['global', 'group'],
+        left: ['global', 'group'],
+      },
+      tabs: [
+        { id: 1, windowId: 1, index: 0 },
+        { id: 2, windowId: 1, index: 1, groupId: 10 },
+        { id: 3, windowId: 1, index: 2, groupId: 10, active: true },
+        { id: 4, windowId: 1, index: 3, groupId: 10 },
+        { id: 5, windowId: 1, index: 4 },
+        { id: 6, windowId: 2, index: 0, active: true },
+      ],
+    })
+
+    state.verticalTabsEnabled = true
+    await events.verticalTabsChanged.listeners[0]({ value: true })
+    await showMenu(3)
+
+    assert.equal(state.menuItems.get('entry:global:right').title,
+      'targetGlobalBelow:targetSubjectGroup')
+    assert.equal(state.menuItems.get('entry:global:left').title,
+      'targetGlobalAbove:targetSubjectGroup')
+    assert.equal(state.menuItems.get('entry:group:right').title,
+      'targetGroupBelow')
+    assert.equal(state.menuItems.get('entry:group:left').title,
+      'targetGroupAbove')
+
+    state.verticalTabsEnabled = false
+    await showMenu(3)
+
+    assert.equal(state.menuItems.get('entry:global:right').title,
+      'targetGlobalRight:targetSubjectGroup')
+    assert.equal(state.menuItems.get('entry:group:left').title,
+      'targetGroupLeft')
+  })
 
 test('menu shown rebuild clears the previous dynamic layout', async () => {
   resetState({

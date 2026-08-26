@@ -51,6 +51,11 @@ import {
   storageArea,
   toContextLabelKey,
 } from './common.js'
+import {
+  addVerticalTabsChangeListener,
+  getDirectionMessageKey,
+  getVerticalTabsEnabled,
+} from './tab-direction.js'
 
 const {
   i18n,
@@ -62,6 +67,8 @@ const SAVE_STATUS_CLEAR_DELAY = 1800
 let savePromise
 let saveRequested = false
 let saveStatusVersion = 0
+let verticalTabsEnabled = false
+let verticalTabsRefreshPromise
 
 function getContextInputId (key) {
   return KEY_CONTEXTS + '_' + key
@@ -94,7 +101,47 @@ function getMenuItemScopes (key) {
 }
 
 function getMenuItemLabelKey (key) {
-  return 'menuItem_' + KEY_TARGET_GLOBAL + '_' + key
+  return 'menuItem_' + KEY_TARGET_GLOBAL + '_' +
+    getDirectionMessageKey(key, verticalTabsEnabled)
+}
+
+function getMenuItemTitleId (key) {
+  return 'label_' + KEY_MENU_ITEMS + '_' + key
+}
+
+function updateMenuItemDirectionLabels (enabled) {
+  if (verticalTabsEnabled === enabled) {
+    return
+  }
+  verticalTabsEnabled = enabled
+  OPTIONS_MENU_ITEMS.forEach((key) => {
+    const title = document.getElementById(getMenuItemTitleId(key))
+    if (title) {
+      title.textContent = i18n.getMessage(getMenuItemLabelKey(key))
+    }
+  })
+}
+
+function refreshVerticalTabsDirection () {
+  if (!verticalTabsRefreshPromise) {
+    verticalTabsRefreshPromise = getVerticalTabsEnabled().
+      then(updateMenuItemDirectionLabels).
+      finally(() => {
+        verticalTabsRefreshPromise = undefined
+      })
+  }
+  return verticalTabsRefreshPromise
+}
+
+function bindVerticalTabsRefresh () {
+  globalThis.addEventListener('focus', () => {
+    refreshVerticalTabsDirection().catch(onError)
+  })
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      refreshVerticalTabsDirection().catch(onError)
+    }
+  })
 }
 
 function setLabelText (id, key) {
@@ -268,10 +315,14 @@ function createToggleLabel (
   labelKey,
   inputId,
   className = 'toggle-row',
+  titleId,
 ) {
   const title = document.createElement('span')
   title.className = 'setting-title'
   title.textContent = i18n.getMessage(labelKey)
+  if (titleId) {
+    title.id = titleId
+  }
 
   const copy = document.createElement('span')
   copy.className = 'setting-copy'
@@ -285,8 +336,8 @@ function createToggleLabel (
   return label
 }
 
-function addCheckboxEntry (labelKey, container, inputId) {
-  container.appendChild(createToggleLabel(labelKey, inputId))
+function addCheckboxEntry (labelKey, container, inputId, titleId) {
+  container.appendChild(createToggleLabel(labelKey, inputId, 'toggle-row', titleId))
 }
 
 function createSelectField (labelKey, selectId, options) {
@@ -334,11 +385,13 @@ function addMenuItemEntry (key, container) {
   const titleKey = getMenuItemLabelKey(key)
 
   if (scopes.length === 1) {
-    addCheckboxEntry(titleKey, container, getMenuScopeInputId(key, scopes[0]))
+    addCheckboxEntry(titleKey, container, getMenuScopeInputId(key, scopes[0]),
+      getMenuItemTitleId(key))
     return
   }
 
   const title = document.createElement('h3')
+  title.id = getMenuItemTitleId(key)
   title.textContent = i18n.getMessage(titleKey)
 
   const list = document.createElement('div')
@@ -396,6 +449,8 @@ async function handleInputChange (input) {
 }
 
 async function init () {
+  await refreshVerticalTabsDirection()
+
   const contextContainer = document.getElementById(KEY_CONTEXTS)
   ALL_CONTEXTS.forEach((key) => {
     addCheckboxEntry(toContextLabelKey(key), contextContainer,
@@ -429,6 +484,8 @@ async function init () {
 
   await restore()
   bindAutoSave()
+  bindVerticalTabsRefresh()
+  addVerticalTabsChangeListener(updateMenuItemDirectionLabels)
 }
 
 init().catch(onError)

@@ -24,6 +24,7 @@
     }
   },
   "permissions": [
+    "browserSettings",
     "menus",
     "storage",
     "tabGroups",
