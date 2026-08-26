@@ -1,7 +1,6 @@
 # Summary
 
-When tabs and tab groups pile up, move them easily to another window or group.
-Choose what to move, including the clicked tab, all tabs, tabs on the right (or below with vertical tabs), tabs selected in the tab bar, or tabs checked in the selection window.
+Move tabs and tab groups to another window or group. Choose the clicked tab, all tabs, tabs to either side (or above/below with vertical tabs), selected tabs, or tabs checked in the selection window.
 
 # Description
 
