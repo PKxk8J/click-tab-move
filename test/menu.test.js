@@ -8,6 +8,7 @@ const state = {
   moved: [],
   refreshCount: 0,
   storageGetWait: undefined,
+  verticalTabsEnabled: false,
   windowCreates: [],
 }
 
@@ -40,6 +41,7 @@ const events = {
   windowsCreated: createEvent(),
   windowsFocusChanged: createEvent(),
   windowsRemoved: createEvent(),
+  verticalTabsChanged: createEvent(),
 }
 
 function cloneTab (tab) {
@@ -81,10 +83,17 @@ function resetState ({ menuItems, tabs }) {
   state.moved = []
   state.refreshCount = 0
   state.storageGetWait = undefined
+  state.verticalTabsEnabled = false
   state.windowCreates = []
 }
 
 globalThis.browser = {
+  browserSettings: {
+    verticalTabs: {
+      get: async () => ({ value: state.verticalTabsEnabled }),
+      onChange: events.verticalTabsChanged,
+    },
+  },
   i18n: {
     getMessage: (key, substitutions) => {
       if (key === 'debug') {
@@ -480,11 +489,50 @@ test('destinations only include normal windows and groups', async () => {
   ])
 })
 
-test('menu is hidden when the source window is not normal', async () => {
+test('popup tab can be moved but is not offered as a destination', async () => {
   resetState({
     menuItems: { one: ['global'] },
     tabs: [
-      { id: 1, windowId: 1, index: 0, active: true, windowType: 'popup' },
+      {
+        id: 1,
+        windowId: 1,
+        index: 0,
+        active: true,
+        url: 'https://example.com/popup',
+        windowType: 'popup',
+      },
+      { id: 2, windowId: 2, index: 0, active: true },
+    ],
+  })
+  await rebuildMenu()
+  await showMenu(1)
+
+  assert.equal(state.menuItems.get('move').visible, true)
+  assert.deepEqual(getChildIds('move'), [
+    'flatTarget:global:one:newWindow',
+    'flatTarget:global:one:window:2',
+    'flatTarget:global:one:newGroup',
+  ])
+
+  await clickMenu('flatTarget:global:one:window:2', 1)
+
+  assert.deepEqual(state.moved, [
+    { ids: [1], properties: { windowId: 2, index: -1 } },
+  ])
+})
+
+test('menu is hidden in extension popup windows', async () => {
+  resetState({
+    menuItems: { one: ['global'] },
+    tabs: [
+      {
+        id: 1,
+        windowId: 1,
+        index: 0,
+        active: true,
+        url: 'moz-extension://test/select.html',
+        windowType: 'popup',
+      },
       { id: 2, windowId: 2, index: 0, active: true },
     ],
   })
@@ -493,6 +541,31 @@ test('menu is hidden when the source window is not normal', async () => {
 
   assert.equal(state.menuItems.get('move').visible, false)
   assert.deepEqual(getChildIds('move'), [])
+
+  await clickMenu('flatTarget:global:one:window:2', 1)
+
+  assert.deepEqual(state.moved, [])
+})
+
+test('menu is hidden when the source window type is unsupported', async () => {
+  for (const windowType of ['panel', 'devtools']) {
+    resetState({
+      menuItems: { one: ['global'] },
+      tabs: [
+        { id: 1, windowId: 1, index: 0, active: true, windowType },
+        { id: 2, windowId: 2, index: 0, active: true },
+      ],
+    })
+    await rebuildMenu()
+    await showMenu(1)
+
+    assert.equal(state.menuItems.get('move').visible, false)
+    assert.deepEqual(getChildIds('move'), [])
+
+    await clickMenu('flatTarget:global:one:window:2', 1)
+
+    assert.deepEqual(state.moved, [])
+  }
 })
 
 test('multiple visible entries render destinations under entry submenus', async () => {
@@ -525,6 +598,45 @@ test('multiple visible entries render destinations under entry submenus', async 
   )
   assert.equal(hasVisibleMenuIdPrefix('flatTarget:'), false)
 })
+
+test('vertical tabs use above and below titles and recheck the setting when shown',
+  async () => {
+    resetState({
+      menuItems: {
+        right: ['global', 'group'],
+        left: ['global', 'group'],
+      },
+      tabs: [
+        { id: 1, windowId: 1, index: 0 },
+        { id: 2, windowId: 1, index: 1, groupId: 10 },
+        { id: 3, windowId: 1, index: 2, groupId: 10, active: true },
+        { id: 4, windowId: 1, index: 3, groupId: 10 },
+        { id: 5, windowId: 1, index: 4 },
+        { id: 6, windowId: 2, index: 0, active: true },
+      ],
+    })
+
+    state.verticalTabsEnabled = true
+    await events.verticalTabsChanged.listeners[0]({ value: true })
+    await showMenu(3)
+
+    assert.equal(state.menuItems.get('entry:global:right').title,
+      'targetGlobalBelow:targetSubjectGroup')
+    assert.equal(state.menuItems.get('entry:global:left').title,
+      'targetGlobalAbove:targetSubjectGroup')
+    assert.equal(state.menuItems.get('entry:group:right').title,
+      'targetGroupBelow')
+    assert.equal(state.menuItems.get('entry:group:left').title,
+      'targetGroupAbove')
+
+    state.verticalTabsEnabled = false
+    await showMenu(3)
+
+    assert.equal(state.menuItems.get('entry:global:right').title,
+      'targetGlobalRight:targetSubjectGroup')
+    assert.equal(state.menuItems.get('entry:group:left').title,
+      'targetGroupLeft')
+  })
 
 test('menu shown rebuild clears the previous dynamic layout', async () => {
   resetState({

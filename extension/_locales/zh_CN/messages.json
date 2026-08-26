@@ -101,6 +101,18 @@
   "targetGlobalThisAndLeft": {
     "message": "$1 和左侧的标签页/标签页组"
   },
+  "targetGlobalBelow": {
+    "message": "$1 下方的标签页和标签页组"
+  },
+  "targetGlobalThisAndBelow": {
+    "message": "$1 和下方的标签页/标签页组"
+  },
+  "targetGlobalAbove": {
+    "message": "$1 上方的标签页和标签页组"
+  },
+  "targetGlobalThisAndAbove": {
+    "message": "$1 和上方的标签页/标签页组"
+  },
   "targetGlobalAll": {
     "message": "所有标签页和标签页组"
   },
@@ -122,6 +134,18 @@
   "targetGroupThisAndLeft": {
     "message": "组内此标签页和左侧标签页"
   },
+  "targetGroupBelow": {
+    "message": "组内此标签页下方的标签页"
+  },
+  "targetGroupThisAndBelow": {
+    "message": "组内此标签页和下方标签页"
+  },
+  "targetGroupAbove": {
+    "message": "组内此标签页上方的标签页"
+  },
+  "targetGroupThisAndAbove": {
+    "message": "组内此标签页和上方标签页"
+  },
   "targetGroupAll": {
     "message": "组内所有标签页"
   },
@@ -142,6 +166,18 @@
   },
   "menuItem_global_thisAndLeft": {
     "message": "点击的标签页/标签页组和左侧的标签页/标签页组"
+  },
+  "menuItem_global_below": {
+    "message": "点击的标签页/标签页组下方的标签页/标签页组"
+  },
+  "menuItem_global_thisAndBelow": {
+    "message": "点击的标签页/标签页组和下方的标签页/标签页组"
+  },
+  "menuItem_global_above": {
+    "message": "点击的标签页/标签页组上方的标签页/标签页组"
+  },
+  "menuItem_global_thisAndAbove": {
+    "message": "点击的标签页/标签页组和上方的标签页/标签页组"
   },
   "menuItem_global_all": {
     "message": "所有标签页/标签页组"
@@ -179,8 +215,26 @@
   "right": {
     "message": "右侧标签页"
   },
+  "thisAndRight": {
+    "message": "此标签页和右侧标签页"
+  },
   "left": {
     "message": "左侧标签页"
+  },
+  "thisAndLeft": {
+    "message": "此标签页和左侧标签页"
+  },
+  "below": {
+    "message": "下方标签页"
+  },
+  "thisAndBelow": {
+    "message": "此标签页和下方标签页"
+  },
+  "above": {
+    "message": "上方标签页"
+  },
+  "thisAndAbove": {
+    "message": "此标签页和上方标签页"
   },
   "notification": {
     "message": "通知"

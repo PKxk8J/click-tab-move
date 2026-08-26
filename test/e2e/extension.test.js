@@ -24,7 +24,6 @@ let extensionBaseUrl
 async function createDriver () {
   const geckoDriverPath = process.env.GECKODRIVER_PATH || await download()
   const options = new firefox.Options()
-  options.addArguments('-remote-allow-system-access')
   if (process.env.E2E_HEADLESS !== '0') {
     options.addArguments('-headless')
   }
@@ -35,7 +34,10 @@ async function createDriver () {
   return new Builder().
     forBrowser('firefox').
     setFirefoxOptions(options).
-    setFirefoxService(new firefox.ServiceBuilder(geckoDriverPath)).
+    setFirefoxService(
+      new firefox.ServiceBuilder(geckoDriverPath).
+        addArguments('--allow-system-access'),
+    ).
     build()
 }
 
@@ -171,6 +173,26 @@ async function getInputValue (id) {
   return await (await driver.findElement(By.id(id))).getAttribute('value')
 }
 
+async function waitForMenuItemLabel (key, messageKey) {
+  await driver.wait(async () => {
+    return await driver.executeScript(`
+      return document.getElementById(arguments[0])?.textContent ===
+        browser.i18n.getMessage(arguments[1])
+    `, 'label_menuItems_' + key, messageKey)
+  }, WAIT_MS, 'menu item label did not become ' + messageKey)
+}
+
+async function setVerticalTabsPreference (enabled) {
+  await driver.setContext(firefox.Context.CHROME)
+  try {
+    await driver.executeScript(`
+      Services.prefs.setBoolPref('sidebar.verticalTabs', arguments[0])
+    `, enabled)
+  } finally {
+    await driver.setContext(firefox.Context.CONTENT)
+  }
+}
+
 async function findWindowHandle (predicate) {
   const startedAt = Date.now()
   while (Date.now() - startedAt < WAIT_MS) {
@@ -205,7 +227,7 @@ async function waitForSelectCheckboxCount (count) {
       }
     `).catch(() => [])
     throw new Error(error.message + '; latest options: ' +
-      JSON.stringify(latest))
+      JSON.stringify(latest), { cause: error })
   }
 }
 
@@ -370,6 +392,28 @@ describe('Firefox extension E2E', () => {
     assert.equal(await (await driver.findElement(By.id('menuItems_right_group'))).isSelected(), false)
     assert.equal(await (await driver.findElement(By.id('focus'))).isSelected(), true)
     assert.equal(await getInputValue('pinnedGroupAction'), 'skipPinned')
+  })
+
+  test('options page refreshes direction labels when it regains focus', async () => {
+    await openFreshOptionsPage()
+
+    try {
+      await setVerticalTabsPreference(false)
+      await driver.executeScript(`window.dispatchEvent(new Event('focus'))`)
+      await waitForMenuItemLabel('right', 'menuItem_global_right')
+      await waitForMenuItemLabel('left', 'menuItem_global_left')
+
+      await setVerticalTabsPreference(true)
+      await driver.executeScript(`window.dispatchEvent(new Event('focus'))`)
+      await waitForMenuItemLabel('right', 'menuItem_global_below')
+      await waitForMenuItemLabel('thisAndRight',
+        'menuItem_global_thisAndBelow')
+      await waitForMenuItemLabel('left', 'menuItem_global_above')
+      await waitForMenuItemLabel('thisAndLeft',
+        'menuItem_global_thisAndAbove')
+    } finally {
+      await setVerticalTabsPreference(false)
+    }
   })
 
   test('notification setting requests permission and allows notified moves', async () => {
@@ -633,6 +677,71 @@ describe('Firefox extension E2E', () => {
 
     assert.notEqual(result.movedWindowId, result.sourceWindowId)
     assert.deepEqual(result.targetTabIds, result.sourceTabIds)
+  })
+
+  test('popup tab moves to a normal Firefox window', async () => {
+    await openFreshOptionsPage()
+
+    const result = await runExtensionScript(`
+      let popupWindow
+      let targetWindow
+      try {
+        popupWindow = await browser.windows.create({
+          focused: false,
+          type: 'popup',
+          url: 'https://example.com/',
+          width: 500,
+          height: 400,
+        })
+        targetWindow = await browser.windows.create({
+          focused: false,
+          url: 'about:blank',
+        })
+        const sourceTab = popupWindow.tabs[0]
+
+        await browser.runtime.sendMessage({
+          type: 'move',
+          keyType: 'raw',
+          tabIds: [sourceTab.id],
+          destination: {
+            type: 'window',
+            windowId: targetWindow.id,
+          },
+          targetScope: 'global',
+          sourceWindowId: popupWindow.id,
+          notification: false,
+          focus: false,
+        })
+
+        const movedTab = await waitUntil(async () => {
+          const tab = await browser.tabs.get(sourceTab.id)
+          return tab.windowId === targetWindow.id ? tab : undefined
+        })
+        let popupClosed = false
+        try {
+          await browser.windows.get(popupWindow.id)
+        } catch {
+          popupClosed = true
+        }
+        return {
+          movedTabId: movedTab.id,
+          popupClosed,
+          sourceTabId: sourceTab.id,
+          targetWindowType: (await browser.windows.get(targetWindow.id)).type,
+        }
+      } finally {
+        if (targetWindow) {
+          await browser.windows.remove(targetWindow.id).catch(() => {})
+        }
+        if (popupWindow) {
+          await browser.windows.remove(popupWindow.id).catch(() => {})
+        }
+      }
+    `)
+
+    assert.equal(result.movedTabId, result.sourceTabId)
+    assert.equal(result.popupClosed, true)
+    assert.equal(result.targetWindowType, 'normal')
   })
 
   test('private tabs move to a new private Firefox window', async () => {

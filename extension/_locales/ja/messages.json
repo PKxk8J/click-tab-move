@@ -126,6 +126,18 @@
   "targetGlobalThisAndLeft": {
     "message": "$1と左側のタブ・グループ"
   },
+  "targetGlobalBelow": {
+    "message": "$1より下側のタブ・グループ"
+  },
+  "targetGlobalThisAndBelow": {
+    "message": "$1と下側のタブ・グループ"
+  },
+  "targetGlobalAbove": {
+    "message": "$1より上側のタブ・グループ"
+  },
+  "targetGlobalThisAndAbove": {
+    "message": "$1と上側のタブ・グループ"
+  },
   "targetGlobalAll": {
     "message": "全てのタブ・グループ"
   },
@@ -147,6 +159,18 @@
   "targetGroupThisAndLeft": {
     "message": "グループ内のこのタブと左側のタブ"
   },
+  "targetGroupBelow": {
+    "message": "グループ内のこのタブより下側のタブ"
+  },
+  "targetGroupThisAndBelow": {
+    "message": "グループ内のこのタブと下側のタブ"
+  },
+  "targetGroupAbove": {
+    "message": "グループ内のこのタブより上側のタブ"
+  },
+  "targetGroupThisAndAbove": {
+    "message": "グループ内のこのタブと上側のタブ"
+  },
   "targetGroupAll": {
     "message": "グループ内の全てのタブ"
   },
@@ -167,6 +191,18 @@
   },
   "menuItem_global_thisAndLeft": {
     "message": "クリックしたタブ・グループと左側のタブ・グループ"
+  },
+  "menuItem_global_below": {
+    "message": "クリックしたタブ・グループより下側のタブ・グループ"
+  },
+  "menuItem_global_thisAndBelow": {
+    "message": "クリックしたタブ・グループと下側のタブ・グループ"
+  },
+  "menuItem_global_above": {
+    "message": "クリックしたタブ・グループより上側のタブ・グループ"
+  },
+  "menuItem_global_thisAndAbove": {
+    "message": "クリックしたタブ・グループと上側のタブ・グループ"
   },
   "menuItem_global_all": {
     "message": "全てのタブ・グループ"
@@ -212,6 +248,18 @@
   },
   "thisAndLeft": {
     "message": "ここから左のタブ"
+  },
+  "below": {
+    "message": "下側のタブ"
+  },
+  "thisAndBelow": {
+    "message": "ここから下のタブ"
+  },
+  "above": {
+    "message": "上側のタブ"
+  },
+  "thisAndAbove": {
+    "message": "ここから上のタブ"
   },
   "notification": {
     "message": "通知"

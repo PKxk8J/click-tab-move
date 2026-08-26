@@ -126,6 +126,18 @@
   "targetGlobalThisAndLeft": {
     "message": "$1 and tabs/groups to the left"
   },
+  "targetGlobalBelow": {
+    "message": "Tabs and groups below $1"
+  },
+  "targetGlobalThisAndBelow": {
+    "message": "$1 and tabs/groups below"
+  },
+  "targetGlobalAbove": {
+    "message": "Tabs and groups above $1"
+  },
+  "targetGlobalThisAndAbove": {
+    "message": "$1 and tabs/groups above"
+  },
   "targetGlobalAll": {
     "message": "All Tabs and Groups"
   },
@@ -147,6 +159,18 @@
   "targetGroupThisAndLeft": {
     "message": "This tab and tabs to the left in the group"
   },
+  "targetGroupBelow": {
+    "message": "Tabs below this tab in the group"
+  },
+  "targetGroupThisAndBelow": {
+    "message": "This tab and tabs below in the group"
+  },
+  "targetGroupAbove": {
+    "message": "Tabs above this tab in the group"
+  },
+  "targetGroupThisAndAbove": {
+    "message": "This tab and tabs above in the group"
+  },
   "targetGroupAll": {
     "message": "All Tabs in This Group"
   },
@@ -167,6 +191,18 @@
   },
   "menuItem_global_thisAndLeft": {
     "message": "Clicked tab/group and tabs/groups to the left"
+  },
+  "menuItem_global_below": {
+    "message": "Tabs/groups below the clicked tab/group"
+  },
+  "menuItem_global_thisAndBelow": {
+    "message": "Clicked tab/group and tabs/groups below"
+  },
+  "menuItem_global_above": {
+    "message": "Tabs/groups above the clicked tab/group"
+  },
+  "menuItem_global_thisAndAbove": {
+    "message": "Clicked tab/group and tabs/groups above"
   },
   "menuItem_global_all": {
     "message": "All tabs/groups"
@@ -212,6 +248,18 @@
   },
   "thisAndLeft": {
     "message": "This and Left Tabs"
+  },
+  "below": {
+    "message": "Tabs Below"
+  },
+  "thisAndBelow": {
+    "message": "This and Tabs Below"
+  },
+  "above": {
+    "message": "Tabs Above"
+  },
+  "thisAndAbove": {
+    "message": "This and Tabs Above"
   },
   "notification": {
     "message": "Notification"

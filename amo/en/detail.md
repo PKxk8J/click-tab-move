@@ -1,7 +1,6 @@
 # Summary
 
-When tabs and tab groups pile up, move them easily to another window or group.
-Choose what to move, including the clicked tab, all tabs, tabs on the right, tabs selected in the tab bar, or tabs checked in the selection window.
+Move tabs and tab groups to another window or group. Choose the clicked tab, all tabs, tabs to either side (or above/below with vertical tabs), selected tabs, or tabs checked in the selection window.
 
 # Description
 
@@ -11,8 +10,8 @@ Use it when you want to group tabs together, merge multiple windows, move select
 You can move:
 
 - The clicked tab or the clicked tab group
-- Tabs and groups to the right or left of the clicked tab or group
-- The clicked tab or group, plus all tabs and groups to the right or left
+- Tabs and groups to the right or left of the clicked tab or group, or below or above it with vertical tabs
+- The clicked tab or group, plus all tabs and groups to the right or left, or below or above with vertical tabs
 - All tabs and groups in the window
 - Tabs selected in the tab bar
 - Tabs and groups checked in the selection window
@@ -41,6 +40,7 @@ When notifications are enabled, they can show progress and completion results.
 ## Privacy
 
 ClickTabMove uses tab access to move tabs, tab groups, pinned tabs, and split view tabs.
+It reads the vertical-tabs setting to use direction labels that match the tab layout.
 It does not collect or send browsing data.
 
 # Caption
