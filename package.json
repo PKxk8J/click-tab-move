@@ -21,6 +21,6 @@
     "eslint": "^10.9.1",
     "geckodriver": "^6.1.1",
     "selenium-webdriver": "^4.47.0",
-    "web-ext": "^10.6.0"
+    "web-ext": "^10.8.0"
   }
 }
