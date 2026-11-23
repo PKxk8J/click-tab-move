@@ -297,6 +297,7 @@ function hasVisibleMenuIdPrefix (prefix) {
 test('load rebuilds menu', async () => {
   assert.ok(state.menuItems.has('move'))
   assert.notEqual(state.menuItems.get('move').visible, false)
+  assert.equal(state.menuItems.get('move').title, 'move (&M)')
   assert.deepEqual(getAllChildIds('move'), [
     'entry:global:one',
     'flatTarget:global:one:newWindow',
@@ -329,7 +330,7 @@ test('menu shown waits for an in-progress menu rebuild', async () => {
   releaseStorage()
   await Promise.all([rebuildPromise, showPromise])
 
-  assert.equal(state.menuItems.get('move').title, 'move: targetSubjectTab')
+  assert.equal(state.menuItems.get('move').title, 'move: targetSubjectTab (&M)')
   assert.deepEqual(getChildIds('move'), [
     'flatTarget:global:one:newWindow',
     'flatTarget:global:one:window:2',
@@ -375,15 +376,42 @@ test('single visible entry renders destinations directly under root', async () =
   await rebuildMenu()
   await showMenu(1)
 
-  assert.equal(state.menuItems.get('move').title, 'move: targetSubjectTab')
+  assert.equal(state.menuItems.get('move').title, 'move: targetSubjectTab (&M)')
   assert.equal(state.menuItems.get('entry:global:one').visible, false)
   assert.deepEqual(getChildIds('move'), [
     'flatTarget:global:one:newWindow',
     'flatTarget:global:one:window:2',
     'flatTarget:global:one:newGroup',
   ])
+  assert.deepEqual(getChildIds('move').map((id) => state.menuItems.get(id).title), [
+    'newWindow (&W)',
+    'windowEntry:2,Tab 2 (&1)',
+    'newGroup (&G)',
+  ])
   assert.equal(hasVisibleMenuIdPrefix('target:global:one:'), false)
   assert.equal(state.refreshCount, 1)
+})
+
+test('destination keys skip reserved letters and repeat after 34 entries', async () => {
+  resetState({
+    menuItems: { one: ['global'] },
+    tabs: Array.from({ length: 36 }, (_, index) => ({
+      id: index + 1,
+      windowId: index + 1,
+      index: 0,
+      active: true,
+      title: 'R&D ' + '😀'.repeat(64),
+    })),
+  })
+  await rebuildMenu()
+  await showMenu(1)
+
+  const titles = getChildIds('move').map((id) => state.menuItems.get(id).title)
+  const keys = titles.map((title) => title.match(/ \(&([A-Z0-9])\)$/)?.[1])
+  assert.equal(keys.join(''), 'W1234567890ABCDEFHIJKLMNOPQRSTUVXYZ1G')
+  assert.match(titles[1], /^windowEntry:2,R&&D 😀+\.\.\. \(&1\)$/u)
+  assert.equal(Array.from(titles[1].replace('&&', '&').replace('(&1)', '(1)')).
+    length, 64)
 })
 
 test('highlighted menu moves multiple highlighted tabs directly', async () => {
@@ -449,6 +477,10 @@ test('destinations only include the source incognito context', async () => {
     'flatTarget:global:one:newGroup',
     'flatTarget:global:one:group:30',
   ])
+  assert.equal(state.menuItems.get('flatTarget:global:one:window:3').title,
+    'windowEntry:3,Tab 3 (&1)')
+  assert.equal(state.menuItems.get('flatTarget:global:one:group:30').title,
+    'groupEntry:3,Group 30,Tab 3 (&2)')
 
   await showMenu(2)
   assert.deepEqual(getChildIds('move'), [
@@ -583,7 +615,7 @@ test('multiple visible entries render destinations under entry submenus', async 
   await rebuildMenu()
   await showMenu(1)
 
-  assert.equal(state.menuItems.get('move').title, 'move')
+  assert.equal(state.menuItems.get('move').title, 'move (&M)')
   assert.deepEqual(getChildIds('move'), [
     'entry:global:one',
     'entry:global:right',
@@ -596,7 +628,47 @@ test('multiple visible entries render destinations under entry submenus', async 
     state.menuItems.get('target:global:right:newWindow').parentId,
     'entry:global:right',
   )
+  assert.equal(state.menuItems.get('target:global:right:window:2').title,
+    'windowEntry:2,Tab 2 (&1)')
   assert.equal(hasVisibleMenuIdPrefix('flatTarget:'), false)
+})
+
+test('all visible move targets have distinct keys across both scopes', async () => {
+  resetState({
+    menuItems: {
+      one: ['global', 'group'],
+      right: ['global', 'group'],
+      thisAndRight: ['global', 'group'],
+      left: ['global', 'group'],
+      thisAndLeft: ['global', 'group'],
+      all: ['global', 'group'],
+      highlighted: ['global'],
+      select: ['global', 'group'],
+    },
+    tabs: [
+      { id: 1, windowId: 1, index: 0 },
+      { id: 2, windowId: 1, index: 1, groupId: 10, highlighted: true },
+      {
+        id: 3,
+        windowId: 1,
+        index: 2,
+        groupId: 10,
+        active: true,
+        highlighted: true,
+      },
+      { id: 4, windowId: 1, index: 3, groupId: 10 },
+      { id: 5, windowId: 1, index: 4 },
+      { id: 6, windowId: 2, index: 0, active: true },
+    ],
+  })
+  await rebuildMenu()
+  await showMenu(3)
+
+  const keys = getChildIds('move').map((id) => {
+    return state.menuItems.get(id).title.match(/ \(&([A-Z])\)$/)?.[1]
+  })
+  assert.deepEqual(keys, ['T', 'R', 'E', 'L', 'F', 'A', 'H', 'S',
+    'I', 'D', 'B', 'U', 'P', 'G', 'C'])
 })
 
 test('vertical tabs use above and below titles and recheck the setting when shown',
@@ -621,21 +693,21 @@ test('vertical tabs use above and below titles and recheck the setting when show
     await showMenu(3)
 
     assert.equal(state.menuItems.get('entry:global:right').title,
-      'targetGlobalBelow:targetSubjectGroup')
+      'targetGlobalBelow:targetSubjectGroup (&R)')
     assert.equal(state.menuItems.get('entry:global:left').title,
-      'targetGlobalAbove:targetSubjectGroup')
+      'targetGlobalAbove:targetSubjectGroup (&L)')
     assert.equal(state.menuItems.get('entry:group:right').title,
-      'targetGroupBelow')
+      'targetGroupBelow (&D)')
     assert.equal(state.menuItems.get('entry:group:left').title,
-      'targetGroupAbove')
+      'targetGroupAbove (&U)')
 
     state.verticalTabsEnabled = false
     await showMenu(3)
 
     assert.equal(state.menuItems.get('entry:global:right').title,
-      'targetGlobalRight:targetSubjectGroup')
+      'targetGlobalRight:targetSubjectGroup (&R)')
     assert.equal(state.menuItems.get('entry:group:left').title,
-      'targetGroupLeft')
+      'targetGroupLeft (&U)')
   })
 
 test('menu shown rebuild clears the previous dynamic layout', async () => {

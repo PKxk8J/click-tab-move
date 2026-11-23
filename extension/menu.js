@@ -56,7 +56,35 @@ const {
   windows,
 } = browser
 
-const ITEM_LENGTH = 64
+// Leave four characters for the displayed access key in the 64-character title.
+const DESTINATION_TITLE_LENGTH = 60
+const MOVE_ACCESS_KEY = 'M'
+const ENTRY_ACCESS_KEYS = {
+  [KEY_TARGET_GLOBAL]: {
+    [KEY_ONE]: 'T',
+    [KEY_RIGHT]: 'R',
+    [KEY_THIS_AND_RIGHT]: 'E',
+    [KEY_LEFT]: 'L',
+    [KEY_THIS_AND_LEFT]: 'F',
+    [KEY_ALL]: 'A',
+    [KEY_HIGHLIGHTED]: 'H',
+    [KEY_SELECT]: 'S',
+  },
+  [KEY_TARGET_GROUP]: {
+    [KEY_ONE]: 'I',
+    [KEY_RIGHT]: 'D',
+    [KEY_THIS_AND_RIGHT]: 'B',
+    [KEY_LEFT]: 'U',
+    [KEY_THIS_AND_LEFT]: 'P',
+    [KEY_ALL]: 'G',
+    [KEY_SELECT]: 'C',
+  },
+}
+const NEW_DESTINATION_ACCESS_KEYS = {
+  newWindow: 'W',
+  newGroup: 'G',
+}
+const EXISTING_DESTINATION_ACCESS_KEYS = '1234567890ABCDEFHIJKLMNOPQRSTUVXYZ'
 
 let rebuildMenuPromise
 let rebuildMenuRequested = false
@@ -69,11 +97,16 @@ let destinationEntries = {
 let currentMenuItemIds = []
 let verticalTabsEnabled = false
 
-function cut (text, length) {
-  if (text.length <= length) {
-    return text
+function cutDestinationTitle (title) {
+  const characters = Array.from(title)
+  if (characters.length > DESTINATION_TITLE_LENGTH) {
+    return characters.slice(0, DESTINATION_TITLE_LENGTH - 3).join('') + '...'
   }
-  return text.substring(0, length) + '...'
+  return title
+}
+
+function getMenuTitle (title, accessKey) {
+  return title.replaceAll('&', '&&') + ' (&' + accessKey + ')'
 }
 
 function sortTabsByWindowAndIndex (tabList) {
@@ -209,8 +242,15 @@ function getEntryTitle (entry, targetTab) {
   return title
 }
 
-function getSingleEntryMenuTitle (entry, targetTab) {
-  return i18n.getMessage(KEY_MOVE) + ': ' + getEntryTitle(entry, targetTab)
+function getMoveMenuTitle (entryTitle) {
+  const title = i18n.getMessage(KEY_MOVE)
+  return getMenuTitle(entryTitle ? title + ': ' + entryTitle : title,
+    MOVE_ACCESS_KEY)
+}
+
+function getEntryMenuTitle (entry, targetTab) {
+  return getMenuTitle(getEntryTitle(entry, targetTab),
+    ENTRY_ACCESS_KEYS[entry.scope][entry.key])
 }
 
 function createMenuItem (properties) {
@@ -288,14 +328,15 @@ async function getHighlightedTargetTabIds (targetTab) {
 }
 
 function getWindowEntryTitle (tab) {
-  return cut(i18n.getMessage('windowEntry', [tab.windowId, tab.title]),
-    ITEM_LENGTH)
+  const title = i18n.getMessage('windowEntry', [tab.windowId, tab.title])
+  return cutDestinationTitle(title)
 }
 
 function getGroupEntryTitle (group) {
   const groupTitle = group.title || ''
-  return cut(i18n.getMessage('groupEntry',
-    [group.windowId, groupTitle, group.firstTabTitle]), ITEM_LENGTH)
+  const title = i18n.getMessage('groupEntry',
+    [group.windowId, groupTitle, group.firstTabTitle])
+  return cutDestinationTitle(title)
 }
 
 async function getGroupEntries (selectWindowId, normalWindowIds) {
@@ -404,9 +445,7 @@ async function createStaticMenuItems (entries, destinations, contexts) {
     const entryMenuId = getEntryMenuId(entry.scope, entry.key)
     await createManagedMenuItem({
       id: entryMenuId,
-      title: i18n.getMessage(getDirectionMessageKey(
-        entry.key, verticalTabsEnabled,
-      )),
+      title: getEntryMenuTitle(entry, {}),
       contexts,
       parentId: KEY_MOVE,
       visible: false,
@@ -445,7 +484,7 @@ async function rebuildMenu () {
 
   await createMenuItem({
     id: KEY_MOVE,
-    title: i18n.getMessage(KEY_MOVE),
+    title: getMoveMenuTitle(),
     contexts,
   })
   await createStaticMenuItems(entries, getAllDestinations(), contexts)
@@ -595,10 +634,17 @@ function isDestinationVisible (entry, destination, summary, selectWindowId) {
 }
 
 async function updateDestinationMenuItems (entry, destinations, getMenuId) {
+  const accessKeys = EXISTING_DESTINATION_ACCESS_KEYS
+  let existingDestinationIndex = 0
   for (const destination of destinations) {
+    let accessKey = NEW_DESTINATION_ACCESS_KEYS[destination.type]
+    if (!accessKey) {
+      accessKey = accessKeys[existingDestinationIndex % accessKeys.length]
+      existingDestinationIndex += 1
+    }
     await updateMenuItem(getMenuId(entry.scope, entry.key, destination), {
       visible: true,
-      title: destination.title,
+      title: getMenuTitle(destination.title, accessKey),
     })
   }
 }
@@ -619,7 +665,7 @@ async function renderCurrentMenuItems (targetTab, visibleEntries) {
     const entryMenuId = getEntryMenuId(entry.scope, entry.key)
     await updateMenuItem(entryMenuId, {
       visible: true,
-      title: getEntryTitle(entry, targetTab),
+      title: getEntryMenuTitle(entry, targetTab),
     })
     await updateDestinationMenuItems(entry, destinations, getDestinationMenuId)
   }
@@ -651,11 +697,12 @@ async function handleMenuShown (info, tab) {
     }
   }
 
+  const singleEntryTitle = visibleEntries.length === 1
+    ? getEntryTitle(visibleEntries[0].entry, targetTab)
+    : undefined
   await updateMenuItem(KEY_MOVE, {
     visible: visibleEntries.length > 0,
-    title: visibleEntries.length === 1
-      ? getSingleEntryMenuTitle(visibleEntries[0].entry, targetTab)
-      : i18n.getMessage(KEY_MOVE),
+    title: getMoveMenuTitle(singleEntryTitle),
   })
   await renderCurrentMenuItems(targetTab, visibleEntries)
   await menus.refresh()

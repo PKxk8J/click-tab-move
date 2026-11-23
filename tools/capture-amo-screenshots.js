@@ -810,9 +810,10 @@ async function captureMenuScreenshot ({ shallow, path, cropName, fallbackCrop })
       height: 780,
     })
     await driver.sleep(500)
+    const { move, thisGroup } = SCREENSHOT_LOCALE.labels
     const topMatcher = shallow
-      ? createLabelMatcher({ prefix: SCREENSHOT_LOCALE.labels.move + ': ' })
-      : createLabelMatcher({ exact: SCREENSHOT_LOCALE.labels.move })
+      ? createLabelMatcher({ prefix: move + ': ' })
+      : createLabelMatcher({ exact: move + ' (M)' })
 
     await openSelectedTabContextMenu()
     if (shallow) {
@@ -820,7 +821,7 @@ async function captureMenuScreenshot ({ shallow, path, cropName, fallbackCrop })
     } else {
       await hoverChromeMenuItem(topMatcher)
       await hoverChromeMenuItem(createLabelMatcher({
-        exact: SCREENSHOT_LOCALE.labels.thisGroup,
+        exact: thisGroup + ' (T)',
       }))
     }
     await driver.sleep(500)
