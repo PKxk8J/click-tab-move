@@ -768,6 +768,14 @@ async function prepareMenuCapture ({ shallow }) {
         })
       }
     }
+    const destinationTitlesReady = await waitUntil(async () => {
+      const tabs = await browser.tabs.query({ windowId: targetWindow.id })
+      const titles = tabs.map(tab => tab.title)
+      return args[0].destinationTitles.every(title => titles.includes(title))
+    })
+    if (!destinationTitlesReady) {
+      throw new Error('Menu destination tabs did not load their titles')
+    }
     await browser.windows.update(sourceTab.windowId, { focused: true })
     await wait(600)
     return {
@@ -778,6 +786,10 @@ async function prepareMenuCapture ({ shallow }) {
     archive: pageUrl(SCREENSHOT_LOCALE.tabs.archive),
     archiveGroup: SCREENSHOT_LOCALE.groups.archive,
     destination: pageUrl(SCREENSHOT_LOCALE.tabs.destination),
+    destinationTitles: [
+      SCREENSHOT_LOCALE.tabs.destination,
+      SCREENSHOT_LOCALE.tabs.archive,
+    ],
     researchGroup: SCREENSHOT_LOCALE.groups.research,
     shallow,
   })
@@ -810,9 +822,10 @@ async function captureMenuScreenshot ({ shallow, path, cropName, fallbackCrop })
       height: 780,
     })
     await driver.sleep(500)
+    const { move, thisGroup } = SCREENSHOT_LOCALE.labels
     const topMatcher = shallow
-      ? createLabelMatcher({ prefix: SCREENSHOT_LOCALE.labels.move + ': ' })
-      : createLabelMatcher({ exact: SCREENSHOT_LOCALE.labels.move })
+      ? createLabelMatcher({ prefix: move + ': ' })
+      : createLabelMatcher({ exact: move + ' (M)' })
 
     await openSelectedTabContextMenu()
     if (shallow) {
@@ -820,7 +833,7 @@ async function captureMenuScreenshot ({ shallow, path, cropName, fallbackCrop })
     } else {
       await hoverChromeMenuItem(topMatcher)
       await hoverChromeMenuItem(createLabelMatcher({
-        exact: SCREENSHOT_LOCALE.labels.thisGroup,
+        exact: thisGroup + ' (T)',
       }))
     }
     await driver.sleep(500)
@@ -882,6 +895,9 @@ async function captureNotificationScreenshot () {
 
   await clearStorage()
   await ensureNotificationPermission()
+  await driver.manage().window().maximize()
+  await driver.get(pageUrl(SCREENSHOT_LOCALE.tabs.source))
+  const crop = await getNotificationCrop()
   await runExtensionScript(`
     const sourceTabs = []
     let targetWindow
@@ -923,8 +939,7 @@ async function captureNotificationScreenshot () {
     target: pageUrl(SCREENSHOT_LOCALE.tabs.notificationTarget),
   })
 
-  await captureScreenCrop(screenshotPath('notification'),
-    await getNotificationCrop())
+  await captureScreenCrop(screenshotPath('notification'), crop)
 }
 
 async function main () {
